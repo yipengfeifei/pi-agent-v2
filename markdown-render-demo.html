@@ -1,0 +1,558 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Markdown 渲染对比 Demo — 现状 vs 增强</title>
+<style>
+/* ============ 主题变量（照抄 globals.css） ============ */
+:root {
+  --bg: #1a1a1a;
+  --bg-panel: #242424;
+  --bg-secondary: #20262f;
+  --bg-hover: #2e2e2e;
+  --bg-selected: #383838;
+  --border: #3a3a3a;
+  --border-strong: #4a4a4a;
+  --text: #e8e8e8;
+  --text-muted: #9ca3af;
+  --text-dim: #6b7280;
+  --accent: #60a5fa;
+  --accent-hover: #93c5fd;
+  --user-bg: #1e293b;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-sans: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --radius-panel: 18px;
+  --radius-control: 12px;
+}
+
+* { box-sizing: border-box; }
+html, body { margin: 0; height: 100%; }
+body {
+  background: #121212;
+  color: var(--text);
+  font: 14px/1.6 var(--font-sans);
+  padding: 24px;
+}
+
+/* ============ 顶部说明 ============ */
+.demo-header { max-width: 1400px; margin: 0 auto 20px; }
+.demo-header h1 { font-size: 18px; margin: 0 0 6px; }
+.demo-header p { margin: 0 0 4px; color: var(--text-muted); font-size: 13px; }
+.demo-header code { background: #262b33; padding: 1px 6px; border-radius: 4px; font-size: 12px; }
+
+/* ============ 双栏对比 ============ */
+.compare {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 20px;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+@media (max-width: 1000px) { .compare { grid-template-columns: 1fr; } }
+
+.pane {
+  background: var(--bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-panel);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+.pane-tag {
+  padding: 8px 16px;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+.pane.now .pane-tag { color: #f87171; background: rgba(248,113,113,0.06); }
+.pane.new .pane-tag { color: #4ade80; background: rgba(74,222,128,0.06); }
+.pane-tag .hint { color: var(--text-dim); font-weight: 400; }
+.pane-scroll { padding: 16px; overflow-y: auto; }
+
+/* ============ 消息气泡 ============ */
+.msg { max-width: 100%; }
+.msg.user {
+  background: var(--user-bg);
+  border: 1px solid var(--border);
+  border-radius: 14px 14px 4px 14px;
+  padding: 10px 14px;
+  margin: 0 0 10px;
+  align-self: flex-end;
+}
+.msg.assistant {
+  background: var(--bg-panel);
+  border: 1px solid var(--border);
+  border-radius: 14px 14px 14px 4px;
+  padding: 14px 16px;
+}
+.msg-role { font-size: 11px; color: var(--text-dim); margin-bottom: 6px; font-weight: 600; letter-spacing: 0.05em; }
+
+/* ================================================================
+   左栏：现状渲染（还原当前 globals.css .markdown-body）
+   ================================================================ */
+.now .markdown-body {
+  font-size: 13.5px;
+  line-height: 1.6;
+  color: var(--text);
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+.now .markdown-body p { margin: 0 0 5px; }
+.now .markdown-body p:last-child { margin-bottom: 0; }
+.now .markdown-body h1, .now .markdown-body h2, .now .markdown-body h3,
+.now .markdown-body h4, .now .markdown-body h5, .now .markdown-body h6 {
+  font-weight: 700;
+  margin: 9px 0 4px;
+  color: var(--text);
+  line-height: 1.3;
+}
+.now .markdown-body h1 { font-size: 1.3em; }
+.now .markdown-body h2 { font-size: 1.15em; }
+.now .markdown-body h3 { font-size: 1.02em; }
+.now .markdown-body ul, .now .markdown-body ol { padding-left: 22px; margin: 3px 0 6px; }
+.now .markdown-body li { margin: 1px 0; }
+.now .markdown-body ul > li { list-style-type: disc; }
+.now .markdown-body ol > li { list-style-type: decimal; }
+.now .markdown-body li > p { margin: 0; }
+.now .markdown-body a { color: var(--accent); text-decoration: underline; }
+.now .markdown-body blockquote {
+  border-left: 3px solid var(--border-strong);
+  margin: 4px 0;
+  padding: 2px 12px;
+  color: var(--text-muted);
+}
+.now .markdown-body table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 13px; }
+.now .markdown-body th, .now .markdown-body td { border: 1px solid var(--border); padding: 5px 10px; text-align: left; }
+.now .markdown-body th { background: var(--bg-panel); font-weight: 600; }
+.now .markdown-body hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
+.now .markdown-body pre {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: #101418;
+  margin: 6px 0;
+  padding: 10px 12px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  overflow-x: auto;
+}
+.now .markdown-body code { background: #262b33; font-family: var(--font-mono); font-size: 12px; padding: 1px 4px; border-radius: 3px; }
+.now .markdown-body pre code { background: none; padding: 0; }
+.now .markdown-body details { border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; margin: 6px 0; }
+
+/* ================================================================
+   右栏：增强后
+   ================================================================ */
+.new .markdown-body {
+  font-size: 13.5px;
+  line-height: 1.65;
+  color: var(--text);
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+.new .markdown-body p { margin: 0 0 6px; }
+.new .markdown-body p:last-child { margin-bottom: 0; }
+
+/* --- 标题层级：h1 大标题+底线；h2 section 头（accent 左条）；h3 编号点；h4 小标签 --- */
+.new .markdown-body h1 {
+  font-size: 1.42em;
+  font-weight: 700;
+  margin: 4px 0 12px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid var(--border-strong);
+  letter-spacing: -0.01em;
+}
+.new .markdown-body h2 {
+  font-size: 1.16em;
+  font-weight: 700;
+  margin: 16px 0 8px;
+  padding: 2px 0 2px 10px;
+  border-left: 3px solid var(--accent);
+  border-radius: 2px;
+  line-height: 1.35;
+  color: #dbeafe;
+}
+.new .markdown-body h3 {
+  font-size: 1.02em;
+  font-weight: 600;
+  margin: 12px 0 5px;
+  padding-left: 14px;
+  position: relative;
+  color: var(--text);
+}
+.new .markdown-body h3::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-hover);
+}
+.new .markdown-body h4 {
+  font-size: 0.92em;
+  font-weight: 600;
+  margin: 10px 0 4px;
+  color: var(--text-muted);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+/* --- 列表：accent 标记点 / 编号加粗 --- */
+.new .markdown-body ul, .new .markdown-body ol { padding-left: 22px; margin: 4px 0 8px; }
+.new .markdown-body li { margin: 2px 0; }
+.new .markdown-body ul > li { list-style: none; position: relative; padding-left: 4px; }
+.new .markdown-body ul > li::before {
+  content: "";
+  position: absolute;
+  left: -14px;
+  top: 0.62em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
+  opacity: 0.85;
+}
+.new .markdown-body ol { list-style: none; counter-reset: item; }
+.new .markdown-body ol > li { counter-increment: item; position: relative; padding-left: 2px; }
+.new .markdown-body ol > li::before {
+  content: counter(item);
+  position: absolute;
+  left: -20px;
+  top: 0.12em;
+  width: 15px;
+  height: 15px;
+  border-radius: 4px;
+  background: rgba(96,165,250,0.15);
+  color: var(--accent-hover);
+  font-size: 10.5px;
+  font-weight: 700;
+  text-align: center;
+  line-height: 15px;
+}
+.new .markdown-body li > p { margin: 0; }
+
+/* --- 链接 --- */
+.new .markdown-body a { color: var(--accent); text-decoration: none; border-bottom: 1px solid rgba(96,165,250,0.35); }
+.new .markdown-body a:hover { color: var(--accent-hover); border-bottom-color: var(--accent-hover); }
+
+/* --- Callout（GitHub Alert 语法渲染结果）：彩色卡片 --- */
+.new .markdown-body blockquote {
+  margin: 8px 0;
+  padding: 9px 12px 9px 14px;
+  border-radius: var(--radius-control);
+  border: 1px solid var(--border);
+  border-left: 3px solid var(--accent);
+  background: rgba(96,165,250,0.08);
+  color: var(--text);
+}
+.new .markdown-body blockquote p { margin: 2px 0; }
+.new .markdown-body blockquote .callout-title { display: block; font-weight: 700; margin-bottom: 2px; font-size: 12.5px; }
+
+/* 各类型变色：demo 用手写 class 模拟 rehype 插件输出 */
+.new .markdown-body blockquote.note { border-left-color: #60a5fa; background: rgba(96,165,250,0.09); }
+.new .markdown-body blockquote.note .callout-title { color: #93c5fd; }
+.new .markdown-body blockquote.warning { border-left-color: #fbbf24; background: rgba(251,191,36,0.08); }
+.new .markdown-body blockquote.warning .callout-title { color: #fcd34d; }
+.new .markdown-body blockquote.tip { border-left-color: #34d399; background: rgba(52,211,153,0.08); }
+.new .markdown-body blockquote.tip .callout-title { color: #6ee7b7; }
+.new .markdown-body blockquote.important { border-left-color: #f87171; background: rgba(248,113,113,0.08); }
+.new .markdown-body blockquote.important .callout-title { color: #fca5a5; }
+
+/* --- 结论卡（research 专用，自定 class） --- */
+.new .markdown-body .conclusion {
+  margin: 10px 0;
+  padding: 10px 14px;
+  border-radius: var(--radius-control);
+  border: 1px solid rgba(96,165,250,0.3);
+  background: linear-gradient(135deg, rgba(96,165,250,0.12), rgba(96,165,250,0.04));
+}
+.new .markdown-body .conclusion .conclusion-title { font-weight: 700; color: var(--accent-hover); font-size: 12.5px; margin-bottom: 3px; }
+.new .markdown-body .conclusion p { margin: 2px 0; }
+
+/* --- hr：轮次分区隔断，中间菱形 --- */
+.new .markdown-body hr {
+  border: none;
+  height: 1px;
+  margin: 18px 0;
+  background: linear-gradient(90deg, transparent, var(--border-strong) 20%, var(--border-strong) 80%, transparent);
+  position: relative;
+}
+.new .markdown-body hr::after {
+  content: "◆";
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  transform: translate(-50%, -50%);
+  background: var(--bg-panel);
+  color: var(--accent);
+  font-size: 9px;
+  padding: 0 8px;
+}
+
+/* --- 表格：圆角容器 + 斑马纹 + hover --- */
+.new .markdown-body table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  margin: 8px 0 12px;
+  font-size: 13px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.new .markdown-body th, .new .markdown-body td {
+  padding: 6px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+  border-right: 1px solid var(--border);
+}
+.new .markdown-body th:last-child, .new .markdown-body td:last-child { border-right: none; }
+.new .markdown-body tr:last-child td { border-bottom: none; }
+.new .markdown-body th { background: var(--bg-selected); font-weight: 600; color: #dbeafe; }
+.new .markdown-body tbody tr:nth-child(even) { background: rgba(255,255,255,0.025); }
+.new .markdown-body tbody tr:hover { background: rgba(96,165,250,0.06); }
+.new .markdown-body td:first-child { color: var(--text-muted); white-space: nowrap; }
+
+/* --- 行内 code / 代码块 --- */
+.new .markdown-body code {
+  background: #262b33;
+  border: 1px solid rgba(255,255,255,0.07);
+  padding: 1px 5px;
+  border-radius: 5px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: #f0abfc;
+}
+.new .markdown-body pre {
+  border: 1px solid var(--border);
+  border-radius: var(--radius-control);
+  background: #101418;
+  margin: 8px 0;
+  padding: 12px 14px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+  overflow-x: auto;
+}
+.new .markdown-body pre code { background: none; border: none; padding: 0; color: var(--text); }
+
+/* --- 折叠（progressive disclosure）：来源/证据明细 --- */
+.new .markdown-body details {
+  margin: 8px 0;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: rgba(255,255,255,0.02);
+  overflow: hidden;
+}
+.new .markdown-body summary {
+  cursor: pointer;
+  padding: 7px 12px;
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--accent-hover);
+  list-style: none;
+  user-select: none;
+}
+.new .markdown-body summary::-webkit-details-marker { display: none; }
+.new .markdown-body summary::before { content: "▸ "; color: var(--accent); transition: transform 0.15s; }
+.new .markdown-body details[open] summary::before { content: "▾ "; }
+.new .markdown-body summary:hover { background: rgba(96,165,250,0.06); }
+.new .markdown-body details .details-body { padding: 2px 14px 10px; border-top: 1px solid var(--border); }
+
+/* --- 强调 --- */
+.new .markdown-body strong { font-weight: 700; color: #fff; }
+.new .markdown-body em { color: var(--accent-hover); font-style: normal; font-weight: 600; }
+
+/* --- 来源引用行 --- */
+.new .source-ref { font-size: 12px; color: var(--text-dim); margin-top: 10px; border-top: 1px dashed var(--border); padding-top: 8px; }
+.new .source-ref a { color: var(--text-muted); }
+.new .source-ref a:hover { color: var(--accent-hover); }
+</style>
+</head>
+<body>
+
+<div class="demo-header">
+  <h1>Markdown 消息流渲染 — 现状 vs 增强</h1>
+  <p>同一段内容（模拟 research 输出结构：轮次分区 / 分组观点 / callout / 表格 / 折叠证据）。左栏=当前渲染，右栏=增强方案。</p>
+  <p>增强点：<code>h2 左色条 section 头</code> <code>h3 编号圆点</code> <code>&gt; [!note] 彩色 callout</code> <code>hr 轮次菱形分隔</code> <code>表格圆角+斑马纹</code> <code>结论卡</code> <code>折叠证据</code></p>
+</div>
+
+<div class="compare">
+
+<!-- ==================== 左栏：现状 ==================== -->
+<div class="pane now">
+  <div class="pane-tag">现状渲染 <span class="hint">globals.css 当前 .markdown-body</span></div>
+  <div class="pane-scroll">
+    <div class="msg user">
+      <div class="msg-role">YOU</div>
+      评估一下解压玩具类目（fidget）要不要进 TikTok 美区，给结论。
+    </div>
+    <div class="msg assistant">
+      <div class="msg-role">ASSISTANT · research 引擎输出</div>
+      <div class="markdown-body">
+        <h1>解压玩具类目调研总结（TikTok 美区）</h1>
+
+        <h2>一、类目规模判定</h2>
+        <p>TikTok 美区 <code>#fidget</code> 话题播放量高位，低价冲动类目（$5–20）流量仍大，但竞争已进入红海。</p>
+        <blockquote>
+          <p>结论：类目成立但竞争已红海，入场窗口取决于差异化，而非流量红利。</p>
+        </blockquote>
+
+        <h3>1.1 需求端</h3>
+        <ul>
+          <li><code>#fidget</code> 标签播放量 <strong>128B+</strong>、<code>#squishy</code> 42B+（截至 2026-07）</li>
+          <li>用户画像：18–34 女性为主，解压属性叠加"桌面装饰"心智</li>
+          <li>短视频爆量率：近 90 天头部视频 >500 万播放占比上升</li>
+        </ul>
+
+        <h3>1.2 供给侧</h3>
+        <table>
+          <thead><tr><th>指标</th><th>数据</th><th>备注</th></tr></thead>
+          <tbody>
+            <tr><td>1688 价格带</td><td>¥3–8</td><td>不含空运头程</td></tr>
+            <tr><td>头部达人佣金</td><td>15–25%</td><td>美区联盟标准</td></tr>
+            <tr><td>在售 SKU 密度</td><td>高（同质化严重）</td><td>多为爆款仿款</td></tr>
+          </tbody>
+        </table>
+
+        <h2>二、毛利核算（$ 计）</h2>
+        <p>客单价 $9.99，1688 ¥5，摊薄后毛利 ≈ <strong>47%</strong>：</p>
+        <table>
+          <thead><tr><th>项目</th><th>金额</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td>售价</td><td>$9.99</td><td>冲动价位</td></tr>
+            <tr><td>商品成本</td><td>$0.70</td><td>¥5 按 7.2 汇率</td></tr>
+            <tr><td>物流（海小包）</td><td>$2.10</td><td>深圳→美西</td></tr>
+            <tr><td>平台佣金</td><td>$1.80</td><td>18%</td></tr>
+            <tr><td>CPA</td><td>$3.00</td><td>素材导向，摊薄</td></tr>
+          </tbody>
+        </table>
+        <blockquote>
+          <p>口径冲突：上表 CPA 按爆量摊薄计；首单 CPA 实测 $5–8，回本周期 2–3 单。</p>
+        </blockquote>
+
+        <hr>
+
+        <h2>Round 2 · 反证检查</h2>
+        <ul>
+          <li>反证 1：冲动购买退货率高，塑料件破损客诉集中</li>
+          <li>反证 2：达人报价 6 月起上涨约 30%</li>
+          <li>反证 3：1688 同款搜到 40+ 家同价竞争</li>
+        </ul>
+
+        <details>
+          <summary>证据明细（点击展开）</summary>
+          <p>标签播放量来源：FastMoss 2026-07 抓取；退货率来自 3 个同类卖家访谈；达人报价来自 5 份 2026-06 后报价单。</p>
+        </details>
+
+        <h2>三、结论与下一步</h2>
+        <ol>
+          <li>条件式入场：先测 3 款差异化 SKU（光效/组合装）</li>
+          <li>若 2 周 CPA &gt; $6 → 止损退出</li>
+          <li>用 skill 沉淀本次判断，后续同类任务直接复用</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 右栏：增强后 ==================== -->
+<div class="pane new">
+  <div class="pane-tag">增强后 <span class="hint">h2 section 头 + callout + 折叠 + 分区</span></div>
+  <div class="pane-scroll">
+    <div class="msg user">
+      <div class="msg-role">YOU</div>
+      评估一下解压玩具类目（fidget）要不要进 TikTok 美区，给结论。
+    </div>
+    <div class="msg assistant">
+      <div class="msg-role">ASSISTANT · research 引擎输出</div>
+      <div class="markdown-body">
+        <h1>解压玩具类目调研总结（TikTok 美区）</h1>
+
+        <h2>一、类目规模判定</h2>
+        <p>TikTok 美区 <code>#fidget</code> 话题播放量高位，低价冲动类目（$5–20）流量仍大，但竞争已进入红海。</p>
+        <blockquote class="note">
+          <span class="callout-title">📌 结论</span>
+          <p>类目成立但竞争已红海，入场窗口取决于差异化，而非流量红利。</p>
+        </blockquote>
+
+        <h3>1.1 需求端</h3>
+        <ul>
+          <li><code>#fidget</code> 标签播放量 <strong>128B+</strong>、<code>#squishy</code> 42B+（截至 2026-07）</li>
+          <li>用户画像：18–34 女性为主，解压属性叠加"桌面装饰"心智</li>
+          <li>短视频爆量率：近 90 天头部视频 >500 万播放占比上升</li>
+        </ul>
+
+        <h3>1.2 供给侧</h3>
+        <table>
+          <thead><tr><th>指标</th><th>数据</th><th>备注</th></tr></thead>
+          <tbody>
+            <tr><td>1688 价格带</td><td>¥3–8</td><td>不含空运头程</td></tr>
+            <tr><td>头部达人佣金</td><td>15–25%</td><td>美区联盟标准</td></tr>
+            <tr><td>在售 SKU 密度</td><td>高（同质化严重）</td><td>多为爆款仿款</td></tr>
+          </tbody>
+        </table>
+
+        <h2>二、毛利核算（$ 计）</h2>
+        <p>客单价 $9.99，1688 ¥5，摊薄后毛利 ≈ <strong>47%</strong>：</p>
+        <table>
+          <thead><tr><th>项目</th><th>金额</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td>售价</td><td>$9.99</td><td>冲动价位</td></tr>
+            <tr><td>商品成本</td><td>$0.70</td><td>¥5 按 7.2 汇率</td></tr>
+            <tr><td>物流（海小包）</td><td>$2.10</td><td>深圳→美西</td></tr>
+            <tr><td>平台佣金</td><td>$1.80</td><td>18%</td></tr>
+            <tr><td>CPA</td><td>$3.00</td><td>素材导向，摊薄</td></tr>
+          </tbody>
+        </table>
+        <blockquote class="warning">
+          <span class="callout-title">⚠️ 口径冲突</span>
+          <p>上表 CPA 按爆量摊薄计；<strong>首单 CPA 实测 $5–8</strong>，回本周期 2–3 单。</p>
+        </blockquote>
+
+        <hr>
+
+        <h2>Round 2 · 反证检查</h2>
+        <ul>
+          <li>反证 1：冲动购买退货率高，塑料件破损客诉集中</li>
+          <li>反证 2：达人报价 6 月起上涨约 30%</li>
+          <li>反证 3：1688 同款搜到 40+ 家同价竞争</li>
+        </ul>
+
+        <details>
+          <summary>证据明细（点击展开）</summary>
+          <div class="details-body">
+            <p>标签播放量来源：FastMoss 2026-07 抓取；退货率来自 3 个同类卖家访谈；达人报价来自 5 份 2026-06 后报价单。</p>
+          </div>
+        </details>
+
+        <h2>三、结论与下一步</h2>
+        <ol>
+          <li>条件式入场：先测 3 款差异化 SKU（光效/组合装）</li>
+          <li>若 2 周 CPA &gt; $6 → 止损退出</li>
+          <li>用 skill 沉淀本次判断，后续同类任务直接复用</li>
+        </ol>
+
+        <div class="conclusion">
+          <div class="conclusion-title">✅ 最终判断</div>
+          <p><strong>条件式进入</strong>：类目流量真实但毛利被 CPA 侵蚀，先小批量测差异化 SKU，跑通再放量。</p>
+        </div>
+
+        <div class="source-ref">
+          来源：<a href="#">FastMoss 标签数据</a> · <a href="#">卖家访谈 ×3</a> · <a href="#">达人报价单 ×5</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

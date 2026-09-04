@@ -1,0 +1,4 @@
+city,period_start,period_end,mean_temperature_c,min_temperature_c,max_temperature_c,sample_count
+beijing,2026-07-01,2026-07-30,32.8,22.2,41.8,120
+guangzhou,2026-07-01,2026-07-30,36.5,29.6,43.0,120
+shanghai,2026-07-01,2026-07-30,34.9,26.4,42.8,120

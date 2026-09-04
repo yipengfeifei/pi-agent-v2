@@ -1,0 +1,401 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UMa — AI-assisted China sourcing for small sellers</title>
+<style>
+  :root{
+    --canvas:#FBFBFA; --surface:#FFFFFF; --line:#EAEAEA;
+    --ink:#111111; --ink-soft:#2F3437; --muted:#787774;
+    --accent:#1F6F5C; --accent-soft:rgba(31,111,92,.12);
+    --red-ink:#9F2F2D; --maxw:1120px; --radius:18px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:-apple-system,"SF Pro Text","SF Pro Display","Helvetica Neue","PingFang SC","Noto Sans SC",sans-serif;
+    background:var(--canvas);color:var(--ink);line-height:1.6;font-size:16px;-webkit-font-smoothing:antialiased;text-wrap:pretty}
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 28px}
+  .eyebrow{font-size:12px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--accent);margin-bottom:18px}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;font-size:15.5px;font-weight:600;text-decoration:none;
+    padding:16px 24px;border-radius:10px;background:var(--ink);color:#fff;transition:transform .12s ease,background .12s ease}
+  .btn:active{transform:scale(.98)}
+  .btn.ghost{background:transparent;color:var(--ink);border:1px solid var(--line)}
+  .btn.on-dark{background:#fff;color:var(--ink)}
+  .btn.ghost.on-dark{background:transparent;color:#fff;border-color:rgba(255,255,255,.35)}
+
+  /* ---------- hero (static first impression) ---------- */
+  .hero{min-height:100dvh;display:flex;align-items:center;padding:96px 0}
+  .hero h1{font-size:clamp(42px,6.5vw,78px);font-weight:650;letter-spacing:-.035em;line-height:1.01;max-width:12ch}
+  .hero h1 .u{position:relative;white-space:nowrap}
+  .hero h1 .u::after{content:"";position:absolute;left:0;right:0;bottom:.06em;height:.16em;background:var(--accent-soft);z-index:-1}
+  .hero-sub{font-size:19px;color:var(--muted);max-width:44ch;margin:26px 0 34px}
+  .hero-actions{display:flex;gap:14px;flex-wrap:wrap}
+  .hero-proof{display:flex;gap:34px;margin-top:60px;border-top:1px solid var(--line);padding-top:24px;max-width:620px;flex-wrap:wrap}
+  .hero-proof b{display:block;font-size:20px;font-weight:650;font-variant-numeric:tabular-nums;letter-spacing:-.01em}
+  .hero-proof span{font-size:13px;color:var(--muted)}
+
+  /* ---------- scroll story ---------- */
+  .story{position:relative;height:960vh}
+  .story-inner{position:sticky;top:0;height:100vh;overflow:hidden}
+  .scene{position:absolute;inset:0;display:flex;align-items:center;opacity:0;pointer-events:none;padding:0 28px}
+  .scene .inner{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center;max-width:1120px;width:100%}
+  @media (max-width:860px){.scene .inner{grid-template-columns:1fr;gap:36px}}
+  .scene .kicker{font-size:12px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--accent);margin-bottom:16px}
+  .scene h2{font-size:clamp(28px,4vw,48px);font-weight:650;letter-spacing:-.03em;line-height:1.08;max-width:16ch}
+  .scene .sub{color:var(--muted);font-size:16.5px;max-width:42ch;margin-top:16px}
+  .scene .cite{font-size:12.5px;color:var(--muted);margin-top:22px;letter-spacing:.02em}
+  .scene .cite b{color:var(--ink);font-weight:600}
+
+  /* scene 0 — opener */
+  .s0{--p:0;text-align:left}
+  .s0 h2{font-size:clamp(38px,5.5vw,66px);max-width:13ch;opacity:calc(.4 + .6*var(--p));transform:translateY(calc((1 - var(--p))*-30px))}
+  .s0 .sub{opacity:calc(.3 + .7*var(--p));transform:translateY(calc((1 - var(--p))*-18px))}
+  .s0 .dust{position:absolute;left:55%;top:0;width:45%;height:100%;pointer-events:none;opacity:calc(var(--p)*.5);
+    font-family:"SF Mono",monospace;font-size:11px;color:#d8d8d2;line-height:2.1;letter-spacing:.1em;
+    transform:translateX(calc((1 - var(--p))*60px));overflow:hidden;text-align:right;word-break:break-all}
+
+  /* scene 1 — quote table */
+  .s1{--p:0}
+  .s1 .stage{position:relative;width:100%;max-width:520px;aspect-ratio:4/3;background:linear-gradient(160deg,#f6f6f2,#ecece5);border-radius:20px;overflow:hidden}
+  .s1 .raw{position:absolute;inset:7%;display:flex;flex-direction:column;gap:10px;opacity:calc(1 - min(1,var(--p)*1.6));transform:translateX(calc(-10px*var(--p)))}
+  .s1 .rl{font-size:11.5px;color:var(--muted);border-bottom:1px dashed #d8d8d2;padding:9px 6px;font-variant-numeric:tabular-nums;background:rgba(255,255,255,.75)}
+  .s1 .rl small{display:block;color:#b3b3ac;font-size:10px;margin-top:2px}
+  .s1 .table{position:absolute;inset:7%;background:#fff;border:1px solid var(--line);border-radius:14px;padding:14px 16px;opacity:calc(max(0,var(--p)*1.7 - .6));transform:translateY(calc((1 - var(--p))*44px))}
+  .s1 table{width:100%;border-collapse:collapse;font-size:12px;color:var(--ink-soft)}
+  .s1 th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);padding:6px 8px;border-bottom:1px solid var(--line)}
+  .s1 td{padding:8px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+  .s1 .ok{color:var(--accent);font-weight:700}.s1 .flag{color:var(--red-ink);font-weight:700}
+  .s1 .uma-row{background:#EDF3EC;font-weight:600}
+  .s1 .tA{opacity:calc(1 - min(var(--p)*2,1))}
+  .s1 .tB{opacity:calc(max(0,var(--p)*2 - 1));margin-top:-64px}
+
+  /* scene 2 — background check */
+  .s2{--p:0}
+  .s2 .stage{position:relative;width:100%;max-width:520px;aspect-ratio:4/3;background:#fff;border:1px solid var(--line);border-radius:20px;overflow:hidden}
+  .s2 .shot{position:absolute;inset:0;transform:scale(calc(1 - .16*var(--p)));opacity:calc(1 - .85*var(--p))}
+  .s2 .shot img{width:100%;height:100%;object-fit:cover;display:block}
+  .s2 .scan{position:absolute;left:0;right:0;height:120px;top:0;pointer-events:none;opacity:calc(var(--p)*.75);background:linear-gradient(180deg,transparent,rgba(31,111,92,.25),transparent);transform:translateY(calc(var(--p)*620px))}
+  .s2 .report{position:absolute;inset:8%;background:#fff;border:1px solid var(--line);border-radius:16px;padding:20px 22px;transform:translateY(calc((1 - var(--p))*90px));opacity:calc(var(--p) - .45)}
+  .s2 .report h4{font-size:14px;margin-bottom:2px;letter-spacing:-.01em}
+  .s2 .report em{display:block;font-size:10.5px;font-style:normal;color:var(--muted);margin-bottom:10px}
+  .s2 .report li{list-style:none;font-size:13px;color:var(--ink-soft);padding:10px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:10px;opacity:calc(min(1,var(--p)*3.4 - 1.6));transform:translateY(10px)}
+  .s2 .ok{color:var(--accent);font-weight:700}.s2 .warn{color:var(--red-ink);font-weight:700}
+
+  /* scene 3 — product photos */
+  .s3{--p:0}
+  .s3 .stage{position:relative;width:100%;max-width:520px;aspect-ratio:4/3;overflow:hidden}
+  .s3 .main{position:absolute;left:16%;right:16%;top:6%;bottom:32%;border-radius:18px;overflow:hidden;transform:scale(calc(.72 + .28*var(--p)));opacity:calc(var(--p) - .3);box-shadow:0 30px 60px rgba(0,0,0,.12)}
+  .s3 .main img{width:100%;height:100%;object-fit:cover;filter:grayscale(calc(.6*(1 - var(--p))))}
+  .s3 .badge{position:absolute;top:10px;left:10px;z-index:2;font-size:10.5px;font-weight:700;letter-spacing:.08em;color:#fff;background:rgba(0,0,0,.45);border-radius:9999px;padding:4px 10px}
+  .s3 .strip{position:absolute;left:10%;right:10%;bottom:-12%;display:grid;grid-template-columns:1fr 1fr;gap:12px;opacity:calc(min(1,var(--p)*2.4 - 1));transform:translateY(calc((1 - var(--p))*40px))}
+  .s3 .strip .s{aspect-ratio:4/3;border-radius:14px;overflow:hidden;border:1px solid var(--line)}
+  .s3 .strip img{width:100%;height:100%;object-fit:cover;display:block}
+
+  /* scene 4 — ad */
+  .s4{--p:0}
+  .s4 .script{width:280px;font-family:"SF Mono","Geist Mono",monospace;font-size:13px;color:var(--ink-soft);border-left:2px solid var(--accent);padding-left:18px;line-height:2}
+  .s4 .script div{opacity:calc(min(1,var(--p)*3.2 - .6));transform:translateX(calc((1 - var(--p))*20px))}
+  .s4 .script .n{color:var(--muted);font-size:11px}
+  .s4 .frame{position:absolute;right:4%;top:50%;width:min(300px,34vw);aspect-ratio:9/16;transform:translateY(-50%) scale(calc(.6 + .4*var(--p)));opacity:calc(var(--p) - .3);border-radius:22px;overflow:hidden;background:#000;box-shadow:0 40px 80px rgba(0,0,0,.3)}
+  .s4 video{width:100%;height:100%;object-fit:cover;display:block}
+
+  /* scene 5 — dark close */
+  .s5{--p:0;background:var(--ink);color:#fff}
+  .s5 .inner{grid-template-columns:1fr 1.1fr;gap:72px}
+  .s5 h2{font-size:clamp(30px,4.2vw,52px);max-width:14ch}
+  .s5 .lp{display:flex;flex-direction:column;gap:0;border-top:1px solid rgba(255,255,255,.16);width:100%}
+  .s5 .row{display:flex;justify-content:space-between;align-items:baseline;padding:16px 2px;border-bottom:1px solid rgba(255,255,255,.16);font-size:16px;color:rgba(255,255,255,.85)}
+  .s5 .row b{font-size:22px;font-weight:650;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .s5 .row .tagc{font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--accent);margin-left:12px}
+  .s5 .ctas{display:flex;gap:14px;flex-wrap:wrap;margin-top:28px}
+  .s5 .rows-note{font-size:12.5px;color:rgba(255,255,255,.5);margin-top:16px}
+
+  /* ---------- atoms after story ---------- */
+  .quote-strip{padding:72px 0}
+  .quote-strip p{font-size:clamp(20px,3vw,28px);font-weight:500;letter-spacing:-.015em;line-height:1.35;max-width:24ch}
+  .quote-strip .src{font-size:12.5px;color:var(--muted);margin-top:14px}
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
+  @media (max-width:860px){.steps{grid-template-columns:1fr;gap:30px}}
+  .step{border-top:2px solid var(--ink);padding-top:18px}
+  .step .n{font-size:12px;font-weight:600;letter-spacing:.08em;color:var(--muted)}
+  .step h3{font-size:18px;font-weight:600;margin:8px 0 6px;letter-spacing:-.01em}
+  .step p{font-size:14.5px;color:var(--muted);max-width:34ch}
+  .convert{border-top:1px solid var(--line);padding:84px 0}
+  .convert-grid{display:grid;grid-template-columns:1.1fr .9fr;gap:64px;align-items:center}
+  @media (max-width:860px){.convert-grid{grid-template-columns:1fr;gap:36px}}
+  .convert h2{font-size:clamp(26px,3.2vw,38px);font-weight:650;letter-spacing:-.025em;line-height:1.14;margin-bottom:16px}
+  .convert p{color:var(--muted);font-size:16.5px}
+  form{display:grid;gap:14px;margin-top:10px}
+  label{font-size:13px;font-weight:600;color:var(--ink-soft)}
+  input[type=email]{font-size:16px;padding:15px 16px;border:1px solid #ddd;border-radius:10px;background:#fff}
+  input[type=email]:focus{outline:2px solid var(--accent);outline-offset:2px;border-color:transparent}
+  .form-note{font-size:12.5px;color:var(--muted)}
+  .contact{margin-top:18px;font-size:14px;color:var(--muted)}
+  .contact a{color:var(--ink);text-decoration:none;border-bottom:1px solid var(--line)}
+  footer{border-top:1px solid var(--line);padding:40px 0 56px}
+  footer .wrap{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:14px}
+  footer .brand{font-weight:650;letter-spacing:-.01em}
+  footer a{color:var(--muted);text-decoration:none;font-size:14px;margin-left:22px}
+  footer a:hover{color:var(--ink)}
+
+  /* reduced-motion fallback */
+  body.no-motion .story{height:auto}
+  body.no-motion .story-inner{position:static;height:auto;display:block}
+  body.no-motion .scene{position:relative;inset:auto;opacity:1;pointer-events:auto;min-height:100vh;padding:12vh 0}
+  body.no-motion .scene .inner{grid-template-columns:1fr 1fr;max-width:1120px;margin:0 auto}
+  @media (max-width:860px){body.no-motion .scene .inner{grid-template-columns:1fr}}
+  body.no-motion .s0 h2{transform:none;opacity:1}
+  body.no-motion .s1 .stage, body.no-motion .s2 .stage, body.no-motion .s3 .stage{aspect-ratio:auto;margin-top:20px;background:none}
+  body.no-motion .s1 .qc{opacity:1!important;position:static!important;transform:none!important;margin:6px 0}
+  body.no-motion .s1 .table, body.no-motion .s2 .report{position:static;opacity:1;transform:none;margin-top:14px}
+  body.no-motion .s3 .main{position:static;transform:none;opacity:1;margin-bottom:14px}
+  body.no-motion .s3 .strip{position:static;transform:none;opacity:1;margin-top:10px}
+  body.no-motion .s4 .frame{position:static;transform:none;opacity:1;margin:22px auto 0}
+  body.no-motion .s4 .frame video{max-height:70vh}
+  body.no-motion .s5{background:var(--ink)}
+</style>
+</head>
+<body>
+
+<!-- ============ STATIC HERO ============ -->
+<section class="hero">
+  <div class="wrap">
+    <div class="eyebrow">UMa · AI-assisted sourcing for small sellers</div>
+    <h1>Stop spending afternoons on supplier quotes.</h1>
+    <p class="hero-sub">Send us quotes, factory links, product photos — we return the table, the check, the shots and the ad. You make the call; we close the loop.</p>
+    <div class="hero-actions">
+      <a class="btn" href="#convert">Get the free quote template</a>
+      <a class="btn ghost" href="#story">Watch it work ↓</a>
+    </div>
+    <div class="hero-proof">
+      <div><b>24h</b><span>quote table turnaround</span></div>
+      <div><b>$29</b><span>from mess to decision</span></div>
+      <div><b>+146%</b><span>manufacturer-agent searches YoY</span></div>
+    </div>
+  </div>
+</section>
+
+<!-- ============ SCROLL STORY (5 acts) ============ -->
+<div class="story" id="story">
+  <div class="story-inner">
+
+    <!-- Act 0 · opener -->
+    <div class="scene s0" id="sc0">
+      <div class="inner">
+        <div>
+          <div class="kicker">The problem</div>
+          <h2>China sourcing isn't hard.<br>It's messy.</h2>
+          <p class="sub">Quotes in five formats. Factories that don't reply. Photos nobody can sell with.</p>
+        </div>
+        <div class="dust">FOB&nbsp;EXW&nbsp;DDP&nbsp;CIF&nbsp;MOQ&nbsp;TT&nbsp;QC&nbsp;FBA&nbsp;SC&nbsp;SAMPLES&nbsp;PRE-SHIP&nbsp;INSPECTION&nbsp;1688&nbsp;ALIBABA&nbsp;HS&nbsp;CODE&nbsp;TAX&nbsp;REFUND&nbsp;MSRP&nbsp;UPC&nbsp;ASIN&nbsp;PPC&nbsp;CTR&nbsp;CVR&nbsp;RMA&nbsp;LCL&nbsp;FCL&nbsp;DDP&nbsp;CIF&nbsp;FOB&nbsp;EXW&nbsp;</div>
+      </div>
+    </div>
+
+    <!-- Act 1 · quote digest -->
+    <div class="scene s1" id="sc1">
+      <div class="inner">
+        <div>
+          <div class="kicker">01 · Quote Digest</div>
+          <h2 class="tA">Five sourcing services. Five price points. One mess.</h2>
+          <h2 class="tB">One table. <span style="color:var(--accent)">$29 at our end.</span></h2>
+          <p class="sub">This is the market, measured live on Fiverr. Same job, 10–120 dollars, quality you can't compare at a glance.</p>
+          <div class="cite"><b>"Comparing quotes is turning into a bigger pain than finding suppliers."</b><br>— r/procurement, 2026</div>
+        </div>
+        <div class="stage">
+          <div class="raw">
+            <div class="rl">FOB NINGBO $2.10/PC · MOQ 1000 · 22d<small>Alpha Textile</small></div>
+            <div class="rl">EXW YIWU ¥15.8 · MOQ 2000 · 35d<small>Beta Homeware</small></div>
+            <div class="rl">CIF LOS ANGELES $2.55 · TT 30/70<small>Gamma Goods</small></div>
+            <div class="rl">DDP DOOR $2.31 INCL DUTY<small>Delta Export</small></div>
+            <div class="rl">FOB SHANGHAI $2.18 + TEST FEE 20USD<small>Epsilon Mfg</small></div>
+          </div>
+          <div class="table">
+            <table>
+              <tr><th>Provider</th><th>Price</th><th>Orders</th><th></th></tr>
+              <tr><td>Oh Shun Kai</td><td>$10</td><td>899</td><td class="ok">vol</td></tr>
+              <tr><td>Imran Khan</td><td>$15</td><td>502</td><td class="ok">ok</td></tr>
+              <tr><td>Vladimir</td><td>$50</td><td>496</td><td class="flag">no-reply</td></tr>
+              <tr><td>Areeba J.</td><td>$35</td><td>369</td><td class="ok">ok</td></tr>
+              <tr><td>Qc Calvin</td><td>$120</td><td>476</td><td class="ok">qc</td></tr>
+              <tr class="uma-row"><td>UMa (us)</td><td>$29</td><td>3 slots</td><td class="ok">full loop</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Act 2 · background check -->
+    <div class="scene s2" id="sc2">
+      <div class="inner">
+        <div>
+          <div class="kicker">02 · Background Check</div>
+          <h2>Before you wire money, see what's behind the storefront.</h2>
+          <p class="sub">A factory list isn't supply chain — a list that replies is. We verify, scan, and hand you one page of risk.</p>
+        </div>
+        <div class="stage">
+          <div class="shot"><img src="UMa-assets/02-supplier-profile.png" alt="supplier profile screenshot"></div>
+          <div class="scan"></div>
+          <div class="report">
+            <h4>Risk summary</h4>
+            <em>SAMPLE — real results after your first check</em>
+            <ul>
+              <li>Registered <span class="ok">Verified</span></li>
+              <li>Operating (years) <span class="ok">8</span></li>
+              <li>Address matches claim <span class="ok">Yes</span></li>
+              <li>Reported disputes <span class="warn">2 open</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Act 3 · product photos -->
+    <div class="scene s3" id="sc3">
+      <div class="inner">
+        <div>
+          <div class="kicker">03 · Product photos</div>
+          <h2>Your shot, brushed up for the listing.</h2>
+          <p class="sub">White-background master plus scenes — good enough for Amazon's first image, in 48h.</p>
+        </div>
+        <div class="stage">
+          <div class="main"><span class="badge">YOUR PHOTO</span><img src="UMa-assets/03-product-white.jpg" alt="product white background"></div>
+          <div class="strip">
+            <div class="s"><img src="UMa-assets/03-scene-1.jpg" alt="scene 1"></div>
+            <div class="s"><img src="UMa-assets/03-scene-2.jpg" alt="scene 2"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Act 4 · ad -->
+    <div class="scene s4" id="sc4">
+      <div class="inner">
+        <div>
+          <div class="kicker">04 · AI UGC Video Ad</div>
+          <h2>Play the ad.</h2>
+          <p class="sub">10 seconds, generated. Test creatives without a $1,200 budget.</p>
+          <div class="script" style="margin-top:26px">
+            <div><span class="n">HOOK</span> — "This thing sells out…"</div>
+            <div><span class="n">PAIN</span> — "…because nobody shows it right."</div>
+            <div><span class="n">CTA</span> — "Link in bio — before it's gone."</div>
+          </div>
+        </div>
+        <div class="frame"><video src="UMa-assets/04-ugc-video.mp4" autoplay muted loop playsinline></video></div>
+      </div>
+    </div>
+
+    <!-- Act 5 · dark close + pricing -->
+    <div class="scene s5" id="sc5">
+      <div class="inner">
+        <div>
+          <div class="kicker" style="color:var(--accent)">The loop</div>
+          <h2>Four services. One loop. You decide, we finish.</h2>
+          <p class="sub" style="color:rgba(255,255,255,.65)">Flat starter pricing while we build the first three clients — quote, check, shoot, play.</p>
+          <div class="ctas">
+            <a class="btn on-dark" href="#convert">Get the free quote template</a>
+            <a class="btn ghost on-dark" href="mailto:yipengfei07@gmail.com">Talk to us</a>
+          </div>
+        </div>
+        <div>
+          <div class="lp">
+            <div class="row"><span>Quote Digest <span class="tagc">24h</span></span><b>$29</b></div>
+            <div class="row"><span>Background Check <span class="tagc">1 day</span></span><b>$19</b></div>
+            <div class="row"><span>Product Photos (5) <span class="tagc">48h</span></span><b>$39</b></div>
+            <div class="row"><span>UGC Video Ad <span class="tagc">10s</span></span><b>$49</b></div>
+          </div>
+          <p class="rows-note">3 starter-case slots left — locked rate for early buyers, then real quotes.</p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- ============ AFTER THE STORY ============ -->
+<section class="quote-strip">
+  <div class="wrap">
+    <p style="max-width:22ch">"I got a list of 9 factories and none of them replied."</p>
+    <div class="src">— a review left on a find-a-factory service · Fiverr, Aug 2026. A list is not a loop. UMa closes it.</div>
+  </div>
+</section>
+
+<section id="how" style="padding:72px 0;border-top:1px solid var(--line)">
+  <div class="wrap">
+    <div class="eyebrow">How it works</div>
+    <div class="steps">
+      <div class="step"><div class="n">01</div><h3>Send materials</h3><p>Quotes, factory links, product photos — chat or email works.</p></div>
+      <div class="step"><div class="n">02</div><h3>AI drafts, we chase</h3><p>AI does the heavy lifting; we verify facts and follow up with the factory.</p></div>
+      <div class="step"><div class="n">03</div><h3>You approve, it's done</h3><p>You get what you can forward, print, or launch. We revise until it's right.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="convert" id="convert">
+  <div class="wrap convert-grid">
+    <div>
+      <div class="eyebrow">Free tool</div>
+      <h2>Get the quote-comparison template</h2>
+      <p>One spreadsheet: paste any supplier's quote fields, get a normalized comparison. Plus 10 bilingual negotiation scripts — yours on day one.</p>
+      <p class="contact">Prefer chat? Email <a href="mailto:yipengfei07@gmail.com">yipengfei07@gmail.com</a> or DM <a href="https://instagram.com/elephant.816346" target="_blank" rel="noopener">@elephant.816346</a>.</p>
+    </div>
+    <div>
+      <form id="lead-form" action="https://formsubmit.co/447f1f9d5d5559a872104e7de019bfca" method="POST" target="_blank">
+        <input type="hidden" name="_subject" value="[UMa] Quote template request">
+        <input type="hidden" name="_captcha" value="false">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" placeholder="you@example.com" required>
+        <button class="btn" type="submit" style="justify-content:center">Send me the template</button>
+        <p class="form-note">Hit send — every lead lands directly in your inbox, no signup needed.</p>
+      </form>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <span class="brand">UMa <span style="color:var(--accent)">·</span> AI Sourcing</span>
+    <div>
+      <a href="mailto:yipengfei07@gmail.com">yipengfei07@gmail.com</a>
+      <a href="https://instagram.com/elephant.816346" target="_blank" rel="noopener">@elephant.816346</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+(function(){
+  var story = document.getElementById('story');
+  var scenes = ['sc0','sc1','sc2','sc3','sc4','sc5'].map(function(id){return document.getElementById(id);});
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (location.search.indexOf('motion=1') >= 0) reduced = false;
+  if (reduced){ document.body.classList.add('no-motion'); scenes.forEach(function(sc){ sc.style.setProperty('--p', 1); }); return; }
+
+  function smooth(x){ return x<0?0:x>1?1:x*x*(3-2*x); } // cubic ease-in-out on visibility
+  function render(){
+    var rect = story.getBoundingClientRect();
+    var total = story.offsetHeight - window.innerHeight;
+    var scroll = Math.min(Math.max(-rect.top, 0), total);
+    var p = total > 0 ? scroll / total : 0;
+    var n = scenes.length, seg = 1/n;
+    for (var i = 0; i < n; i++){
+      var iU = i*seg;
+      // act timeline (absolute progress units; per act = seg):
+      //   fade-in  [iU-0.010, iU+0.030]  (still frame appears)
+      //   unfold   [iU+0.004, iU+0.046]  (p 0 -> 1, snappy)
+      //   HOLD     [iU+0.046, (i+1)seg-0.030] (p stays 1 — ~1 viewport of scroll)
+      //   fade-out [(i+1)seg-0.030, (i+1)seg+0.030] (crossfades into next act, no blank)
+      var vIn  = Math.min(Math.max((p - (iU - 0.010)) / 0.035, 0), 1);
+      var vOut = Math.min(Math.max(((i+1)*seg + 0.030 - p) / 0.050, 0), 1);
+      var vis = Math.min(vIn, vOut);
+      var s = Math.min(Math.max((p - (iU + 0.004)) / 0.042, 0), 1);
+      scenes[i].style.opacity = smooth(vis).toFixed(4);
+      scenes[i].style.setProperty('--p', s.toFixed(4));
+    }
+  }
+  window.addEventListener('scroll', render, {passive:true});
+  window.addEventListener('resize', render, {passive:true});
+  render();
+})();
+</script>
+</body>
+</html>

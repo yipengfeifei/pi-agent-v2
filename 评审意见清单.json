@@ -1,0 +1,217 @@
+{
+  "artifact_name": "评审意见清单",
+  "artifact_type": "plan_completeness_review",
+  "schema_version": "1.0.0",
+  "generated_at": "2026-08-08",
+  "generator_node": "analyze-judge",
+  "generator_note": "方案完整性评审：对照验收标准（预算覆盖/可落地/流程无断档/风险齐备四项成功指标）评审方案草稿 完整策划文档.json（S1-S9）。全部金额/时间/名单与上游三份物料、结构化对比表、供应商候选清单、文案材料包交叉核对，未凭空断言。本清单为下游（transform-produce / review-gate / monitor-alert / writeback-action / artifact-render）可直接消费的评审意见：每条含问题定位、严重程度、修改建议、evidence、confidence。",
+
+  "reviewed_artifact": {
+    "name": "完整策划文档.json",
+    "path": "完整策划文档.json",
+    "size_kb": 41.9,
+    "schema_valid": true,
+    "json_valid": true
+  },
+  "upstream_materials_consumed": [
+    "婚礼主题与预算分配方案.json（预算 master_table/other_breakdown/scenarios、G 门、B1-B4、R1-R7）",
+    "推荐组合与风险预案.json（场地比选、supplier_shortlist、R8/R9/R10、B 优先级）",
+    "倒计时清单与婚礼日时间表.json（18 任务/15 时段/16 角色、variants、placeholders）",
+    "供应商候选清单.json（原始调研、as_of 2025Q1-2026Q2）",
+    "结构化对比表.json（22 场地 + 7 品类 canonical 价格口径、CF-01~06 冲突）",
+    "data/文案材料包.json（请柬/台本/串词/誓词草稿）",
+    "data/婚礼策略框架.md + data/婚礼规划.md（旧版框架，用于判定文案材料包归属）",
+    "验收结论与修订意见.json（上轮 review-gate 的 CONDITIONAL_PASS 与 REV-01~04）"
+  ],
+
+  "verdict": "CONDITIONAL_PASS（带修订通过）——四项成功指标算术与结构均达标（与上轮 gate 结论一致），但完整性评审发现 1 项高影响模块缺口（文案供应链与主题错配）与 4 项新缺口（请柬→RSVP 窗口、伴手礼缺预算项、应急金多重占用+雨备成本未量化、婚纱照锚点口径冲突）。放行门槛：下游消费前落实本清单 J-01~J-05 的修订项，J-06~J-11 为顺手修订不阻断。",
+  "confidence": {
+    "overall": "high",
+    "basis": "预算算术、日期倒排、任务数、时段数、角色数、风险分支数均逐项重算通过（evidence 见 passed_confirmations）；新发现缺口均为跨文档事实比对得出（文案材料包 input_basis、请柬/RSVP 日期、其他 breakdown 明细、应急金引用点枚举），非主观偏好。",
+    "limitations": [
+      "雨备成本、摆渡车成本、婚车车队构成、伴手礼单价均无公开 canonical 数据——相关建议为推断级（medium/low），需 G1 询价话术纳入后回填",
+      "文案材料包对当前方案是否必须消费，取决于下游 render/writeback 的实现——本清单按'请柬文案需在 08-24 定稿且当前唯一文案素材与主题冲突'的事实缺口判定"
+    ]
+  },
+
+  "criteria_checklist": [
+    {"criterion": "① 预算覆盖且不超 30 万", "result": "PASS", "evidence": "八行合计 25,000+119,000+55,000+25,000+5,000+12,000+29,000+30,000=300,000 ✓；'其他'7 子项合计 29,000 与父行一致 ✓；三场景变体算术重算通过（庄园 19.9 万/酒店 31.1~31.6 万压缩后≈30.2/婚礼堂 23.1 万）✓；缺口见 J-03（伴手礼无预算行）"},
+    {"criterion": "② 方案可落地（供应商/联系人/文案）", "result": "PASS（1 处修正已落地 + 1 处新缺口）", "evidence": "8 品类 primary/backup/avoid 与上游 shortlist 一一对应；S8 慕格摄影 channel 已采用 canonical_override 修正值（beijing.liebiao.com）✓；联系人渠道级诚实标注无编造 ✓；缺口见 J-01（请柬文案供应链与 THEME-01 错配，08-24 定稿为硬节点）"},
+    {"criterion": "③ 流程无断档（倒计时/当日）", "result": "PASS（2 处张力）", "evidence": "G0→G1→G2→G3→G3.5→G4→G5 八门闭合、18 任务 owner+depends_on 齐全、15 时段首尾衔接 ✓；张力见 J-02（请柬 08-26 发出→RSVP 08-30 截止仅 4 天）与 J-05（婚纱照 08-24 拍摄→09-10 出片 17 天 < 上游 3-6 周）"},
+    {"criterion": "④ 风险预案齐备", "result": "PASS（1 处需加固）", "evidence": "R1-R10 十维覆盖 + B1-B4 有 trigger/path/priority ✓；缺口见 J-04（应急金 3 万被 ≥6 类场景引用且雨备成本未量化，缺压力测试与动用顺序）"}
+  ],
+
+  "items": [
+    {
+      "id": "J-01",
+      "severity": "高",
+      "type": "fact + recommendation",
+      "location": "data/文案材料包.json（整体）vs 完整策划文档.json S1/S6/S7（THEME-01 金秋·花园晚宴）",
+      "problem": "模块缺口：方案'请柬文案/设计定稿'是硬节点（S6 任务 6，08-24 定稿 → 08-26 发出），但全案唯一的文案素材 data/文案材料包.json 基于旧框架《婚礼总体规划》v1.0 编制（input_basis：style=中式常规、timeline=T3-3/T4-4 月制倒排、milestone=M5 RSPV 回收率≥80%），与当前方案（THEME-01 户外仪式+室内晚宴、T-36 天制、R10 RSVP≥90%）属于两套不同规划。内容级冲突：文案材料包 S2-V1 台本核心为'三拜/敬茶改口/交杯酒'，而方案 S7 户外仪式为'誓言+交换戒指+证婚人致辞+手捧花传递/抛花球'（敬茶已前置到接亲时段）；若下游 render/writeback 直接消费旧包，将产出与主题矛盾、与 S7 流程不符的请柬文案与流程台本。另：RSPV 口径 80%（旧包）vs 90%（R10）冲突。",
+      "evidence": "文案材料包.json input_basis.critical_note（'新人姓名/日期/地点/酒店均待定，未过 Review/Gate'）；S2-V1 台本环节序列；完整策划文档 S6 seq6/seq8、S7 仪式时段 14:30-15:30 环节；婚礼策略框架.md §7（'主题定位→文案材料包回填'的旧框架衔接约定）",
+      "modification_suggestion": "① 按 THEME-01 重建/适配文案材料包：请柬（S1-V2 简约现代 H5 为主+纸质长辈版）、台本对齐 S7 15 时段（誓言/交换戒指/抛花球/First Look）、串词与誓词保留模板结构但删三拜/交杯酒；② 在 完整策划文档 S9 登记'文案素材源'placeholder（版本/归属框架/是否已过 gate），明确旧包 data/文案材料包.json 不再作为当前方案请柬文案输入；③ 文案回填列入 G2 并行验收项（08-24 前定稿）；④ 口径统一：RSPV 回收目标按方案 R10=90%。",
+      "confidence": "high（内容冲突为直接文本比对；'下游会消费旧包'为推断，但无论是否消费，08-24 定稿前必须有与主题一致的文案源）",
+      "downstream_consumer": "transform-produce / writeback-action / artifact-render"
+    },
+    {
+      "id": "J-02",
+      "severity": "中",
+      "type": "inference + recommendation",
+      "location": "完整策划文档.json S6 任务 8（请柬分发 08-26）/ 任务 9（RSVP 截止 T-14=08-30）",
+      "problem": "时间线张力：请柬 08-26 发出 → RSVP 截止 08-30 仅 4 天，且'截止前 3 天电话追访'意味着 08-27（发出次日）即开始追访——200 人回收≥90% 目标在此窗口内难以自然达成，R10 桌数波动风险被放大。同时 08-26→09-13 仅 18 天，低于上游'请柬需提前 3-4 周（21-28 天）'口径（婚礼主题与预算分配方案 execution_plan.parallel_tracks）。",
+      "evidence": "S6 任务 8/9 日期字段；婚礼主题与预算分配方案 parallel_tracks '请柬：G3 同步发出（200 人需提前 3-4 周 + RSVP 回收）'；倒计时清单任务 8/9 同口径",
+      "modification_suggestion": "① 请柬文案/设计定稿提前至 08-22（与 G2 谈判并行，文案不依赖场地名可变体处理：主选/备选双场地名占位）；② 电子请柬随定稿即时分发（不等纸质，纸质仅给长辈）；③ RSVP 截止顺延至 09-02（T-11），追访 08-30 起，09-07 G3.5 前仍保留 5 天缓冲，不破坏 R10 提前量设计；④ 加桌价/减桌退款条款仍在 08-31 G3 前签入场地合同，不受影响。",
+      "confidence": "medium-high（日期为事实；'4 天窗口不足以回收 90%'为行业常识推断，无直接数据支撑，故给 medium-high 而非 high）",
+      "downstream_consumer": "writeback-action（回填日期）/ artifact-render（排期图）"
+    },
+    {
+      "id": "J-03",
+      "severity": "中",
+      "type": "fact + recommendation",
+      "location": "完整策划文档.json S3 '其他'breakdown（司仪4000/礼服8000/乐队5000/甜品台2000/婚车3000/请柬喜糖3000/烟酒4000=29,000）vs S7 当日流程",
+      "problem": "遗漏预算项：S7 签到时段（11:00-12:30）与送客时段（20:30-21:30）均发放'伴手礼'，但预算'其他'明细无伴手礼行（仅'请柬+喜糖 3,000'）。200 人伴手礼按旧框架口径 30 元/份≈0.6 万，或简配 15 元/份≈0.3 万，属真实支出但无预算归属；若从应急金补，将进一步挤占 J-04 已紧张的应急金。",
+      "evidence": "S3 other_breakdown 七行；S7 11:00-12:30'伴手礼/喜糖发放'、20:30-21:30'伴手礼发放'；婚礼策略框架.md §4 杂项'伴手礼 30 元×200 ≈ 0.6 万'（旧框架口径，仅作量级参考）",
+      "modification_suggestion": "在'其他'新增'伴手礼'行（预算 0.3-0.6 万），并从 2.9 万内重排（如礼服 8,000 压缩至 6,000 或烟酒 4,000→3,000），保持'其他'父行 29,000 不变以维持总表闭合；若决定伴手礼与喜糖合并采购（喜糖即伴手礼），须在 S3 anchor 注明口径，避免下游渲染成两笔费用。",
+      "confidence": "high（'S7 发放伴手礼而预算无行'为事实缺口；金额区间为推断）",
+      "downstream_consumer": "transform-produce（预算行）/ writeback-action（回填金额）"
+    },
+    {
+      "id": "J-04",
+      "severity": "中",
+      "type": "inference + recommendation",
+      "location": "完整策划文档.json S5（R5/R6/R9/B3/B4）+ S3 应急金 30,000",
+      "problem": "风险覆盖缺口：应急金 3 万被 ≥6 类支出场景引用（价格上浮 R5、雨备 B3、跳单溢价 B4、动线摆渡车+异地住宿 R8、新人婚房 S7 撤场、加桌 R10），且 B3 雨备成本未量化（R9 自身 confidence 已注'雨备成本未量化'）——200 人规模帐篷/室内切换单次可能 1-3 万。压缩档可释放空间（花艺 1.2→0.8 万、'其他'可砍项）合计仅约 1-1.5 万，若雨备+跳单+摆渡车同时触发，3 万应急金可能不够，且方案未定义各场景的动用顺序。",
+      "evidence": "S5 各 risk 的 response 与 branch 的'从应急金支出/记录'引用点枚举；R9 confidence='medium（季节统计非预报）'与'雨备成本未量化'；S3 budget_rules 仅定义'±10% 平移'未定义应急金分级",
+      "modification_suggestion": "① G1 询价话术新增雨备费用归属问题（室内厅切换是否免费/帐篷单价/仪式进厅加价），签约前量化 B3 成本并回填 proposed_update；② S5 增加'应急金压力测试'子节：按最坏组合（雨备+单供应商跳单溢价+摆渡车）估算总占用，给出分级动用顺序（如 雨备>跳单>动线>婚房）与触发 compressible 平移的阈值；③ 婚房/异地住宿费用明确归属（场地套餐内含 or 应急金），避免 S7 撤场时段现场临时决策。",
+      "confidence": "medium（应急金引用点多、雨备未量化、摆渡车/婚房金额均无 canonical 数据；'可能不够'为最坏情景推断，非断言）",
+      "downstream_consumer": "monitor-alert（应急金余量监控项）/ writeback-action"
+    },
+    {
+      "id": "J-05",
+      "severity": "中",
+      "type": "fact + recommendation",
+      "location": "完整策划文档.json S6 婚纱照任务（08-10 定档→08-24 拍摄→09-10 出片）",
+      "problem": "时间线缺口：08-24 拍摄 → 09-10 出片仅 17 天，短于上游'婚纱照 3-6 周（21-42 天）出片'口径（婚礼主题与预算分配方案 risks.R4/parallel_tracks）；且 08-24 同日三线并行（G2 场地签约截止 + 请柬定稿 + 婚纱照拍摄截止），单日压力集中。上轮 REV-03 已提出但未落地为任务变更。",
+      "evidence": "S6 任务 3/6/14 日期；婚礼主题与预算分配方案 execution_plan.parallel_tracks '拍摄+选片+修图+相册 3-6 周，婚礼日前 3 天必须出片'；验收结论与修订意见 REV-03",
+      "modification_suggestion": "① 拍摄前移至 08-17~08-22 区间（出片 09-10 前留 19-24 天）；② 与北遇书面确认加急出片条款入合同（G1 并行验收项，S6 任务 3 增加'出片日写入合同'验收字段）；③ 08-24 三线减压：请柬定稿提前（J-02 建议 08-22），G2 签约与拍摄错峰安排。",
+      "confidence": "high（17 天 vs 3-6 周为事实算术；'加急条款可行性'为建议级）",
+      "downstream_consumer": "writeback-action / monitor-alert（出片节点监控）"
+    },
+    {
+      "id": "J-06",
+      "severity": "低",
+      "type": "fact",
+      "location": "完整策划文档.json S3 影像行 anchor（'婚纱照 1.0 万（TI-PH-3 高端中位）'）",
+      "problem": "预算锚点口径冲突：TI-PH-3=9,000-30,000（1.0 万为其低端非'中位'），而推荐组合与风险预案 supplier_shortlist 明确'预算 1.0 万对应 TI-PH-2 中端档'（TI-PH-2=5,000-9,000，1.0 万略超其上沿）。两处上游对同一预算额的 tier 归属表述矛盾，属未登记的上游冲突（结构化对比表 conflicts 未含此项）。",
+      "evidence": "结构化对比表 TI-PH-2/TI-PH-3 price 区间；推荐组合 supplier_shortlist[婚纱照].avoid 注释；婚礼主题与预算分配方案 master_table[影像].anchor",
+      "modification_suggestion": "在 完整策划文档 S9 unresolved_conflicts 登记'CF-07 婚纱照 1.0 万档 tier 归属'，统一口径为'中端上沿/高端下沿（PH-2/PH-3 交界 9,000 附近）'；金额 1.0 万本身不变，仅避免下游渲染引用错误 tier 名称。",
+      "confidence": "high（两处表述为直接文本比对）",
+      "downstream_consumer": "artifact-render（预算图 tier 标签）"
+    },
+    {
+      "id": "J-07",
+      "severity": "低",
+      "type": "fact",
+      "location": "完整策划文档.json S5 R3/R5/R6/R7（缺 trigger 字段）",
+      "problem": "上轮 REV-01 缺口确认：S5 rubric 声明'含 trigger/response/owner'，但 R3/R5/R6/R7 无 trigger，monitor-alert 无法为其建监控项。本清单确认采纳 REV-01 补丁值，未在 S9 见登记，建议随回填落地。",
+      "evidence": "完整策划文档 S5 risks R3/R5/R6/R7 字段；验收结论与修订意见 REV-01",
+      "modification_suggestion": "回填补丁：R3='签约场地无雨备条款'、R5='询价/签约价高于预算线起价'、R6='供应商失联/跳单征兆'、R7='策划报价 >5.5 万'；在 S9 登记 trigger 补丁来源（REV-01）。",
+      "confidence": "high",
+      "downstream_consumer": "monitor-alert"
+    },
+    {
+      "id": "J-08",
+      "severity": "低",
+      "type": "fact",
+      "location": "完整策划文档.json S6 任务表（T-5/T-4 = 09-08/09-09 无显式任务行）",
+      "problem": "上轮 REV-02 缺口确认：09-08/09-09 两天为任务空白（天气每日复核与供应商确认单催收仅隐性存在于 R9 response），导入日历后表现为断档。本清单确认采纳 REV-02 补丁。",
+      "evidence": "S6 tasks 序列；验收结论与修订意见 REV-02",
+      "modification_suggestion": "任务表补一行：T-5~T-4（09-08~09-09）'天气每日复核 + 供应商到场确认单催收'，owner=总协调，depends_on=G3.5 截止。",
+      "confidence": "high",
+      "downstream_consumer": "artifact-render（排期/日历）"
+    },
+    {
+      "id": "J-09",
+      "severity": "低",
+      "type": "fact",
+      "location": "完整策划文档.json S7 11:00-11:30（车队在途）与 11:00-12:30（宾客签到）并行",
+      "problem": "上轮 REV-04 缺口确认：新人 11:30 前在途，宾客 11:00 起到场——签到时段宾客找不到新人。属并行事件非断档，本清单确认采纳 REV-04 注明方案。",
+      "evidence": "S7 schedule 第 4/5 块；验收结论与修订意见 REV-04",
+      "modification_suggestion": "当日流程单打印时注明'新人 11:30 到场前由签到组独立接待，First Look/外景顺延至到场后'。",
+      "confidence": "high",
+      "downstream_consumer": "artifact-render（流程单）"
+    },
+    {
+      "id": "J-10",
+      "severity": "低",
+      "type": "inference + recommendation",
+      "location": "完整策划文档.json S7 05:30-07:30 新娘早妆块",
+      "problem": "2 小时窗口需完成新娘全妆+发型+母亲妆+伴娘妆（三套），总监级单化妆师节奏紧；V2 变体早妆推迟至 07:00 后与 09:00 First Look 仅 2 小时，更紧。",
+      "evidence": "S7 第 1 块 activities（新娘全妆预留 2h + 母亲妆 + 伴娘妆 200/人错峰）；V2 变体说明",
+      "modification_suggestion": "与灵越确认：母亲/伴娘妆由第二化妆师或提前一晚预做底妆（加购亲友妆 200/人已含余量）；或早妆提前至 05:00；写入 P4 试妆验收单。",
+      "confidence": "medium（'2h/3 人偏紧'为行业经验推断，无公开时长数据）",
+      "downstream_consumer": "writeback-action（P4 试妆验收项）"
+    },
+    {
+      "id": "J-11",
+      "severity": "低",
+      "type": "inference + recommendation",
+      "location": "完整策划文档.json S3 '其他'breakdown 婚车 3,000 + S7 06:30-08:00（婚车扎花+车队集合）",
+      "problem": "婚车 3,000 对应'车队'（主车+跟车）在 9 月旺季北京偏紧，且'婚车扎花'费用归属未注明（扎花常由花艺/婚车公司单列）。",
+      "evidence": "S3 婚车 3,000；S7 第 2 块'婚车扎花+车队集合'；供应商候选清单无婚车品类（上游调研未覆盖，属 evidence 缺口）",
+      "modification_suggestion": "G1 询价同步问婚车公司：车队构成（主车+几台跟车）、扎花是否含、超时费；缺口从压缩档或应急金补，S9 登记'婚车调研缺口'。",
+      "confidence": "medium（婚车市场无 canonical 数据，属调研未覆盖项）",
+      "downstream_consumer": "writeback-action（询价话术）"
+    }
+  ],
+
+  "passed_confirmations": [
+    {"item": "预算算术", "result": "通过", "evidence": "总表/子项/场景变体三项重算全对；与上游 master_table 逐行一致"},
+    {"item": "日期倒排", "result": "通过", "evidence": "T-36=08-08 至 T+8=09-21 全部 T 值-日期换算正确；T-0=09-13 36 天窗口成立"},
+    {"item": "S8 慕格摄影渠道修正", "result": "已落地", "evidence": "S8.contacts.suppliers[婚礼跟拍].channel 已采用 canonical_override #1 修正值 beijing.liebiao.com（2025，verified）"},
+    {"item": "预算 6.9 万口径", "result": "已落地", "evidence": "S3.scenarios[婚礼堂系] 已采用'腾出约 6.9 万（19.9−13=6.9，精确差）'，canonical_override #2 生效"},
+    {"item": "R1-R10/B1-B4 覆盖度", "result": "通过", "evidence": "十维风险+四分支，与上游 R 系列/B 系列一一对应，无缺失无凭空新增"},
+    {"item": "供应商-预算线一致性", "result": "通过", "evidence": "8 品类预算线与 structured 对比表 price_tiers 区间一致（策划 5.5 万≤TI-PL-2 上沿、跟拍 1.5 万覆盖 TI-PH-6/8 组合、花艺 1.2 万=TI-FL-1 低档、司仪 0.4 万∈TI-MC-2、甜品台 0.2 万∈TI-DS-1、乐队 0.5 万∈TI-BD-1）"}
+  ],
+
+  "assumptions": [
+    "婚戒/领证照/登记费不在婚礼供应商预算口径内（上游 master_table 与旧框架均未列），故不判为遗漏",
+    "伴手礼若与喜糖合并采购，J-03 降为'口径澄清'而非预算缺口",
+    "B3 雨备在 V-C02 拉斐特（1100㎡ 室内厅）触发时费用可能仅为场地切换协调费而非帐篷租赁，最坏情景假设以帐篷/户外场地（V-C03/V-C01 草坪）为准",
+    "文案材料包的新建/适配归属 transform-produce 或 writeback-action，本节点仅登记缺口与口径要求"
+  ],
+
+  "counterexamples_considered": [
+    "反例：请柬 08-26 发出→08-30 截止是否可行？——仅当电子请柬且宾客回复习惯良好时可勉强达成，但 90% 目标+异地宾客占比 unknown 使该情景不可靠，故 J-02 成立",
+    "反例：伴手礼是否可视为喜糖？——S7 文本中'伴手礼'与'喜糖'并列出现（'伴手礼/喜糖发放'），口径模糊，故 J-03 定为需澄清+补行，而非强判缺口",
+    "反例：旧文案包是否本就不该被当前方案消费？——即便不消费，方案在 08-24 定稿硬节点前无任何 THEME-01 文案源，缺口仍成立（J-01 的主结论不依赖旧包被消费）",
+    "反例：应急金 3 万对 30 万预算是否足够（10% 属行业常见）？——单看比例合理，但引用点数量（≥6 类）与雨备未量化使'最坏组合下可能不够'为有效风险，故 J-04 建议的是'压力测试+量化'而非'提高应急金比例'"
+  ],
+
+  "what_would_change_my_mind": [
+    "若 G0 用户确认切换 THEME-02/03，J-01 的文案适配对象与 J-02 的日期策略随主题族变更而失效，需按新主题重评",
+    "若 G1 询价结果（08-15）显示各场地雨备条款免费/低费且摆渡车由场地提供，J-04 的应急金压力评级下调",
+    "若用户确认'伴手礼=喜糖'合并口径，J-03 撤销",
+    "若北遇确认可书面承诺 17 天加急出片，J-05 降为信息项"
+  ],
+
+  "verification_needed": [
+    {"item": "THEME-01 口径的请柬/台本/串词文案重建或适配", "owner": "transform-produce / writeback-action", "deadline": "08-22（请柬定稿提前建议值）", "note": "J-01 前置"},
+    {"item": "雨备费用归属与单价（帐篷/室内切换）", "owner": "P1 G1 询价话术新增", "deadline": "08-15", "note": "J-04 前置，回填 proposed_update"},
+    {"item": "摆渡车/婚房/异地住宿费用口径", "owner": "P1/P2 询价签约", "deadline": "08-24", "note": "J-04 前置"},
+    {"item": "婚车车队构成与扎花费用归属", "owner": "P3 签约", "deadline": "08-31", "note": "J-11 前置，供应商候选清单无此品类"},
+    {"item": "伴手礼单价与采购口径", "owner": "新人", "deadline": "G3 前", "note": "J-03 前置"}
+  ],
+
+  "downstream_usage": {
+    "可直接消费": [
+      "J-01~J-11 修改建议可直接作为 transform-produce 修订项与 writeback-action 回填项（含具体字段/日期/话术）",
+      "J-04 的'应急金压力测试'与 J-07 的 trigger 补丁可直接转 monitor-alert 监控项",
+      "passed_confirmations 与 criteria_checklist 可作为 review-gate 复核的交叉证据（确认项勿重复返工）",
+      "verification_needed 5 项即 P1/P2/P3 询价签约话术的增量清单"
+    ],
+    "数据契约": "金额/时间/名单口径沿用 完整策划文档.json 与 结构化对比表 price{min,max,unit,basis}；本清单只新增缺口判定与修订建议，不重写方案本体；修订落地走 proposed_update 回填机制",
+    "与上轮 gate 的关系": "本清单为完整性评审（模块/时间线/预算/风险维度），上轮 验收结论与修订意见 为验收裁决（四项指标 PASS/CONDITIONAL_PASS）；两者互补不冲突，REV-01~04 在本清单中确认为缺口并给出落地归属（J-07/08/09 + J-05）",
+    "跳过": "未做：方案本体重写、G0 用户拍板（主题/日期/接亲形式属用户决策）、文案材料包重建（属下游 produce/writeback 职责，本节点仅给出主题适配要求）"
+  }
+}

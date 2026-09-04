@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FLY · 段式折叠 demo</title>
+<style>
+  * { box-sizing: border-box; margin: 0; }
+  :root {
+    --bg: #1a1a1a; --user-bg: #1e293b; --tool-bg: #1f2937;
+    --text: #e8e8e8; --text-muted: #9ca3af; --text-dim: #6b7280;
+    --accent: #60a5fa; --border: #333;
+  }
+  body { background: var(--bg); color: var(--text); font-family: system-ui, -apple-system, "PingFang SC", sans-serif; padding: 40px 0; }
+  .wrap { max-width: 820px; margin: 0 auto; padding: 0 20px; }
+
+  /* 段：用户提问（右） */
+  .user-msg { display: flex; justify-content: flex-end; margin: 14px 0 2px; }
+  .user-msg .bubble { max-width: 78%; background: var(--user-bg); border-radius: 14px; padding: 10px 14px; font-size: 14px; line-height: 1.55; white-space: pre-wrap; }
+
+  /* 段：折叠头 */
+  .fold-head { display: flex; align-items: center; gap: 8px; margin: 8px 0 2px; cursor: pointer; user-select: none; color: var(--text-dim); font-size: 12px; }
+  .fold-head:hover { color: var(--text-muted); }
+  .fold-head .caret { display: inline-block; transition: transform .18s; font-size: 10px; }
+  .fold-head.open .caret { transform: rotate(90deg); }
+  .fold-head .steps { border: 1px solid var(--border); border-radius: 999px; padding: 2px 10px; background: rgba(255,255,255,0.03); }
+
+  /* 折叠区（展开时显示） */
+  .fold-body { display: none; }
+  .fold-head.open + .fold-body { display: block; }
+  .fold-body { padding: 4px 0 8px; }
+
+  /* 折叠区内：steer 插话（小灰条） */
+  .steer { display: flex; justify-content: flex-end; margin: 6px 0; }
+  .steer .bubble { max-width: 70%; background: rgba(255,255,255,0.05); border: 1px dashed var(--border); border-radius: 12px; padding: 6px 12px; font-size: 12.5px; color: var(--text-muted); }
+  .steer .tag { display:block; font-size: 10px; color: var(--text-dim); margin-bottom: 3px; }
+
+  /* 折叠区内：工具调用行 */
+  .tool-row { display: flex; align-items: center; gap: 8px; margin: 4px 0; font-size: 12.5px; color: var(--text-muted); padding: 4px 8px; }
+  .tool-row .icon { width: 20px; height: 20px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; background: var(--tool-bg); border-radius: 6px; font-size: 11px; }
+  .tool-row .name { font-family: ui-monospace, Menlo, monospace; color: var(--accent); font-size: 11.5px; }
+  .tool-row .detail { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; flex: 1; }
+
+  /* 折叠区内：中间思考/信息 */
+  .mid-note { margin: 6px 0; font-size: 12px; color: var(--text-dim); padding: 6px 10px; border-left: 2px solid var(--border); background: rgba(255,255,255,0.02); }
+
+  /* 模型回复 */
+  .assistant-msg { margin: 2px 0 6px; }
+  .assistant-msg .body { font-size: 14px; line-height: 1.65; color: var(--text); }
+  .assistant-msg .body p { margin: 6px 0; }
+  .assistant-msg .body h4 { margin: 10px 0 4px; font-size: 14px; }
+  .assistant-msg .body ul { margin: 4px 0; padding-left: 20px; }
+  .assistant-msg .body li { margin: 2px 0; }
+  .assistant-msg .body code { background: rgba(255,255,255,0.07); padding: 1px 5px; border-radius: 4px; font-size: 12px; }
+  .assistant-msg .body .table { border: 1px solid var(--border); border-radius: 8px; padding: 8px 10px; margin: 8px 0; font-size: 12.5px; }
+  .assistant-msg .body .table div { display: flex; gap: 10px; padding: 3px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+  .assistant-msg .body .table div:last-child { border-bottom: none; }
+  .assistant-msg .body .table .w { flex: 1; } .assistant-msg .body .table .r { width: 200px; color: var(--text-muted); }
+
+  /* 段间距 */
+  .seg { margin: 18px 0; padding-top: 14px; border-top: 1px solid rgba(255,255,255,0.05); }
+  .seg:first-of-type { border-top: none; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <!-- ===== 段 1：选品提问（无中间过程，一问一答） ===== -->
+  <div class="seg">
+    <div class="user-msg"><div class="bubble">跨境电商选品：TikTok Shop 美区，珍珠元素的家居收纳盒这个细分方向能不能做？进货价 70 元以内，要求 1688 上同款不要太多。</div></div>
+    <div class="assistant-msg"><div class="body">
+      <p><b>结论：可以做，但需要避开红海。</b>珍珠元素家居收纳盒在 TikTok 美区有内容红利，1688 同款竞争中等。建议做"珍珠质感 + 亚克力"混搭款，进货价 35-60 元区间。</p>
+    </div></div>
+  </div>
+
+  <!-- ===== 段 2：完整研究（提问 + 折叠步骤 + 最后回复） ===== -->
+  <div class="seg">
+    <div class="user-msg"><div class="bubble">帮我研究一下：跨境电商选品方向——带珠宝质感（水晶/珍珠/金属光泽/宝石元素）的家居饰品，进货价 70 元人民币以内，帮我查数据。</div></div>
+
+    <!-- 折叠头：N 个步骤 -->
+    <div class="fold-head" onclick="this.classList.toggle('open')">
+      <span class="caret">▶</span><span class="steps">16 个步骤</span>
+    </div>
+    <!-- 折叠区：steer / 继续 / 工具 / 中间信息 -->
+    <div class="fold-body">
+      <div class="steer"><div class="bubble"><span class="tag">· 中途插话</span>搜索的时候用中文关键词，结果用表格给我汇总</div></div>
+      <div class="tool-row"><span class="icon">🔍</span><span class="name">search</span><span class="detail">"水晶 家居饰品 1688"（中文）</span></div>
+      <div class="tool-row"><span class="icon">🔍</span><span class="name">search</span><span class="detail">"珍珠 家居收纳 1688"（中文）</span></div>
+      <div class="mid-note">▸ 思考：中文结果噪音大，改用英文 + 1688 站内筛选</div>
+      <div class="tool-row"><span class="icon">🔍</span><span class="name">search</span><span class="detail">"crystal jewelry home decor"（英文）</span></div>
+      <div class="tool-row"><span class="icon">🌐</span><span class="name">browser</span><span class="detail">s.1688.com/selloffer/offer_search.htm?keywords=水晶洞摆件</span></div>
+      <div class="steer"><div class="bubble"><span class="tag">· 中途插话</span>每测一个词就停一下，先汇总再继续</div></div>
+      <div class="mid-note">▸ 触发验证码：1688 风控滑块，等待用户完成验证</div>
+      <div class="steer"><div class="bubble"><span class="tag">· 继续</span>滑完了，继续测剩下的词</div></div>
+      <div class="tool-row"><span class="icon">🔍</span><span class="name">search</span><span class="detail">"不锈钢镜面球" / "银河水晶球" / "幻彩树脂摆件" / "晶簇摆件"</span></div>
+    </div>
+
+    <!-- 模型最后回复 -->
+    <div class="assistant-msg"><div class="body">
+      <p>已测 9 个词的汇总（5 排除）：</p>
+      <div class="table">
+        <div><span class="w"><b>词</b></span><span class="r"><b>结果</b></span></div>
+        <div><span class="w">幻彩玻璃花瓶</span><span class="r">❌ 饱和（闻喜产业带）</span></div>
+        <div><span class="w">水晶洞摆件</span><span class="r">❌ 饱和（东海 2.9万件）</span></div>
+        <div><span class="w">流沙画摆件</span><span class="r">❌ 饱和（10万+件）</span></div>
+        <div><span class="w">银河水晶球</span><span class="r">✅ 可做（竞争低）</span></div>
+        <div><span class="w">晶簇摆件</span><span class="r">✅ 可做（有内容红利）</span></div>
+      </div>
+      <p><b>结论：银河水晶球 + 晶簇摆件值得进一步询价。</b>要我把这两个词的 1688 供应商起订量拉出来吗？</p>
+    </div></div>
+  </div>
+
+  <!-- ===== 段 3：继续提问（当前回合，展开中） ===== -->
+  <div class="seg">
+    <div class="user-msg"><div class="bubble">拉一下这两个词的供应商，起订量、含关税物流价。</div></div>
+
+    <div class="fold-head open" onclick="this.classList.toggle('open')">
+      <span class="caret">▶</span><span class="steps">4 个步骤</span><span style="color:var(--accent)">运行中…</span>
+    </div>
+    <div class="fold-body">
+      <div class="tool-row"><span class="icon">🔍</span><span class="name">search</span><span class="detail">"银河水晶球 供应商 起订量"</span></div>
+      <div class="tool-row"><span class="icon">🌐</span><span class="name">browser</span><span class="detail">1688 搜索结果页（第 1 页）</span></div>
+      <div class="mid-note">▸ 思考：优先筛选义乌/东莞产业带，对比含关税物流成本</div>
+    </div>
+  </div>
+
+  <p style="text-align:center; color:var(--text-dim); font-size:12px; margin-top:40px;">折叠只吞步骤（steer/继续/工具/中间信息），提问与模型最后回复始终可见 · 点击"N 个步骤"展开</p>
+</div>
+</body>
+</html>

@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8"/>
+<title>工具调用展开 · Demo v3（极简）</title>
+<style>
+  :root {
+    --bg: #1a1a1a; --panel: #242424; --panel2: #20262f; --hover: #2e2e2e;
+    --border: #3a3a3a; --accent: #60a5fa; --green: #34d399;
+    --text: #e5e7eb; --muted: #9ca3af; --dim: #6b7280;
+    --mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font: 14px/1.6 -apple-system, "PingFang SC", "Helvetica Neue", sans-serif; padding: 40px 24px; }
+  .wrap { max-width: 860px; margin: 0 auto; }
+  h1 { font-size: 18px; margin-bottom: 6px; }
+  .sub { color: var(--dim); font-size: 12.5px; margin-bottom: 28px; }
+  .chat { background: var(--bg); border: 1px solid var(--border); border-radius: 10px; padding: 18px 20px; }
+  .row { display: flex; max-width: 820px; margin: 0 auto 10px; }
+  .row .box { flex: 1; min-width: 0; }
+  .user { justify-content: flex-end; }
+  .user .box { background: #2f3a4f; border-radius: 12px; padding: 10px 14px; max-width: 78%; font-size: 13.5px; color: #dbe4f5; }
+
+  /* ===== 折叠行（极简：图标 + 文字） ===== */
+  .trigger {
+    display: flex; align-items: center; gap: 10px;
+    cursor: pointer; user-select: none;
+    padding: 4px 8px; margin: 0 -8px; border-radius: 8px;
+    font-size: 13px; color: var(--muted);
+  }
+  .trigger:hover { background: var(--hover); color: var(--text); }
+  .tool-ic { width: 20px; height: 20px; border-radius: 5px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; font-size: 10px; background: #2f3a4f; color: var(--accent); }
+  .tool-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  /* 运行中：文字尾部省略号呼吸（唯一状态表达） */
+  .running .tool-text::after { content: "…"; animation: dots 1.4s steps(4) infinite; color: var(--muted); }
+  @keyframes dots { 0% { opacity: .2; } 50% { opacity: 1; } 100% { opacity: .2; } }
+
+  /* ===== 展开面板：直接是结果列表 ===== */
+  .panel { max-height: 0; overflow: hidden; transition: max-height .4s cubic-bezier(.2,.8,.2,1); }
+  .panel.open { max-height: 360px; }
+  .pills { display: flex; flex-direction: column; gap: 4px; padding: 6px 8px 8px; }
+
+  .pill {
+    display: flex; align-items: center; gap: 8px;
+    background: var(--panel); border: 1px solid var(--border);
+    border-radius: 7px; padding: 6px 11px; min-height: 30px;
+    max-width: 100%;
+    opacity: 0; transform: translateY(6px);
+    transition: opacity .35s ease, transform .35s ease;
+  }
+  .pill.show { opacity: 1; transform: translateY(0); }
+  .pill .favicon { width: 15px; height: 15px; border-radius: 3px; flex-shrink: 0; overflow: hidden; background: #fff; display: flex; align-items: center; justify-content: center; }
+  .pill .favicon img { width: 12px; height: 12px; }
+  .pill .favicon.letter { background: linear-gradient(135deg, #3b82f6, #60a5fa); color: #fff; font-size: 8px; font-weight: 700; }
+  .pill-text { font-size: 12.5px; color: var(--text); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .pill-domain { color: var(--dim); font-weight: 400; font-size: 11px; }
+  .pill-extra { margin-left: auto; color: var(--dim); font-size: 10.5px; flex-shrink: 0; font-family: var(--mono); }
+
+  /* 并行组 */
+  .parallel { border-left: 2px solid rgba(96,165,250,.25); padding-left: 8px; margin-left: -8px; }
+  .plabel { font-size: 10px; color: var(--dim); padding: 2px 0 4px 4px; }
+
+  .note { margin-top: 26px; padding: 14px 16px; border: 1px dashed var(--border); border-radius: 8px; font-size: 12.5px; color: var(--muted); }
+  .note b { color: var(--text); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>工具调用展开 · Demo v3（极简）</h1>
+  <div class="sub">折叠行 = 图标 + 文字（运行中尾部…）。点开 = 直接网页列表，交错浮现（120ms/条）。无勾/无脉冲点/无箭头/无中间头。</div>
+
+  <div class="chat">
+
+    <div class="row user"><div class="box">帮我研究一下：水晶质感家居摆件，TikTok Shop 美区能不能做？</div></div>
+
+    <!-- 搜索 · 运行中（状态只在行尾…，无展开卡） -->
+    <div class="row"><div class="box">
+      <div class="trigger running">
+        <div class="tool-ic">🔍</div>
+        <span class="tool-text">搜索：crystal decor home 1688 价格带</span>
+      </div>
+    </div></div>
+
+    <!-- 搜索 · 完成（点开直接是网页列表） -->
+    <div class="row"><div class="box">
+      <div class="trigger open">
+        <div class="tool-ic">🔍</div>
+        <span class="tool-text">搜索：crystal decor home trend 2026 · 6 个网页</span>
+      </div>
+      <div class="panel open" id="p1">
+        <div class="pills" data-sites="p1sites"></div>
+      </div>
+    </div></div>
+
+    <!-- 浏览器操作 · 完成 -->
+    <div class="row"><div class="box">
+      <div class="trigger open">
+        <div class="tool-ic">🌐</div>
+        <span class="tool-text">浏览器操作：s.1688.com 水晶摆件 · 提取 6 条</span>
+      </div>
+      <div class="panel open" id="p2">
+        <div class="pills" data-sites="p2sites"></div>
+      </div>
+    </div></div>
+
+    <!-- 并行 3 调用 -->
+    <div class="row"><div class="box">
+      <div class="plabel">并行 3 个调用</div>
+      <div class="parallel">
+        <div class="trigger running">
+          <div class="tool-ic">🌐</div>
+          <span class="tool-text">浏览器操作：tiktok.com/tag/crystaldecor</span>
+        </div>
+        <div class="trigger running">
+          <div class="tool-ic">🌐</div>
+          <span class="tool-text">浏览器操作：fastmoss.com 商品库 crystal</span>
+        </div>
+        <div class="trigger running">
+          <div class="tool-ic">🔍</div>
+          <span class="tool-text">搜索：crystal decor TikTok Shop US sales</span>
+        </div>
+      </div>
+    </div></div>
+
+  </div>
+
+  <div class="note">
+    <b>极简规则：</b><br/>
+    ① 折叠行只有 图标 + 文字；运行中 = 文字尾部 "…" 呼吸（唯一状态表达）<br/>
+    ② 点开 = 直接网页列表（无站点头、无 foot、无正在搜索卡）<br/>
+    ③ 交错浮现：translateY(6px) → 0 + opacity，间隔 <b>120ms</b>/条<br/>
+    ④ 完成行文字带摘要："… · 6 个网页" / "… · 提取 6 条"<br/>
+    ⑤ 并行：多行连续 + 左侧细蓝线
+  </div>
+</div>
+
+<script>
+const SITES = {
+  p1sites: [
+    { name: "TikTok Shop crystal decor best sellers", domain: "tiktok.com", extra: "在售系列" },
+    { name: "FastMoss crystal decor US sales", domain: "fastmoss.com", extra: "类目 GMV" },
+    { name: "Crystal Decor 2026 Trends", domain: "home-designing.com", extra: "quiet luxury" },
+    { name: "Crystal home accessories", domain: "pinterest.com", extra: "热度" },
+    { name: "Etsy crystal decor handmade", domain: "etsy.com", extra: "竞品价" },
+    { name: "Creative Center: crystal", domain: "ads.tiktok.com", extra: "标签量级" },
+  ],
+  p2sites: [
+    { name: "天然水晶簇 摆件", domain: "¥2.38", extra: "3.2万件" },
+    { name: "黄水晶摇钱树", domain: "¥15", extra: "3.2万件" },
+    { name: "滴胶钱袋", domain: "¥4.1", extra: "5000+件" },
+    { name: "水晶扩香石", domain: "¥0.55", extra: "10万件" },
+    { name: "手工拉丝水晶圣诞树", domain: "¥7.85", extra: "跨境专货" },
+  ],
+};
+const played = new Set();
+function setup(){
+  document.querySelectorAll('.trigger').forEach((tr) => {
+    const panel = tr.nextElementSibling;
+    if (!panel || !panel.classList.contains('panel')) return;
+    tr.addEventListener('click', () => {
+      const open = tr.classList.toggle('open');
+      panel.classList.toggle('open', open);
+      const pills = panel.querySelector('.pills');
+      if (open && pills?.dataset.sites) {
+        const key = pills.dataset.sites;
+        if (!played.has(key)) { buildPills(pills, SITES[key] || []); played.add(key); }
+        else replayPills(pills);
+      }
+    });
+  });
+}
+function buildPills(wrap, items){
+  wrap.innerHTML = '';
+  items.forEach(it => {
+    const pill = document.createElement('div');
+    pill.className = 'pill';
+    pill.innerHTML = `<span class="pill-text">${it.name}${it.domain ? ` <span class="pill-domain">· ${it.domain}</span>` : ""}</span>${it.extra ? `<span class="pill-extra">${it.extra}</span>` : ""}`;
+    wrap.appendChild(pill);
+  });
+  replayPills(wrap);
+}
+function replayPills(wrap){
+  const pills = wrap.querySelectorAll('.pill');
+  pills.forEach(p => p.classList.remove('show'));
+  void wrap.offsetWidth;
+  pills.forEach((p, i) => setTimeout(() => p.classList.add('show'), i * 120));
+}
+setup();
+</script>
+</body>
+</html>

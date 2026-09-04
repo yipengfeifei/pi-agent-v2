@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>三垣二十八宿 · 天极俯视图</title>
+<style>
+  :root{ --bg:#0b0d12; --text:#e9e4d8; --muted:#8a8578; --gold:#c9a961; }
+  *{ box-sizing:border-box; margin:0; padding:0; }
+  html,body{ height:100%; }
+  body{ background:var(--bg); color:var(--text); font-family:-apple-system,BlinkMacSystemFont,"PingFang SC","Noto Serif SC",serif; overflow:hidden; }
+  canvas{ position:fixed; inset:0; cursor:crosshair; }
+  .title{ position:fixed; top:24px; left:50%; transform:translateX(-50%); font-size:15px; letter-spacing:.35em; color:var(--gold); text-align:center; text-shadow:0 0 18px rgba(201,169,97,.25); }
+  .subtitle{ position:fixed; top:50px; left:50%; transform:translateX(-50%); font-size:11px; letter-spacing:.2em; color:var(--muted); }
+  .legend{ position:fixed; top:84px; right:26px; font-size:12px; color:var(--muted); line-height:2.1; letter-spacing:.08em; text-align:right; user-select:none; }
+  .legend b{ font-weight:500; margin-left:6px; }
+  .lg-q{ color:#5fc4a8; } .lg-x{ color:#7f93c4; } .lg-b{ color:#d4d2c9; } .lg-z{ color:#c96a5a; }
+  .info{ position:fixed; left:26px; bottom:22px; font-size:12px; color:var(--muted); line-height:1.8; letter-spacing:.05em; max-width:280px; display:none; }
+  .info .gname{ font-size:16px; color:var(--gold); letter-spacing:.15em; }
+  .info .mname{ color:#cfc9b8; }
+  .caption{ position:fixed; bottom:22px; left:50%; transform:translateX(-50%); font-size:12px; color:var(--muted); text-align:center; letter-spacing:.06em; max-width:82vw; font-family:-apple-system,"PingFang SC",sans-serif; }
+  .ring-label{ position:fixed; font-size:10px; color:rgba(138,133,120,.5); letter-spacing:.1em; }
+</style>
+</head>
+<body>
+
+<canvas id="canvas"></canvas>
+<div class="title">三 垣 二 十 八 宿</div>
+<div class="subtitle">北 天 极 · 极 射 投 影 · 三 垣 二 十 八 宿</div>
+<div class="legend">
+  <span class="lg-q">■</span> 东方青龙<b>七宿</b><br>
+  <span class="lg-x">■</span> 北方玄武<b>七宿</b><br>
+  <span class="lg-b">■</span> 西方白虎<b>七宿</b><br>
+  <span class="lg-z">■</span> 南方朱雀<b>七宿</b><br>
+  <span style="color:#d6c48c">◆</span> 三垣（紫微/太微/天市）
+</div>
+<div class="info" id="info"></div>
+<div class="caption">从天北极俯瞰 · 金色圆点为实时月亮（每天约行一宿）· 移动鼠标点亮星官，悬停查看星名对照</div>
+
+<script>
+const YUAN = [['紫微垣','北極一',[[230.18, 71.83, 3.0, "214,196,140", "北極一", "gamma UMi", "小熊座"]]],
+['紫微垣','四輔二',[[157.42, 84.25, 5.51, "214,196,140", "四輔二", "HIP 51384", "鹿豹座"]]],
+['紫微垣','勾陳一',[[37.95, 89.26, 2.02, "214,196,140", "勾陳一", "alpha UMi", "小熊座"]]],
+['紫微垣','天皇大帝',[[333.29, 86.11, 5.26, "214,196,140", "天皇大帝", "HIP 109693", "仙王座"]]],
+['紫微垣','天柱一',[[310.65, 82.53, 5.75, "214,196,140", "天柱一", "76 Dra", "天龍座"]]],
+['紫微垣','御女一',[[288.89, 73.36, 4.45, "214,196,140", "御女一", "tau Dra", "天龍座"]]],
+['紫微垣','女史',[[268.8, 72.0, 5.43, "214,196,140", "女史", "34 Dra", "天龍座"]]],
+['紫微垣','柱史',[[275.19, 71.34, 4.22, "214,196,140", "柱史", "phi Dra", "天龍座"]]],
+['紫微垣','尚書一',[[262.99, 68.14, 5.07, "214,196,140", "尚書一", "27 Dra", "天龍座"]]],
+['紫微垣','天床一',[[213.02, 69.43, 5.24, "214,196,140", "天床一", "HIP 69373", "小熊座"]]],
+['紫微垣','大理一',[[183.05, 77.62, 5.14, "214,196,140", "大理一", "CO Cam", "鹿豹座"]]],
+['紫微垣','陰德一',[[158.77, 75.71, 4.85, "214,196,140", "陰德一", "HIP 51808", "天龍座"]]],
+['紫微垣','六甲一',[[101.56, 79.56, 6.0, "214,196,140", "六甲一", "HIP 32439", "鹿豹座"]]],
+['紫微垣','五帝內座一',[[46.53, 79.42, 5.52, "214,196,140", "五帝內座一", "HIP 14417", "仙王座"]]],
+['紫微垣','華蓋二',[[24.63, 73.04, 5.28, "214,196,140", "華蓋二", "40 Cas", "仙后座"]]],
+['紫微垣','杠一',[[57.59, 71.33, 4.6, "214,196,140", "杠一（附华盖）", "gamma Cam", "鹿豹座"]]],
+['紫微垣','杠二',[[47.98, 74.39, 4.83, "214,196,140", "杠二", "HIP 14862", "仙后座"]]],
+['紫微垣','紫微右垣一',[[211.1, 64.38, 3.68, "214,196,140", "紫微右垣一", "alpha Dra", "天龍座"]]],
+['紫微垣','紫微左垣一',[[231.23, 58.97, 3.29, "214,196,140", "紫微左垣一", "iota Dra", "天龍座"]]],
+['紫微垣','天乙',[[207.86, 64.72, 4.66, "214,196,140", "天乙", "CU Dra", "天龍座"]]],
+['紫微垣','太乙',[[205.38, 64.82, 5.85, "214,196,140", "太乙", "HIP 66798", "天龍座"]]],
+['紫微垣','內廚一',[[191.89, 66.79, 5.42, "214,196,140", "內廚一", "7 Dra", "天龍座"]]],
+['紫微垣','北斗一',[[165.93, 61.75, 1.79, "214,196,140", "北斗一", "alpha UMa", "大熊座"]]],
+['紫微垣','輔',[[201.31, 54.99, 4.01, "214,196,140", "輔（附北斗）", "80 UMa", "大熊座"]]],
+['紫微垣','天槍一',[[213.37, 51.79, 6.0, "214,196,140", "天槍一", "kappa Boo", "牧夫座"]]],
+['紫微垣','玄戈',[[214.1, 46.09, 4.18, "214,196,140", "玄戈", "lambda Boo", "牧夫座"]]],
+['紫微垣','三公二',[[203.61, 49.02, 4.7, "214,196,140", "三公二", "24 CVn", "獵犬座"]]],
+['紫微垣','相',[[186.01, 51.56, 4.76, "214,196,140", "相", "5 CVn", "獵犬座"]]],
+['紫微垣','天理一',[[169.08, 59.94, 6.91, "214,196,140", "天理一", "HIP 55060", "大熊座"]]],
+['紫微垣','太陽守',[[176.51, 47.78, 3.72, "214,196,140", "太陽守", "chi UMa", "大熊座"]]],
+['紫微垣','太尊',[[167.42, 44.5, 3.01, "214,196,140", "太尊", "psi UMa", "大熊座"]]],
+['紫微垣','天牢一',[[163.5, 43.19, 4.66, "214,196,140", "天牢一", "omega UMa", "大熊座"]]],
+['紫微垣','勢一',[[158.38, 34.99, 5.58, "214,196,140", "勢一", "34 LMi", "小獅座"]]],
+['紫微垣','文昌二',[[147.75, 59.04, 3.81, "214,196,140", "文昌二", "upsilon UMa", "大熊座"]]],
+['紫微垣','內階一',[[127.57, 60.72, 3.42, "214,196,140", "內階一", "omicron UMa", "大熊座"]]],
+['紫微垣','三師一',[[135.64, 67.63, 4.76, "214,196,140", "三師一", "rho UMa", "大熊座"]]],
+['紫微垣','八穀一',[[89.88, 54.28, 3.72, "214,196,140", "八穀一", "delta Aur", "御夫座"]]],
+['紫微垣','傳舍一',[[356.98, 67.81, 5.04, "214,196,140", "傳舍一", "HIP 117371", "仙王座"]]],
+['紫微垣','天廚一',[[288.14, 67.66, 3.07, "214,196,140", "天廚一", "delta Dra", "天龍座"]]],
+['紫微垣','天棓一',[[268.38, 56.87, 3.75, "214,196,140", "天棓一", "xi Dra", "天龍座"]]],
+['太微垣','五帝座一',[[177.26, 14.57, 2.13, "214,196,140", "五帝座一", "beta Leo", "獅子座"]]],
+['太微垣','太子',[[177.0, 20.22, 4.52, "214,196,140", "太子", "93 Leo", "獅子座"]]],
+['太微垣','幸臣',[[180.02, 19.42, 6.95, "214,196,140", "幸臣", "GK Com", "后髮座"]]],
+['太微垣','五諸侯一',[[196.59, 21.15, 6.06, "214,196,140", "五諸侯一", "39 Com", "后髮座"]]],
+['太微垣','九卿一',[[190.47, 10.24, 4.88, "214,196,140", "九卿一", "rho Vir", "室女座"]]],
+['太微垣','內屏一',[[176.32, 8.26, 4.84, "214,196,140", "內屏一", "xi Vir", "室女座"]]],
+['太微垣','太微右垣一',[[177.67, 1.76, 3.6, "214,196,140", "太微右垣一", "beta Vir", "室女座"]]],
+['太微垣','太微左垣一',[[184.98, 0.67, 3.9, "214,196,140", "太微左垣一", "eta Vir", "室女座"]]],
+['太微垣','郎將',[[192.93, 27.54, 4.94, "214,196,140", "郎將", "31 Com", "后髮座"]]],
+['太微垣','郎位一',[[186.73, 28.27, 4.34, "214,196,140", "郎位一", "gamma Com", "后髮座"]]],
+['太微垣','三台一',[[134.8, 48.04, 3.14, "214,196,140", "三台一", "iota UMa", "大熊座"]]],
+['太微垣','虎賁',[[168.8, 23.1, 4.63, "214,196,140", "虎賁", "72 Leo", "獅子座"]]],
+['太微垣','少微一',[[166.77, 25.54, 6.84, "214,196,140", "少微一", "52 LMi", "小獅座"]]],
+['太微垣','長垣一',[[158.05, 14.14, 5.46, "214,196,140", "長垣一", "46 Leo", "獅子座"]]],
+['太微垣','靈臺一',[[166.25, 7.34, 4.62, "214,196,140", "靈臺一", "chi Leo", "獅子座"]]],
+['太微垣','明堂一',[[171.98, 2.86, 4.94, "214,196,140", "明堂一", "tau Leo", "獅子座"]]],
+['太微垣','謁者',[[185.09, 3.31, 4.96, "214,196,140", "謁者", "16 Vir", "室女座"]]],
+['天市垣','帝座',[[258.66, 14.39, 6.0, "214,196,140", "帝座", "alpha Her", "武仙座"]]],
+['天市垣','候',[[263.73, 12.56, 2.07, "214,196,140", "候", "alpha Oph", "蛇夫座"]]],
+['天市垣','宦者一',[[255.78, 14.09, 4.98, "214,196,140", "宦者一", "32 Oph", "武仙座"]]],
+['天市垣','斗一',[[246.35, 14.03, 4.58, "214,196,140", "斗一", "omega Her", "武仙座"]]],
+['天市垣','斛一',[[253.5, 10.16, 4.38, "214,196,140", "斛一", "iota Oph", "蛇夫座"]]],
+['天市垣','列肆一',[[245.52, 1.03, 4.82, "214,196,140", "列肆一", "sigma Ser", "巨蛇座"]]],
+['天市垣','車肆一',[[246.95, -8.37, 4.63, "214,196,140", "車肆一", "upsilon Oph", "蛇夫座"]]],
+['天市垣','市樓一',[[264.46, -8.12, 4.62, "214,196,140", "市樓一", "mu Oph", "蛇夫座"]]],
+['天市垣','宗正一',[[265.87, 4.57, 2.75, "214,196,140", "宗正一", "beta Oph", "蛇夫座"]]],
+['天市垣','宗人一',[[270.07, 4.37, 4.6, "214,196,140", "宗人一", "66 Oph", "蛇夫座"]]],
+['天市垣','宗一',[[281.42, 20.55, 4.19, "214,196,140", "宗一", "110 Her", "武仙座"]]],
+['天市垣','帛度一',[[270.38, 21.6, 6.0, "214,196,140", "帛度一", "95 Her", "武仙座"]]],
+['天市垣','屠肆一',[[275.93, 21.77, 3.84, "214,196,140", "屠肆一", "109 Her", "武仙座"]]],
+['天市垣','天市右垣一',[[247.56, 21.49, 2.77, "214,196,140", "天市右垣一", "beta Her", "武仙座"]]],
+['天市垣','天市左垣一',[[258.76, 24.84, 3.13, "214,196,140", "天市左垣一", "delta Her", "武仙座"]]],
+['天市垣','天紀一',[[245.52, 30.89, 4.85, "214,196,140", "天紀一", "xi CrB", "北冕座"]]],
+['天市垣','女床一',[[258.76, 36.81, 3.18, "214,196,140", "女床一", "pi Her", "武仙座"]]],
+['天市垣','貫索一',[[236.0, 32.52, 5.58, "214,196,140", "貫索一", "pi CrB", "北冕座"]]],
+['天市垣','七公一',[[249.69, 48.93, 4.9, "214,196,140", "七公一", "42 Her", "武仙座"]]]];
+
+const SU = [['角','青龙',[[-158.7, -11.16, 0.98, "171,190,255", "角宿一", "alpha Vir", "室女座"], [-156.33, 0.6, 3.38, "200,215,255", "角宿二", "zeta Vir", "室女座"]]],
+['亢','青龙',[[-146.78, -10.27, 4.21, "255,220,155", "亢宿一", "kappa Vir", "室女座"], [-146.0, -6.0, 4.08, "230,232,245", "亢宿二", "iota Vir", "室女座"], [-142.95, -2.23, 4.84, "255,240,210", "亢宿三", "phi Vir", "室女座"], [-145.22, -13.37, 4.52, "200,215,255", "亢宿四", "lambda Vir", "室女座"]]],
+['氐','青龙',[[-137.28, -16.04, 2.75, "227,232,245", "氐宿一", "alpha2 Lib", "天秤座"], [-131.94, -19.79, 4.54, "170,195,255", "氐宿二", "iota1 Lib", "天秤座"], [-126.12, -14.79, 3.91, "255,234,191", "氐宿三", "gamma Lib", "天秤座"], [-130.75, -9.38, 2.61, "195,210,255", "氐宿四", "beta Lib", "天秤座"]]],
+['房','青龙',[[-120.29, -26.11, 2.89, "178,196,255", "房宿一", "pi Sco", "天蝎座"], [-120.78, -29.21, 3.87, "176,193,255", "房宿二", "rho Sco", "天蝎座"], [-119.92, -22.62, 3.02, "255,226,165", "房宿三", "delta Sco", "天蝎座"], [-118.64, -19.8, 2.56, "196,211,255", "房宿四", "beta Sco", "天蝎座"]]],
+['心','青龙',[[-114.7, -25.59, 2.9, "244,242,243", "心宿一", "sigma Sco", "天蝎座"], [-112.65, -26.43, 1.06, "255,212,120", "心宿二", "alpha Sco", "天蝎座"], [-111.03, -28.22, 2.82, "175,193,255", "心宿三", "tau Sco", "天蝎座"]]],
+['尾','青龙',[[-107.03, -38.05, 3.0, "175,193,255", "尾宿一", "mu1 Sco", "天蝎座"], [-107.46, -34.29, 2.29, "255,230,180", "尾宿二", "epsilon Sco", "天蝎座"], [-101.96, -43.24, 3.32, "255,248,238", "尾宿四", "eta Sco", "天蝎座"], [-95.67, -43.0, 1.86, "255,249,241", "尾宿五", "theta Sco", "天蝎座"], [-93.1, -40.13, 2.99, "255,247,233", "尾宿六", "iota1 Sco", "天蝎座"], [-94.38, -39.03, 2.39, "179,197,255", "尾宿七", "kappa Sco", "天蝎座"], [-96.6, -37.1, 1.62, "171,190,255", "尾宿八", "lambda Sco", "天蝎座"], [-97.31, -37.3, 2.7, "178,196,255", "尾宿九", "upsilon Sco", "天蝎座"]]],
+['箕','青龙',[[-88.55, -30.42, 2.98, "255,235,194", "箕宿一", "gamma Sgr", "人馬座"], [-84.75, -29.83, 2.72, "255,224,161", "箕宿二", "delta Sgr", "人馬座"], [-83.96, -34.38, 1.79, "203,216,255", "箕宿三", "epsilon Sgr", "人馬座"], [-85.59, -36.76, 3.1, "255,219,144", "箕宿四", "eta Sgr", "人馬座"]]],
+['斗','玄武',[[-78.59, -26.99, 3.17, "189,205,255", "斗宿一", "phi Sgr", "人馬座"], [-83.01, -25.42, 2.82, "255,233,190", "斗宿二", "lambda Sgr", "人馬座"], [-86.56, -21.06, 3.84, "232,235,244", "斗宿三", "mu Sgr", "人馬座"], [-76.18, -26.3, 2.05, "185,201,255", "斗宿四", "sigma Sgr", "人馬座"], [-73.26, -27.67, 3.32, "255,230,178", "斗宿五", "tau Sgr", "人馬座"], [-74.35, -29.88, 2.6, "218,226,246", "斗宿六", "zeta Sgr", "人馬座"]]],
+['牛','玄武',[[-54.75, -14.78, 3.05, "255,239,209", "牛宿一", "beta Cap", "摩羯座"], [-55.49, -12.54, 3.58, "255,237,202", "牛宿二", "alpha2 Cap", "摩羯座"], [-56.89, -12.62, 5.85, "230,232,245", "牛宿三", "xi2 Cap", "摩羯座"], [-53.17, -18.21, 3.92, "236,237,244", "牛宿四", "pi Cap", "摩羯座"], [-52.79, -17.81, 3.92, "236,237,244", "牛宿六", "rho Cap", "摩羯座"]]],
+['女','玄武',[[-48.08, -9.5, 3.78, "211,221,247", "女宿一", "epsilon Aqr", "寶瓶座"], [-46.84, -8.98, 2.61, "195,210,255", "女宿二", "mu Aqr", "寶瓶座"], [-47.14, -5.63, 3.87, "253,248,242", "女宿三", "4 Aqr", "寶瓶座"]]],
+['虛','玄武',[[-37.11, -5.57, 2.9, "255,238,206", "虛宿一", "beta Aqr", "寶瓶座"], [-41.04, 5.25, 3.92, "255,246,229", "虛宿二", "alpha Equ", "小馬座"]]],
+['危','玄武',[[-28.55, 0.32, 2.94, "255,240,210", "危宿一", "alpha Aqr", "寶瓶座"], [-27.45, 6.2, 3.52, "220,227,246", "危宿二", "theta Peg", "飛馬座"], [-33.95, 9.88, 2.38, "255,221,149", "危宿三", "epsilon Peg", "飛馬座"]]],
+['室','玄武',[[-13.81, 15.21, 2.49, "208,221,255", "室宿一", "alpha Peg", "飛馬座"], [-14.06, 28.08, 2.44, "255,217,138", "室宿二", "beta Peg", "飛馬座"]]],
+['壁','玄武',[[3.31, 15.18, 2.83, "177,194,255", "壁宿一", "gamma Peg", "飛馬座"], [2.1, 29.09, 2.07, "201,215,255", "壁宿二", "alpha And", "仙女座"]]],
+['奎','白虎',[[14.3, 23.42, 4.42, "255,240,210", "奎宿一", "eta And", "仙女座"], [11.84, 24.27, 4.06, "255,220,155", "奎宿二", "zeta And", "仙女座"], [12.47, 27.71, 6, "235,235,240", "奎宿三", "65 Psc", "双鱼座"], [9.64, 29.31, 4.38, "255,240,210", "奎宿四", "epsilon And", "仙女座"], [9.83, 30.86, 3.27, "255,227,170", "奎宿五", "delta And", "仙女座"], [9.22, 33.72, 4.36, "170,195,255", "奎宿六", "pi And", "仙女座"], [12.45, 41.08, 4.53, "170,195,255", "奎宿七", "nu And", "仙女座"], [14.19, 38.5, 3.86, "225,230,245", "奎宿八", "mu And", "仙女座"], [17.43, 35.62, 2.07, "255,219,144", "奎宿九", "beta And", "仙女座"], [15.71, 31.8, 5.5, "170,195,255", "奎宿十", "sigma Psc", "雙魚座"], [17.91, 30.09, 4.51, "255,220,155", "奎宿十一", "tau Psc", "雙魚座"], [20.28, 28.74, 5.22, "255,220,155", "奎宿十二", "91 Psc", "雙魚座"], [19.87, 27.26, 4.75, "200,215,255", "奎宿十三", "upsilon Psc", "雙魚座"], [18.44, 24.58, 4.66, "255,220,155", "奎宿十四", "phi Psc", "雙魚座"], [17.86, 21.04, 4.66, "255,240,210", "奎宿十五", "chi Psc", "雙魚座"]]],
+['婁','白虎',[[28.66, 20.81, 2.64, "229,233,245", "婁宿一", "beta Ari", "白羊座"], [28.38, 19.29, 3.88, "200,214,255", "婁宿二", "gamma Ari", "白羊座"], [31.79, 23.46, 2.01, "255,230,180", "婁宿三", "alpha Ari", "白羊座"]]],
+['胃','白虎',[[40.86, 27.71, 4.67, "170,195,255", "胃宿一", "35 Ari", "白羊座"], [41.98, 29.25, 4.51, "255,220,155", "胃宿二", "39 Ari", "白羊座"], [42.5, 27.26, 3.61, "190,206,255", "胃宿三", "41 Ari", "白羊座"]]],
+['昴','白虎',[[56.22, 24.11, 3.72, "190,205,255", "昴宿一", "17 Tau", "金牛座"], [56.3, 24.47, 3.87, "197,211,255", "昴宿二", "19 Tau", "金牛座"], [56.48, 24.55, 3.87, "197,211,255", "昴宿三", "21 Tau", "金牛座"], [56.46, 24.37, 3.87, "197,211,255", "昴宿四", "20 Tau", "金牛座"], [56.58, 23.95, 2.85, "193,208,255", "昴宿五", "23 Tau", "金牛座"], [56.87, 24.11, 2.85, "193,208,255", "昴宿六", "eta Tau", "金牛座"], [57.29, 24.05, 3.62, "196,210,255", "昴宿七", "27 Tau", "金牛座"]]],
+['畢','白虎',[[67.15, 19.18, 3.53, "255,234,191", "畢宿一", "epsilon Tau", "金牛座"], [66.37, 17.93, 4.3, "200,215,255", "畢宿二", "delta3 Tau", "金牛座"], [65.73, 17.54, 3.77, "255,235,193", "畢宿三", "delta1 Tau", "金牛座"], [64.95, 15.63, 3.65, "255,235,194", "畢宿四", "gamma Tau", "金牛座"], [68.98, 16.51, 0.87, "255,220,147", "畢宿五", "alpha Tau", "金牛座"], [67.14, 15.96, 3.84, "255,235,196", "畢宿六", "theta1 Tau", "金牛座"], [66.59, 15.62, 4.48, "230,232,245", "畢宿七", "71 Tau", "金牛座"], [60.17, 12.49, 3.41, "191,206,255", "畢宿八", "lambda Tau", "金牛座"]]],
+['觜','白虎',[[83.78, 9.93, 3.39, "181,198,255", "觜宿一", "lambda Ori", "獵戶座"], [83.7, 9.49, 3.39, "181,198,255", "觜宿二", "phi1 Ori", "獵戶座"], [84.23, 9.29, 4.09, "255,240,210", "觜宿三", "phi2 Ori", "獵戶座"]]],
+['參','白虎',[[85.19, -1.94, 1.74, "176,193,255", "參宿一", "zeta Ori", "獵戶座"], [84.05, -1.2, 1.69, "178,195,255", "參宿二", "epsilon Ori", "獵戶座"], [83.0, 0.3, 2.41, "150,180,255", "參宿三", "delta Ori", "獵戶座"], [88.79, 7.41, 0.45, "255,221,151", "參宿四", "alpha Ori", "獵戶座"], [81.28, 6.35, 1.64, "172,191,255", "參宿五", "gamma Ori", "獵戶座"], [86.94, -9.67, 2.07, "180,197,255", "參宿六", "kappa Ori", "獵戶座"], [78.64, -8.2, 0.18, "203,216,255", "參宿七", "beta Ori", "獵戶座"]]],
+['井','朱雀',[[95.74, 22.51, 2.87, "255,218,141", "井宿一", "mu Gem", "雙子座"], [97.24, 20.21, 4.14, "170,195,255", "井宿二", "nu Gem", "雙子座"], [99.43, 16.4, 1.93, "211,221,247", "井宿三", "gamma Gem", "雙子座"], [101.32, 12.9, 3.35, "255,248,238", "井宿四", "xi Gem", "雙子座"], [100.98, 25.13, 3.06, "255,224,161", "井宿五", "epsilon Gem", "雙子座"], [102.89, 21.76, 5.26, "200,215,255", "井宿六", "36 Gem", "雙子座"], [106.03, 20.57, 3.79, "255,240,210", "井宿七", "zeta Gem", "雙子座"], [109.52, 16.54, 3.58, "223,229,245", "井宿八", "lambda Gem", "雙子座"]]],
+['鬼','朱雀',[[127.9, 18.09, 5.34, "255,220,155", "鬼宿一", "theta Cnc", "巨蟹座"], [128.18, 20.44, 5.33, "255,220,155", "鬼宿二", "eta Cnc", "巨蟹座"], [130.82, 21.47, 4.65, "200,215,255", "鬼宿三", "gamma Cnc", "巨蟹座"], [131.17, 18.15, 3.94, "255,232,185", "鬼宿四", "delta Cnc", "巨蟹座"]]],
+['柳','朱雀',[[129.41, 5.7, 4.13, "200,215,255", "柳宿一", "delta Hya", "長蛇座"], [129.69, 3.34, 4.43, "255,220,155", "柳宿二", "sigma Hya", "長蛇座"], [130.81, 3.4, 4.3, "170,195,255", "柳宿三", "eta Hya", "長蛇座"], [132.11, 5.84, 4.34, "200,215,255", "柳宿四", "rho Hya", "長蛇座"], [131.69, 6.42, 3.38, "255,242,218", "柳宿五", "epsilon Hya", "長蛇座"], [133.85, 5.95, 3.11, "255,235,194", "柳宿六", "zeta Hya", "長蛇座"], [136.49, 5.09, 4.98, "255,220,155", "柳宿七", "omega Hya", "長蛇座"], [138.59, 2.31, 3.89, "197,212,255", "柳宿八", "theta Hya", "長蛇座"]]],
+['星','朱雀',[[141.9, -8.66, 1.99, "255,223,156", "星宿一", "alpha Hya", "長蛇座"], [142.29, -2.77, 4.6, "230,232,245", "星宿二", "tau1 Hya", "長蛇座"], [143.0, -1.19, 4.55, "200,215,255", "星宿三", "tau2 Hya", "長蛇座"], [144.96, -1.14, 3.9, "255,226,166", "星宿四", "iota Hya", "長蛇座"], [140.12, -9.56, 4.81, "255,220,155", "星宿五", "27 Hya", "長蛇座"], [139.94, -11.97, 4.77, "255,240,210", "星宿六", "26 Hya", "長蛇座"], [142.91, -10.55, 6.12, "235,235,240", "星宿七", "HIP 46744", "長蛇座"]]],
+['張','朱雀',[[147.87, -14.85, 4.11, "255,240,210", "張宿一", "upsilon1 Hya", "長蛇座"], [152.65, -12.35, 3.61, "255,234,191", "張宿二", "lambda Hya", "長蛇座"], [156.52, -16.84, 3.83, "255,222,154", "張宿三", "mu Hya", "長蛇座"], [151.01, -18.1, 6.23, "170,195,255", "張宿四", "HIP 49321", "長蛇座"], [145.08, -14.33, 5.05, "170,195,255", "張宿五", "kappa Hya", "長蛇座"]]],
+['翼','朱雀',[[164.94, -18.3, 4.07, "255,220,155", "翼宿一", "alpha Crt", "巨爵座"], [171.22, -17.68, 4.06, "200,215,255", "翼宿二", "gamma Crt", "巨爵座"], [176.19, -18.35, 4.71, "255,240,210", "翼宿三", "zeta Crt", "巨爵座"], [170.84, -18.78, 5.09, "230,232,245", "翼宿四", "lambda Crt", "巨爵座"], [162.41, -16.19, 3.11, "255,228,173", "翼宿五", "nu Hya", "長蛇座"], [179.0, -17.15, 5.16, "200,215,255", "翼宿六", "eta Crt", "巨爵座"], [169.84, -14.78, 3.56, "255,231,183", "翼宿七", "delta Crt", "巨爵座"], [174.67, -13.2, 5.48, "230,232,245", "翼宿八", "iota Crt", "巨爵座"], [171.79, -12.36, 5.92, "230,232,245", "翼宿九", "kappa Crt", "巨爵座"], [171.15, -10.86, 4.8, "255,220,155", "翼宿十", "epsilon Crt", "巨爵座"], [165.63, -9.99, 7.32, "255,220,155", "翼宿十二", "HIP 53975", "巨爵座"], [174.17, -9.8, 4.67, "170,195,255", "翼宿十三", "theta Crt", "巨爵座"], [177.1, -10.31, 6.23, "255,240,210", "翼宿十四", "HIP 57587", "巨爵座"], [167.91, -22.83, 4.45, "200,215,255", "翼宿十六", "beta Crt", "巨爵座"]]],
+['軫','朱雀',[[-176.05, -17.54, 2.58, "189,205,255", "軫宿一", "gamma Crv", "烏鴉座"], [-177.47, -22.62, 3.02, "255,226,165", "軫宿二", "epsilon Crv", "烏鴉座"], [-172.53, -16.52, 2.94, "206,219,255", "軫宿三", "delta Crv", "烏鴉座"], [-171.4, -23.4, 2.65, "255,237,201", "軫宿四", "beta Crv", "烏鴉座"]]]];
+
+/* 四象 */
+const XIANG_COLOR = { '青龙':'#5fc4a8', '玄武':'#7f93c4', '白虎':'#d4d2c9', '朱雀':'#c96a5a' };
+const YUAN_COLOR = { '紫微垣':'#d6c48c', '太微垣':'#b8a7d9', '天市垣':'#9cc4a8' };
+const ANIMAL = { '青龙':'苍龙','玄武':'灵龟','白虎':'白虎','朱雀':'朱雀' };
+const XIANG_SEASON = { '青龙':'春','玄武':'冬','白虎':'秋','朱雀':'夏' };
+/* ---- 月亮实时位置（Meeus 低精度，误差 ~0.5°） ---- */
+function julianDate(){
+  const now = new Date();
+  const y = now.getUTCFullYear(), m = now.getUTCMonth()+1, d = now.getUTCDate();
+  const h = now.getUTCHours() + now.getUTCMinutes()/60;
+  let yy = y, mm = m;
+  if (mm <= 2){ yy--; mm += 12; }
+  const A = Math.floor(yy/100), B = 2 - A + Math.floor(A/4);
+  const jd = Math.floor(365.25*(yy+4716)) + Math.floor(30.6001*(mm+1)) + d + B - 1524.5 + h/24;
+  return jd;
+}
+function moonPosition(){
+  const d = julianDate() - 2451545.0;
+  const Lp = 218.316 + 13.176396*d;
+  const M  = 357.5291 + 0.98560028*d;
+  const D  = 297.8502 + 12.190749*d;
+  const Mp = 134.9634 + 13.064993*d;
+  const r  = Math.PI/180;
+  let lam = Lp + 6.289*Math.sin(Mp*r) + 1.274*Math.sin((2*D-Mp)*r)
+      + 0.658*Math.sin(2*D*r) + 0.214*Math.sin(2*Mp*r)
+      - 0.186*Math.sin(M*r) - 0.114*Math.sin((2*M-Mp)*r)
+      - 0.059*Math.sin((2*D-2*Mp)*r) + 0.057*Math.sin((2*D-M-Mp)*r)
+      + 0.053*Math.sin((2*D+Mp)*r);
+  lam = ((lam % 360) + 360) % 360;
+  let bet = 5.128*Math.sin(Mp*r) + 0.280*Math.sin((2*D+Mp)*r)
+      + 0.278*Math.sin((2*D-Mp)*r) + 0.173*Math.sin((M-Mp)*r)
+      + 0.055*Math.sin((M+Mp)*r);
+  const eps = 23.4393 - 0.0000004*d;
+  const lr = lam*r, br = bet*r, er = eps*r;
+  let ra = Math.atan2(Math.sin(lr)*Math.cos(er) - Math.tan(br)*Math.sin(er), Math.cos(lr))/r;
+  if (ra < 0) ra += 360;
+  const dec = Math.asin(Math.sin(br)*Math.cos(er) + Math.cos(br)*Math.sin(er)*Math.sin(lr))/r;
+  /* 月相：太阳-月亮黄经差 */
+  const Lsun = 280.4665 + 0.98564736*d;
+  let phase = ((lam - Lsun) % 360 + 360) % 360;
+  return { ra, dec, phase };
+}
+
+
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const infoEl = document.getElementById('info');
+
+/* ---- 北天极立体投影 ----
+   dec = 90° 在圆心；ρ 与 tan((90-dec)/2) 成正比；
+   显示到 dec = -52°（覆盖黄道带与南侧尾宿），黄道赤纬 ±23.5 成环 */
+let cx = 0, cy = 0, R = 0, Rmax = 0;
+const MAX_DEC = -52;
+function layout(){
+  const s = Math.min(canvas.width, canvas.height);
+  cx = canvas.width/2; cy = canvas.height/2;
+  Rmax = s * 1.38;                    // 投影放大 3 倍：圆盘超出画布，边缘被裁剪（放大特写）
+  R = Rmax * Math.tan(Math.PI/4) / Math.tan(((90-MAX_DEC)/2)*Math.PI/180); // 赤道圈
+}
+function project(ra, dec){
+  const rho = R * Math.tan(((90-dec)/2)*Math.PI/180) / Math.tan(Math.PI/4);
+  const th = ra * Math.PI/180;
+  return { x: cx + rho*Math.sin(th), y: cy - rho*Math.cos(th), rho };
+}
+
+/* 数据预处理 */
+let suList = [];
+let yuanList = [];
+function buildAll(){
+  layout();
+  yuanList = YUAN.map(([yuan, guan, arr]) => {
+    const pts = arr.map(([ra,dec,mag,rgb,name,modern,cnst]) => {
+      const p = project(ra, dec);
+      return { ...p, mag, rgb, name, modern, cnst };
+    });
+    return { yuan, guan, pts, act:0, hit:-1 };
+  });
+  suList = SU.map(([su, xiang, arr]) => {
+    const pts = arr.map(([ra,dec,mag,rgb,name,modern,cnst]) => {
+      const p = project(ra, dec);
+      return { ...p, mag, rgb, name, modern, cnst };
+    });
+    return { su, xiang, pts, act:0, hit:-1 };
+  });
+}
+function resize(){ canvas.width = innerWidth; canvas.height = innerHeight; buildAll(); }
+addEventListener('resize', resize);
+resize();
+
+let mx = innerWidth/2, my = innerHeight/2, sx = mx, sy = my, t = 0;
+addEventListener('mousemove', e => { mx = e.clientX; my = e.clientY; });
+
+const HIT = 42;
+const DASH = [6,4,2,5];
+function starSize(mag){ return Math.min(3.2, Math.max(0.6, 2.7 - mag*0.34)); }
+
+function drawRings(){
+  /* 天赤道圈 */
+  ctx.beginPath(); ctx.arc(cx, cy, R, 0, Math.PI*2);
+  ctx.strokeStyle = 'rgba(138,133,120,0.30)'; ctx.lineWidth = 1; ctx.setLineDash([2,6]); ctx.stroke();
+  /* 黄道带（±8°，月亮太阳行经带） */
+  ctx.setLineDash([]);
+  for (const off of [-8, 8]){
+    const r = R * Math.tan(((90-off)/2)*Math.PI/180) / Math.tan(Math.PI/4);
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, Math.PI*2);
+    ctx.strokeStyle = 'rgba(201,169,97,0.18)'; ctx.lineWidth = 0.6; ctx.stroke();
+  }
+  /* 外圈 */
+  ctx.beginPath(); ctx.arc(cx, cy, Rmax, 0, Math.PI*2);
+  ctx.strokeStyle = 'rgba(233,228,216,0.25)'; ctx.lineWidth = 1; ctx.stroke();
+  /* 十字经线 */
+  ctx.setLineDash([1,5]); ctx.strokeStyle = 'rgba(138,133,120,0.15)'; ctx.lineWidth = 0.6;
+  for (const ra of [0, 90, 180, -90]){
+    const p1 = project(ra, MAX_DEC), p0 = project(ra, 90);
+    ctx.beginPath(); ctx.moveTo(p0.x, p0.y); ctx.lineTo(p1.x, p1.y); ctx.stroke();
+  }
+  ctx.setLineDash([]);
+}
+
+
+/* ---- 月亮绘制 + 所在宿判定 ---- */
+let moonInfo = '';
+function drawMoon(){
+  const m = moonPosition();
+  const p = project(m.ra, m.dec);
+  /* 所在宿：按赤经距离最近宿判定 */
+  let best='', bd=1e9;
+  for (const s of suList){
+    for (const q of s.pts){
+      let dra = Math.abs(q.ra - m.ra); dra = Math.min(dra, 360-dra);
+      const dd = Math.abs(q.dec - m.dec);
+      const d2 = Math.hypot(dra, dd);
+      if (d2 < bd){ bd = d2; best = s.su; }
+    }
+  }
+  /* 月相名 */
+  const ph = m.phase;
+  const phName = ph < 6 || ph >= 354 ? '新月' : ph < 90 ? '蛾眉月' : ph < 96 ? '上弦' :
+                 ph < 180 ? '盈凸月' : ph < 186 ? '满月' : ph < 270 ? '亏凸月' : ph < 276 ? '下弦' : '残月';
+  const pct = Math.round(((ph+180)%360)/3.6);
+  moonInfo = `月亮 · ${best}宿 · ${phName} ${pct}%`;
+  /* 月亮本体（金色圆盘，画在星上层） */
+  if (p.rho > Rmax + 8) return; // 超出圆盘不画
+  const glow = 5.5;
+  const grad = ctx.createRadialGradient(p.x, p.y, 0, p.x, p.y, glow*3);
+  grad.addColorStop(0, 'rgba(255,236,180,0.55)');
+  grad.addColorStop(1, 'rgba(255,236,180,0)');
+  ctx.beginPath(); ctx.arc(p.x, p.y, glow*3, 0, Math.PI*2); ctx.fillStyle = grad; ctx.fill();
+  ctx.beginPath(); ctx.arc(p.x, p.y, glow, 0, Math.PI*2);
+  ctx.fillStyle = 'rgba(255,238,190,0.95)'; ctx.fill();
+  ctx.strokeStyle = 'rgba(255,215,130,0.6)'; ctx.lineWidth = 0.8; ctx.stroke();
+  /* 月相缺口（简示：按相位画暗斑） */
+  const dark = Math.abs(Math.sin((ph)*Math.PI/180));
+  ctx.beginPath(); ctx.arc(p.x - glow*0.5*dark, p.y, glow*0.75, 0, Math.PI*2);
+  ctx.fillStyle = `rgba(11,13,18,${0.35*dark})`; ctx.fill();
+}
+
+/* ---- 月亮信息角标 ---- */
+function drawMoonBadge(){
+  if (!moonInfo) return;
+  ctx.save();
+  ctx.font = '11px -apple-system,"PingFang SC",sans-serif';
+  const tw = ctx.measureText(moonInfo).width;
+  const bx = 24, by = 26;
+  ctx.fillStyle = 'rgba(11,13,18,0.7)';
+  ctx.beginPath();
+  ctx.roundRect ? ctx.roundRect(bx-8, by-16, tw+16, 22, 6) : ctx.rect(bx-8, by-16, tw+16, 22);
+  ctx.fill();
+  ctx.fillStyle = '#e9d9a8'; ctx.textAlign = 'left';
+  ctx.fillText(moonInfo, bx, by);
+  ctx.restore();
+}
+
+function animate(){
+  t += 0.01;
+  sx += (mx-sx)*0.08; sy += (my-sy)*0.08;
+  ctx.clearRect(0,0,canvas.width,canvas.height);
+  drawRings();
+  drawMoon();
+
+  /* 激活判定 */
+  for (const s of suList){
+    let best = Infinity, bi = -1;
+    for (let i=0;i<s.pts.length;i++){
+      const d = (sx-s.pts[i].x)**2 + (sy-s.pts[i].y)**2;
+      if (d<best){ best=d; bi=i; }
+    }
+    const target = best < HIT*HIT ? 1 : 0;
+    s.act += (target - s.act)*0.1;
+    s.hit = bi;
+  }
+  /* 三垣星官激活 */
+  for (const s of yuanList){
+    let best = Infinity, bi = -1;
+    for (let i=0;i<s.pts.length;i++){
+      const d = (sx-s.pts[i].x)**2 + (sy-s.pts[i].y)**2;
+      if (d<best){ best=d; bi=i; }
+    }
+    const target = best < HIT*HIT ? 1 : 0;
+    s.act += (target - s.act)*0.1;
+    s.hit = bi;
+  }
+
+  /* 宿内连线（激活渐显） */
+  for (const s of suList){
+    if (s.act < 0.03) continue;
+    ctx.save();
+    ctx.globalAlpha = s.act;
+    ctx.strokeStyle = XIANG_COLOR[s.xiang];
+    ctx.setLineDash(DASH); ctx.lineWidth = 0.8;
+    ctx.beginPath();
+    const p0 = s.pts[0]; ctx.moveTo(p0.x, p0.y);
+    for (let i=1;i<s.pts.length;i++) ctx.lineTo(s.pts[i].x, s.pts[i].y);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /* 三垣星官连线 */
+  for (const s of yuanList){
+    if (s.act < 0.05 || s.pts.length < 2) continue;
+    ctx.save();
+    ctx.globalAlpha = s.act * 0.7;
+    ctx.strokeStyle = YUAN_COLOR[s.yuan];
+    ctx.setLineDash([3,4]); ctx.lineWidth = 0.5;
+    ctx.beginPath();
+    const p0 = s.pts[0]; ctx.moveTo(p0.x, p0.y);
+    for (let i=1;i<s.pts.length;i++) ctx.lineTo(s.pts[i].x, s.pts[i].y);
+    ctx.stroke();
+    ctx.restore();
+  }
+
+  /* 星点 */
+  for (const s of suList){
+    for (const p of s.pts){
+      const tw = (Math.sin(t*0.7 + p.x*0.02) + 1)/2;
+      const size = starSize(p.mag) * (1 + tw*0.12);
+      const act = s.act;
+      if (p.mag <= 1.5){
+        ctx.beginPath(); ctx.arc(p.x, p.y, size*3, 0, Math.PI*2);
+        ctx.fillStyle = `rgba(${p.rgb},${0.08 + act*0.10})`; ctx.fill();
+      }
+      ctx.beginPath(); ctx.arc(p.x, p.y, size, 0, Math.PI*2);
+      const alpha = act > 0.02 ? Math.min(1, 0.5 - p.mag*0.05 + tw*0.15 + act*0.4)
+                               : Math.min(0.55, 0.3 - p.mag*0.04 + tw*0.12);
+      ctx.fillStyle = `rgba(${p.rgb},${alpha})`; ctx.fill();
+      if (act > 0.5 && p === s.pts[s.hit]){
+        ctx.beginPath(); ctx.arc(p.x, p.y, size+3, 0, Math.PI*2);
+        ctx.strokeStyle = `rgba(255,255,255,${act*0.35})`; ctx.lineWidth = 1; ctx.stroke();
+      }
+    }
+  }
+
+  /* 三垣星点（中央区，常驻弱显 + 激活渐显） */
+  for (const s of yuanList){
+    for (const p of s.pts){
+      const tw = (Math.sin(t*0.6 + p.x*0.03) + 1)/2;
+      const size = Math.min(2.6, Math.max(0.7, 2.3 - p.mag*0.3)) * (1 + tw*0.1);
+      const act = s.act;
+      ctx.beginPath(); ctx.arc(p.x, p.y, size, 0, Math.PI*2);
+      const alpha = act > 0.02 ? Math.min(0.9, 0.35 - p.mag*0.04 + tw*0.1 + act*0.45)
+                               : Math.min(0.45, 0.22 - p.mag*0.03 + tw*0.08);
+      ctx.fillStyle = `rgba(${p.rgb},${alpha})`;
+      ctx.fill();
+      if (act > 0.5 && p === s.pts[s.hit]){
+        ctx.beginPath(); ctx.arc(p.x, p.y, size+2.5, 0, Math.PI*2);
+        ctx.strokeStyle = `rgba(255,255,255,${act*0.3})`; ctx.lineWidth = 0.8; ctx.stroke();
+      }
+    }
+  }
+
+  /* 三垣星官名标签 */
+  for (const s of yuanList){
+    if (s.act < 0.35) continue;
+    const a = (s.act-0.35)/0.65;
+    const gx = s.pts.reduce((a,p)=>a+p.x,0)/s.pts.length;
+    const gy = s.pts.reduce((a,p)=>a+p.y,0)/s.pts.length;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, a);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = YUAN_COLOR[s.yuan];
+    ctx.font = '500 12px "PingFang SC","Songti SC",serif';
+    ctx.fillText(s.guan, gx, gy - 8);
+    ctx.restore();
+  }
+
+  /* 宿名标签 */
+  for (const s of suList){
+    if (s.act < 0.25) continue;
+    const a = (s.act-0.25)/0.75;
+    /* 标签放在宿重心沿径向向外 */
+    let gx=0, gy=0;
+    for (const p of s.pts){ gx+=p.x; gy+=p.y; }
+    gx/=s.pts.length; gy/=s.pts.length;
+    const dx = gx-cx, dy = gy-cy, dl = Math.hypot(dx,dy)||1;
+    const tx = gx + dx/dl*22, ty = gy + dy/dl*22;
+    ctx.save();
+    ctx.globalAlpha = Math.min(1, a);
+    ctx.textAlign = 'center';
+    ctx.fillStyle = XIANG_COLOR[s.xiang];
+    ctx.font = '600 15px "PingFang SC","Songti SC",serif';
+    ctx.fillText(s.su+'宿', tx, ty-8);
+    ctx.font = '10px -apple-system,"PingFang SC",sans-serif';
+    ctx.fillStyle = 'rgba(233,228,216,0.7)';
+    ctx.fillText(ANIMAL[s.xiang]+' · '+s.pts.length+'星', tx, ty+8);
+    ctx.restore();
+  }
+
+  /* 信息卡 */
+  let shown = false;
+  for (const s of suList){
+    if (s.act > 0.5 && s.hit >= 0 && !shown){
+      const p = s.pts[s.hit];
+      infoEl.style.display = 'block';
+      infoEl.innerHTML = `
+        <div class="gname">${s.su}宿 · ${p.name}</div>
+        <div class="mname">${p.modern} · ${p.cnst}</div>
+        <div style="color:${XIANG_COLOR[s.xiang]}">${ANIMAL[s.xiang]} · ${XIANG_SEASON[s.xiang]} · 视星等 ${p.mag.toFixed(2)}</div>`;
+      shown = true;
+    }
+  }
+  for (const s of yuanList){
+    if (s.act > 0.5 && s.hit >= 0 && !shown){
+      const p = s.pts[s.hit];
+      infoEl.style.display = 'block';
+      infoEl.innerHTML = `
+        <div class="gname">${s.yuan} · ${s.guan}</div>
+        <div class="mname">${p.name} · ${p.modern} · ${p.cnst}</div>
+        <div style="color:${YUAN_COLOR[s.yuan]}">${s.yuan}星官 · 视星等 ${p.mag.toFixed(2)}</div>`;
+      shown = true;
+    }
+  }
+  if (!shown) infoEl.style.display = 'none';
+  drawMoonBadge();
+
+  requestAnimationFrame(animate);
+}
+animate();
+</script>
+</body>
+</html>

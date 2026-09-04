@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>UMa — Scroll Story (real assets)</title>
+<style>
+  :root{
+    --canvas:#FBFBFA; --ink:#111111; --muted:#787774; --accent:#1F6F5C; --line:#EAEAEA;
+    --tag-green-bg:#EDF3EC; --tag-green-ink:#346538;
+    --tag-red-bg:#FDEBEC; --tag-red-ink:#9F2F2D;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{font-family:-apple-system,"SF Pro Text","SF Pro Display","Helvetica Neue","PingFang SC","Noto Sans SC",sans-serif;
+    background:var(--canvas);color:var(--ink);line-height:1.6;-webkit-font-smoothing:antialiased}
+  .wrap{max-width:1120px;margin:0 auto;padding:0 28px}
+
+  .demo-note{position:fixed;top:14px;right:14px;z-index:99;font-size:12px;color:var(--muted);
+    background:#fff;border:1px solid var(--line);border-radius:9999px;padding:6px 14px}
+
+  /* intro */
+  .intro{min-height:44vh;display:flex;align-items:flex-end;padding-bottom:56px}
+  .intro .eyebrow{font-size:12px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--accent);margin-bottom:16px}
+  .intro h1{font-size:clamp(34px,5vw,58px);font-weight:650;letter-spacing:-.03em;line-height:1.05;max-width:16ch}
+  .intro p{color:var(--muted);font-size:17px;max-width:44ch;margin-top:18px}
+
+  /* story */
+  .story{position:relative;height:400vh}
+  .story-inner{position:sticky;top:0;height:100vh;overflow:hidden;display:flex;align-items:center}
+  .scene{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;
+    opacity:0;pointer-events:none;padding:0 28px}
+  .scene .inner{display:grid;grid-template-columns:1fr 1fr;gap:64px;align-items:center;max-width:1120px;width:100%}
+  @media (max-width:860px){.scene .inner{grid-template-columns:1fr;gap:32px}}
+  .scene h2{font-size:clamp(26px,3.6vw,44px);font-weight:650;letter-spacing:-.025em;line-height:1.1}
+  .scene .kicker{font-size:12px;font-weight:600;letter-spacing:.09em;text-transform:uppercase;color:var(--accent);margin-bottom:14px}
+  .scene .sub{color:var(--muted);font-size:16px;max-width:40ch;margin-top:14px}
+
+  /* ============ Scene 1: quote table ============ */
+  .p1{--p:0}
+  .p1 .stage{position:relative;width:100%;max-width:520px;aspect-ratio:4/3;
+    background:linear-gradient(160deg,#f5f5f1,#ecece5);border-radius:20px;overflow:hidden}
+  .p1 .quote-card{position:absolute;background:rgba(255,255,255,.94);border:1px solid var(--line);
+    border-radius:12px;padding:10px 14px;font-size:12.5px;color:var(--ink-soft);box-shadow:0 10px 24px rgba(0,0,0,.06);
+    width:150px}
+  .p1 .quote-card b{font-variant-numeric:tabular-nums;font-size:15px}
+  .p1 .quote-card .c{font-size:11px;color:var(--muted)}
+  .p1 .qc1{--cx:150px;--cy:-130px;--cr:-9deg}
+  .p1 .qc2{--cx:-140px;--cy:-90px;--cr:7deg}
+  .p1 .qc3{--cx:170px;--cy:60px;--cr:5deg}
+  .p1 .qc4{--cx:-160px;--cy:110px;--cr:-6deg}
+  .p1 .qc5{--cx:10px;--cy:-170px;--cr:2deg}
+  .p1 .qc{position:absolute;left:50%;top:50%;margin-left:-75px;margin-top:-34px;
+    transform:translate(calc(var(--cx)*(1 - var(--p))), calc(var(--cy)*(1 - var(--p)))) rotate(calc(var(--cr)*(1 - var(--p)) * 1deg));
+    opacity:calc(.25 + .75*var(--p))}
+  .p1 .table{position:absolute;inset:7%;background:#fff;border:1px solid var(--line);border-radius:14px;
+    padding:16px;opacity:calc(var(--p) - .55);transform:translateY(calc((1 - var(--p))*60px))}
+  .p1 table{width:100%;border-collapse:collapse;font-size:12px;color:var(--ink-soft)}
+  .p1 th{text-align:left;font-size:10.5px;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);
+    padding:6px 8px;border-bottom:1px solid var(--line)}
+  .p1 td{padding:8px;border-bottom:1px solid var(--line);font-variant-numeric:tabular-nums}
+  .p1 .ok{color:var(--accent);font-weight:700}
+  .p1 .flag{color:var(--tag-red-ink);font-weight:700}
+  .p1 .uma-row{background:var(--tag-green-bg);font-weight:600}
+  .p1 .title-a, .p1 .title-b{}
+  .p1 .title-a{opacity:calc(1 - min(var(--p)*2,1))}
+  .p1 .title-b{opacity:calc(max(0,var(--p)*2 - 1));margin-top:-60px}
+
+  /* ============ Scene 2: supplier profile ============ */
+  .p2{--p:0}
+  .p2 .stage{position:relative;width:100%;max-width:520px;aspect-ratio:4/3;
+    background:#fff;border:1px solid var(--line);border-radius:20px;overflow:hidden}
+  .p2 .shot{position:absolute;inset:0;transform:scale(calc(1 - .16*var(--p)));opacity:calc(1 - .85*var(--p))}
+  .p2 .shot img{width:100%;height:100%;object-fit:cover;display:block}
+  .p2 .scan{position:absolute;left:0;right:0;height:120px;top:0;pointer-events:none;opacity:calc(var(--p)*.75);
+    background:linear-gradient(180deg,transparent,rgba(31,111,92,.25),transparent);
+    transform:translateY(calc(var(--p) * 620px))}
+  .p2 .report{position:absolute;inset:8%;background:#fff;border:1px solid var(--line);border-radius:16px;padding:22px;
+    transform:translateY(calc((1 - var(--p))*90px));opacity:calc(var(--p) - .45)}
+  .p2 .report h4{font-size:14px;margin-bottom:12px;letter-spacing:-.01em}
+  .p2 .report em{display:block;font-size:10.5px;font-style:normal;color:var(--muted);margin:-6px 0 10px}
+  .p2 .report li{list-style:none;font-size:13px;color:var(--ink-soft);padding:10px 0;border-bottom:1px solid var(--line);
+    display:flex;justify-content:space-between;gap:10px;
+    opacity:calc(min(1,var(--p)*3 - 1.4));transform:translateY(8px)}
+  .p2 .report .ok{color:var(--accent);font-weight:700}
+  .p2 .report .warn{color:var(--tag-red-ink);font-weight:700}
+
+  /* ============ Scene 3: product photos ============ */
+  .p3{--p:0}
+  .p3 .stage{position:relative;width:100%;max-width:520px;aspect-ratio:4/3;overflow:hidden}
+  .p3 .main{position:absolute;left:18%;right:18%;top:8%;bottom:30%;border-radius:18px;overflow:hidden;
+    transform:scale(calc(.75 + .25*var(--p)));opacity:calc(var(--p) - .3);
+    box-shadow:0 30px 60px rgba(0,0,0,.12)}
+  .p3 .main img{width:100%;height:100%;object-fit:cover;filter:grayscale(calc(.7*(1 - var(--p))))}
+  .p3 .badge{position:absolute;top:10px;left:10px;z-index:2;font-size:10.5px;font-weight:700;letter-spacing:.08em;color:#fff;
+    background:rgba(0,0,0,.45);border-radius:9999px;padding:4px 10px}
+  .p3 .strip{position:absolute;left:10%;right:10%;bottom:-14%;display:grid;grid-template-columns:1fr 1fr;gap:12px;
+    opacity:calc(min(1,var(--p)*2.2 - .9));transform:translateY(calc((1 - var(--p))*40px))}
+  .p3 .strip .s{aspect-ratio:4/3;border-radius:14px;overflow:hidden;border:1px solid var(--line)}
+  .p3 .strip img{width:100%;height:100%;object-fit:cover;display:block}
+
+  /* ============ Scene 4: ad video ============ */
+  .p4{--p:0}
+  .p4 .script{width:280px;font-family:"SF Mono","Geist Mono",monospace;font-size:13px;color:var(--ink-soft);
+    border-left:2px solid var(--accent);padding-left:18px;line-height:2}
+  .p4 .script div{opacity:calc(min(1,var(--p)*3 - .5));transform:translateX(calc((1 - var(--p))*20px))}
+  .p4 .script .n{color:var(--muted);font-size:11px}
+  .p4 .frame{position:absolute;right:4%;top:50%;width:min(300px,34vw);aspect-ratio:9/16;
+    transform:translateY(-50%) scale(calc(.7 + .3*var(--p)));opacity:calc(var(--p) - .3);
+    border-radius:22px;overflow:hidden;background:#000;
+    box-shadow:0 40px 80px rgba(0,0,0,.25)}
+  .p4 video{width:100%;height:100%;object-fit:cover;display:block}
+
+  /* reduced-motion fallback */
+  body.no-motion .story{height:auto}
+  body.no-motion .story-inner{position:static;height:auto;display:block}
+  body.no-motion .scene{position:relative;inset:auto;height:auto;min-height:100vh;opacity:1;pointer-events:auto;padding:12vh 0}
+  body.no-motion .scene .inner{grid-template-columns:1fr 1fr;max-width:1120px;margin:0 auto}
+  @media (max-width:860px){body.no-motion .scene .inner{grid-template-columns:1fr}}
+  body.no-motion .p1 .stage, body.no-motion .p2 .stage, body.no-motion .p3 .stage{aspect-ratio:auto;margin-top:20px;background:none}
+  body.no-motion .p1 .quote-card, body.no-motion .p2 .shot{opacity:1!important;position:static!important;transform:none!important;margin:6px 0}
+  body.no-motion .p1 .table, body.no-motion .p2 .report{position:static;opacity:1;transform:none;margin-top:14px}
+  body.no-motion .p3 .main{position:static;transform:none;opacity:1;margin-bottom:14px}
+  body.no-motion .p3 .strip{position:static;transform:none;opacity:1;margin-top:10px}
+  body.no-motion .p4 .frame{position:static;transform:none;opacity:1;margin:22px auto 0}
+  body.no-motion .p4 .frame video{max-height:70vh}
+
+  /* outro */
+  .outro{min-height:50vh;display:flex;align-items:center}
+  .outro h2{font-size:clamp(30px,4.5vw,52px);font-weight:650;letter-spacing:-.03em;line-height:1.08;max-width:18ch}
+  .outro p{color:var(--muted);margin-top:16px;max-width:44ch;font-size:17px}
+  .btn{display:inline-flex;margin-top:28px;padding:16px 24px;border-radius:10px;background:var(--ink);color:#fff;
+    text-decoration:none;font-weight:600;font-size:15.5px}
+  .btn:active{transform:scale(.98)}
+  footer{border-top:1px solid var(--line);padding:36px 0}
+  footer .wrap{display:flex;justify-content:space-between;color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+
+<div class="demo-note">UMa · scroll story — real assets v1</div>
+
+<section class="intro">
+  <div class="wrap">
+    <div class="eyebrow">UMa · scroll experience</div>
+    <h1>Scroll. Watch the loop close.</h1>
+    <p>Real data, your product, your ad — quoted, checked, shot, played. Four scenes, one scroll.</p>
+  </div>
+</section>
+
+<div class="story" id="story">
+  <div class="story-inner">
+
+    <!-- Scene 1: quote table -->
+    <div class="scene p1" id="sc1">
+      <div class="inner">
+        <div>
+          <div class="kicker">01 · Quote Digest</div>
+          <h2 class="title-a">Five sourcing services. Five price points. One mess.</h2>
+          <h2 class="title-b">One table. <span style="color:var(--accent)">$29 at our end.</span></h2>
+          <p class="sub">This is the actual market — measured live on Fiverr, Aug 2026. Same job, 10–120 dollars, quality you can't compare.</p>
+        </div>
+        <div class="stage">
+          <div class="qc qc1 quote-card"><span class="c">Oh Shun Kai · Fiverr</span><br><b>$10</b></div>
+          <div class="qc qc2 quote-card"><span class="c">Imran Khan · Fiverr</span><br><b>$15</b></div>
+          <div class="qc qc3 quote-card"><span class="c">Vladimir · Fiverr</span><br><b>$50</b></div>
+          <div class="qc qc4 quote-card"><span class="c">Areeba J. · Fiverr</span><br><b>$35</b></div>
+          <div class="qc qc5 quote-card"><span class="c">Qc Calvin · Fiverr</span><br><b>$120</b></div>
+          <div class="table">
+            <table>
+              <tr><th>Provider</th><th>Price</th><th>Orders</th><th></th></tr>
+              <tr><td>Oh Shun Kai</td><td>$10</td><td>899</td><td class="ok">vol</td></tr>
+              <tr><td>Imran Khan</td><td>$15</td><td>502</td><td class="ok">ok</td></tr>
+              <tr><td>Vladimir</td><td>$50</td><td>496</td><td class="flag">no-reply</td></tr>
+              <tr><td>Areeba J.</td><td>$35</td><td>369</td><td class="ok">ok</td></tr>
+              <tr><td>Qc Calvin</td><td>$120</td><td>476</td><td class="ok">qc</td></tr>
+              <tr class="uma-row"><td>UMa (us)</td><td>$29</td><td>3 slots</td><td class="ok">full loop</td></tr>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scene 2: supplier profile -->
+    <div class="scene p2" id="sc2">
+      <div class="inner">
+        <div>
+          <div class="kicker">02 · Supplier Background Check</div>
+          <h2>Before you wire money, see what's behind the storefront.</h2>
+          <p class="sub">Profile page → one-page risk summary. SAMPLE ROWS BELOW — real numbers land when your first check closes.</p>
+        </div>
+        <div class="stage">
+          <div class="shot"><img src="UMa-assets/02-supplier-profile.png" alt="supplier profile screenshot"></div>
+          <div class="scan"></div>
+          <div class="report">
+            <h4>Risk summary</h4>
+            <em>SAMPLE — replace with real check results</em>
+            <ul>
+              <li>Registered <span class="ok">Verified</span></li>
+              <li>Operating (years) <span class="ok">8</span></li>
+              <li>Address matches claim <span class="ok">Yes</span></li>
+              <li>Reported disputes <span class="warn">2 open</span></li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scene 3: product photos -->
+    <div class="scene p3" id="sc3">
+      <div class="inner">
+        <div>
+          <div class="kicker">03 · Product photos</div>
+          <h2>Your shot, brushed up for the listing.</h2>
+          <p class="sub">White-background master + scenes. Delivered in 48h.</p>
+        </div>
+        <div class="stage">
+          <div class="main"><span class="badge">ORIGINAL SHOT</span><img src="UMa-assets/03-product-white.jpg" alt="product white background"></div>
+          <div class="strip">
+            <div class="s"><img src="UMa-assets/03-scene-1.jpg" alt="scene 1"></div>
+            <div class="s"><img src="UMa-assets/03-scene-2.jpg" alt="scene 2"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Scene 4: ad video -->
+    <div class="scene p4" id="sc4">
+      <div class="inner">
+        <div>
+          <div class="kicker">04 · AI UGC Video Ad</div>
+          <h2>Play the ad.</h2>
+          <p class="sub">Your 10-second creative, generated. Test it without a $1,200 budget.</p>
+          <div class="script" style="margin-top:26px">
+            <div><span class="n">HOOK</span> — "This thing sells out…"</div>
+            <div><span class="n">PAIN</span> — "…because nobody shows it right."</div>
+            <div><span class="n">CTA</span> — "Link in bio — before it's gone."</div>
+          </div>
+        </div>
+        <div class="frame">
+          <video src="UMa-assets/04-ugc-video.mp4" autoplay muted loop playsinline></video>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<section class="outro">
+  <div class="wrap">
+    <h2>Your product, your supplier, your ad — one scroll.</h2>
+    <p>Every scene above is running on your real assets and market data. This is the sales story UMa ships.</p>
+    <a class="btn" href="UMa-landing-page.html">See the full landing page →</a>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap"><span>UMa · AI Sourcing</span><span>real assets v1</span></div>
+</footer>
+
+<script>
+(function(){
+  var story = document.getElementById('story');
+  var scenes = ['sc1','sc2','sc3','sc4'].map(function(id){return document.getElementById(id);});
+  var reduced = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  if (location.search.indexOf('motion=1') >= 0) reduced = false;
+  if (reduced){ document.body.classList.add('no-motion'); scenes.forEach(function(sc){ sc.style.setProperty('--p', 1); }); return; }
+
+  function render(){
+    var rect = story.getBoundingClientRect();
+    var total = story.offsetHeight - window.innerHeight;
+    var scroll = Math.min(Math.max(-rect.top, 0), total);
+    var p = total > 0 ? scroll / total : 0;
+    for (var i = 0; i < scenes.length; i++){
+      var s = Math.min(Math.max((p - i*0.25) / 0.25, 0), 1);
+      var vis = Math.min(1, Math.max(0, (p - (i*0.25 - 0.02)) / 0.02)) * Math.min(1, Math.max(0, ((i+1)*0.25 + 0.02 - p) / 0.02));
+      scenes[i].style.opacity = vis;
+      scenes[i].style.setProperty('--p', s.toFixed(4));
+    }
+  }
+  window.addEventListener('scroll', render, {passive:true});
+  window.addEventListener('resize', render, {passive:true});
+  render();
+})();
+</script>
+</body>
+</html>

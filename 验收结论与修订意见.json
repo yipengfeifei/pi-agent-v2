@@ -1,0 +1,110 @@
+{
+  "artifact_name": "验收结论与修订意见",
+  "artifact_type": "review_gate_verdict",
+  "schema_version": "1.0.0",
+  "generated_at": "2026-08-08",
+  "generator_node": "review-gate",
+  "reviewed_artifact": {"name": "完整策划文档.json", "path": "完整策划文档.json", "size_kb": 41.9, "schema_valid": true, "json_valid": "python3 json 解析通过"},
+
+  "audit_scope": "本节点裁决 完整策划文档.json（S1-S9），放行门槛 = 四项成功指标：① 预算覆盖且不超 30 万（合计/明细/场景变体算术）；② 方案可落地（供应商与联系人可执行路径、G 门与 owner、关键路径）；③ 流程无断档（倒计时依赖链闭合、当日时段衔接）；④ 风险预案齐备（R/B 覆盖度与字段完整性）。交叉验证基准：三份上游物料（婚礼主题与预算分配方案 / 推荐组合与风险预案 / 倒计时清单与婚礼日时间表）+ 原始调研（供应商候选清单 / 结构化对比表，data_date 2026-08-08，当前有效）。高影响事实字段（red-flag）：预算金额、场景变体算术、供应商来源渠道、场地电话口径、G 门日期、R/B 预案字段。",
+
+  "verdict": "CONDITIONAL_PASS（带修正通过）",
+  "risk_level": "low-medium",
+  "verdict_summary": "四项成功指标均达标：预算 30 万精确闭合且与上游逐行一致；方案 8 品类供应商定标 + 渠道级联系人诚实标注可落地；G0-G6 门与 18 任务依赖链闭合、15 时段首尾衔接；R1-R10 + B1-B4 预案齐备。发现 1 处高影响事实错误（S8 慕格摄影渠道来源张冠李戴）已修正为下游可消费的 canonical_override；4 项 minor 修订不阻断放行。",
+
+  "passed_checks": [
+    {"check": "预算合计不超 30 万", "result": "PASS", "evidence": "S3 八行合计 = 300,000 CNY / pct 合计 = 100.0%；'其他'7 子项合计 = 29,000 与父行一致；与上游 master_table 逐行一致（25000/119000/55000/25000/5000/12000/29000/30000）"},
+    {"check": "预算场景变体算术自洽", "result": "PASS", "evidence": "庄园系 2.5+11.9+5.5=19.9 万 ✓；酒店系 21~21.5+7.1+3.0=31.1~31.6 万，超线 1.1~1.6 万，上游压缩路径（花艺→0.8/其他→2.4/应急→2.5 共省 1.4 万）后 ≈30.2 万，'可行但紧'判断成立；婚礼堂全案 23.1 万 < 30 万 ✓"},
+    {"check": "预算覆盖完整性", "result": "PASS", "evidence": "must_have（场地/餐饮/应急金）+ core（策划/影像/造型）+ compressible（花艺/其他）分层齐备；预算规则 3 条（≤30 万硬上限、±10% 偏差平移、应急金记录）"},
+    {"check": "方案可落地（供应商）", "result": "PASS", "evidence": "8 品类均含 primary/backup/avoid + 预算线 + confidence；与上游 supplier_shortlist 一一对应；询价名单（THEME-01 4 家+兜底 3 家）与统一话术齐备"},
+    {"check": "方案可落地（联系人）", "result": "PASS（1 处修正，见 canonical_overrides #1）", "evidence": "供应商 8 项均标注渠道级来源（平台+日期+verified/unverified），无编造直连号码；场地 4 项渠道与结构化对比表一致（拉斐特双电话 010-69722180/010-57238866、华彬有电话、笙白/花嫁丽舍无电话均如实标注 pending）"},
+    {"check": "流程无断档（倒计时）", "result": "PASS", "evidence": "G0/G1/G2/G3/G3.5/G4/G5/G6 八门全覆盖；18 任务均有 owner + depends_on，依赖链 G0→G1→G2→G3→G3.5→G4→G5→G6 闭合；婚纱照并行关键路径（08-10 定档→08-24 拍摄→09-10 出片）有独立任务行"},
+    {"check": "流程无断档（当日）", "result": "PASS", "evidence": "15 时段块覆盖 05:30~22:30 首尾衔接；新娘早妆/新郎准备、车队在途/宾客抵达为并行事件非断档；V1/V2/V3 变体与 B3 雨备形态替换规则明确"},
+    {"check": "风险预案齐备", "result": "PASS", "evidence": "R1-R10 覆盖档期/酒店超线/天气/36 天窗口/价格上浮/跳单/策划超支/动线/天气具体化/桌数波动十大维度；B1-B4 有 trigger/path/priority 且触发顺序明确（B1 三顺位/B2 二顺位最快兜底/B3 天气并行/B4 随时）；G5 兜底'现场事故分级处置，供应商现场负责人第一责任人'"},
+    {"check": "结构完整性", "result": "PASS", "evidence": "S1-S9 九个章节 + toc 9 项；manifest.quality_metrics 全部计数与实际一致（18 任务/15 时段/16 角色/10 风险/4 分支/8 品类/5+8+4 联系人/8 placeholder）；S9 数据契约（price{min,max,unit,basis} 锚点 + proposed_update 回填机制 + CF-01/CF-04 冲突保留）齐备"},
+    {"check": "current validity（事实时效）", "result": "PASS", "evidence": "结构化对比表 data_date = 2026-08-08 当日有效；供应商候选清单 as_of 2025Q1-2026Q2、volatility high 有效期 6-12 个月仍在窗内；2021-2023 stale 值已在 evidence_gaps 标注且未用于价格锚定"}
+  ],
+
+  "failed_checks": [],
+
+  "canonical_overrides": [
+    {
+      "field": "S8.contacts.suppliers[婚礼跟拍].channel",
+      "upstream_value": "朝阳（婚礼纪渠道）",
+      "corrected_value": "beijing.liebiao.com（2025，verified）",
+      "reason": "慕格摄影原始来源为 beijing.liebiao.com(2025)（source_status=verified）；'婚礼纪渠道'实为 backup 荣摄影的来源（beijing.hunliji.com 商家页）。原值把 backup 的渠道安到 primary 头上，属来源错配，下游若据此触达会找错平台。",
+      "source_ref": "供应商候选清单.json → categories[摄影摄像].sub[婚礼当天跟拍].suppliers[慕格摄影].source = 'beijing.liebiao.com(2025)'",
+      "downstream_instruction": "渲染/打印联系人表时采用 corrected_value，不得同时消费原错误口径；荣摄影（backup）渠道维持 'beijing.hunliji.com 商家页' 不变"
+    },
+    {
+      "field": "S3.scenarios[婚礼堂系].verdict 中'腾出约 6.5 万'",
+      "upstream_value": "腾出约 6.5 万",
+      "corrected_value": "腾出约 6.9 万（19.9 - 13 = 6.9 万，精确差；6.5 为上游估算值偏差 0.4 万）",
+      "reason": "主线三行 19.9 万 - 婚礼堂三行 13 万 = 6.9 万；6.5 万为上游估算。修正不影响结论：30 - 23.1 = 6.9 万，影像→3.5 万升级方案（24.1 万 < 30 万）仍成立。",
+      "source_ref": "婚礼主题与预算分配方案.json → budget_allocation.scenarios.婚礼堂系（上游自身口径）",
+      "downstream_instruction": "预算场景对比图/文案优先采用 6.9 万；若保留 6.5 万须标注'约'且不改动升级方案结论"
+    }
+  ],
+
+  "correction_patch": {
+    "target": "完整策划文档.json → S8_staffing_contacts.contacts.suppliers",
+    "patch": {
+      "module": "婚礼跟拍",
+      "field": "channel",
+      "old": "朝阳（婚礼纪渠道）",
+      "new": "beijing.liebiao.com（2025，verified）",
+      "notes": "同一行其余字段（primary=慕格摄影 / backup=荣摄影 / direct=未收集 / status=P3 签约）校验无误，无需改动"
+    }
+  },
+
+  "revision_notes": [
+    {
+      "id": "REV-01",
+      "severity": "minor（不阻断）",
+      "item": "R3/R5/R6/R7 缺 trigger 字段",
+      "detail": "S5 rubric 声明'含 trigger/response/owner'，但 R3/R5/R6/R7 无 trigger（上游继承缺口）。建议补：R3='签约场地无雨备条款'、R5='询价/签约价高于预算线起价'、R6='供应商失联/跳单征兆'、R7='策划报价 > 5.5 万'",
+      "downstream_impact": "监控节点（monitor-alert）按 trigger 建监控项时这 4 项无触发条件，建议回填后启用"
+    },
+    {
+      "id": "REV-02",
+      "severity": "minor（不阻断）",
+      "item": "倒计时 09-08/09-09（T-5/T-4）无显式任务行",
+      "detail": "R9 response 已有'T-7 预警后每日更新，T-3 定最终场地形态'隐性承接，非硬断档；建议任务表补一行：T-5~T-4（09-08~09-09）'天气每日复核 + 供应商到场确认单催收'，owner=总协调",
+      "downstream_impact": "排期表导入日历后这两天为空白，可执行性可增强"
+    },
+    {
+      "id": "REV-03",
+      "severity": "minor（不阻断）",
+      "item": "婚纱照出片窗口张力",
+      "detail": "08-24 拍摄 → 09-10 出片仅 17 天，短于上游 3-6 周（21-42 天）口径。建议拍摄前移至 08-17 前（出片 24 天），或与北遇书面确认加急出片条款入合同，作为 G1 并行验收项",
+      "downstream_impact": "G4（09-10）出片硬节点若落空，迎宾海报/相册交付受影响"
+    },
+    {
+      "id": "REV-04",
+      "severity": "minor（不阻断）",
+      "item": "当日 11:00-11:30 车队在途与宾客签到并行",
+      "detail": "属并行事件非断档；建议流程单注明'新人 11:30 到场前由签到组独立接待，First Look 顺延至到场后'，避免 11:00 宾客到达时找不到新人",
+      "downstream_impact": "当日执行单打印时增加该注明即可"
+    }
+  ],
+
+  "release_conditions": [
+    "下游 summary-visualization / artifact-render / monitor-alert / writeback-action 可放行消费本文件，前提：S8 慕格摄影 channel 采用 canonical_overrides #1 的 corrected_value",
+    "预算渲染采用 6.9 万口径（canonical_overrides #2），或保留'约 6.5 万'但不改升级方案结论",
+    "REV-01~04 四项 minor 修订建议在回填/渲染阶段顺手落实，不作为放行硬门槛",
+    "G0/G1 结果落地后按 S9 proposed_update 数据契约回填本文件，回填后无需重新验收（数据契约字段已定义）"
+  ],
+
+  "rework_tasks": [],
+  "escalation_reason": null,
+
+  "downstream_usage": {
+    "可直接消费": [
+      "四项成功指标验收结论（passed_checks）可直接作为方案页'success criteria 达成'展示依据",
+      "canonical_overrides + correction_patch 已修正为下游可直接采用的局部准物料，渲染节点只消费修正后口径",
+      "revision_notes 的 REV-01 为 monitor-alert 提供 R3/R5/R6/R7 缺失 trigger 的补丁值"
+    ],
+    "数据契约": "金额/时间/名单口径沿用 完整策划文档.json（其自身锚定 price{min,max,unit,basis}）；本文件只新增校验结论与修正值，不重写完整成品",
+    "跳过": "未做：文档重写（Review/Gate 不重写完整最终成品）、G0 用户拍板（属用户决策，非本节点能力范围）"
+  }
+}

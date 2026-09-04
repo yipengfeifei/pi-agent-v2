@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>自定义 API 端点（逐步引导）</title>
+<style>
+  :root {
+    --bg: #1a1a1a;
+    --bg-panel: #242424;
+    --border: rgba(255,255,255,0.12);
+    --text: #ececf1;
+    --text-muted: #9b9ba4;
+    --text-dim: #6b6b74;
+    --accent: #5aa2f0;
+    --ok: #34d399;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  html, body { height: 100%; }
+  body {
+    background: rgba(0,0,0,.55);
+    font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    display: flex; align-items: center; justify-content: center;
+    padding: 18px;
+  }
+
+  /* ---- BorderGlow（主对话输入框同款，弹窗 + 输入框共用）---- */
+  .border-glow-card {
+    --edge-proximity: 0;
+    --cursor-angle: 45deg;
+    --edge-sensitivity: 20;
+    --color-sensitivity: calc(var(--edge-sensitivity) + 20);
+    --border-radius: 18px;
+    --glow-padding: 40px;
+    --cone-spread: 29;
+    --glow-focus-x: 50%;
+    --glow-focus-y: 120%;
+    --card-bg: #242424;
+    --fill-opacity: 0.5;
+    position: relative;
+    border-radius: var(--border-radius);
+    isolation: isolate;
+    transform: translate3d(0, 0, 0.01px);
+    display: grid;
+    border: 1px solid rgb(255 255 255 / 15%);
+    background: var(--card-bg);
+    overflow: visible;
+    box-shadow: rgba(0,0,0,.1) 0 1px 2px, rgba(0,0,0,.1) 0 2px 4px, rgba(0,0,0,.1) 0 4px 8px, rgba(0,0,0,.1) 0 8px 16px, rgba(0,0,0,.1) 0 16px 32px, rgba(0,0,0,.1) 0 32px 64px;
+  }
+  .border-glow-card::before,
+  .border-glow-card::after,
+  .border-glow-card > .edge-light {
+    content: "";
+    position: absolute; inset: 0;
+    border-radius: inherit;
+    transition: opacity 0.25s ease-out;
+    z-index: -1;
+  }
+  .border-glow-card:not(:hover)::before,
+  .border-glow-card:not(:hover)::after,
+  .border-glow-card:not(:hover) > .edge-light {
+    opacity: 0;
+    transition: opacity 0.75s ease-in-out;
+  }
+  .border-glow-card::before {
+    border: 1px solid transparent;
+    background:
+      linear-gradient(var(--card-bg) 0 100%) padding-box,
+      linear-gradient(rgb(255 255 255 / 0%) 0% 100%) border-box,
+      radial-gradient(at 80% 55%, hsla(268,100%,76%,1) 0px, transparent 50%) border-box,
+      radial-gradient(at 69% 34%, hsla(349,100%,74%,1) 0px, transparent 50%) border-box,
+      radial-gradient(at 8% 6%, hsla(136,100%,78%,1) 0px, transparent 50%) border-box,
+      radial-gradient(at 41% 38%, hsla(192,100%,64%,1) 0px, transparent 50%) border-box,
+      radial-gradient(at 86% 85%, hsla(186,100%,74%,1) 0px, transparent 50%) border-box,
+      radial-gradient(at 82% 18%, hsla(52,100%,65%,1) 0px, transparent 50%) border-box,
+      radial-gradient(at 51% 4%, hsla(12,100%,72%,1) 0px, transparent 50%) border-box,
+      linear-gradient(#c299ff 0 100%) border-box;
+    opacity: calc((var(--edge-proximity) - var(--color-sensitivity)) / (100 - var(--color-sensitivity)));
+    mask-image: conic-gradient(from var(--cursor-angle) at var(--glow-focus-x) var(--glow-focus-y),
+      black calc(var(--cone-spread) * 1%), transparent calc((var(--cone-spread) + 15) * 1%),
+      transparent calc((100 - var(--cone-spread) - 15) * 1%), black calc((100 - var(--cone-spread)) * 1%));
+  }
+  .border-glow-card::after {
+    border: 1px solid transparent;
+    background:
+      radial-gradient(at 80% 55%, hsla(268,100%,76%,1) 0px, transparent 50%) padding-box,
+      radial-gradient(at 69% 34%, hsla(349,100%,74%,1) 0px, transparent 50%) padding-box,
+      radial-gradient(at 8% 6%, hsla(136,100%,78%,1) 0px, transparent 50%) padding-box,
+      radial-gradient(at 41% 38%, hsla(192,100%,64%,1) 0px, transparent 50%) padding-box,
+      radial-gradient(at 86% 85%, hsla(186,100%,74%,1) 0px, transparent 50%) padding-box,
+      radial-gradient(at 82% 18%, hsla(52,100%,65%,1) 0px, transparent 50%) padding-box,
+      radial-gradient(at 51% 4%, hsla(12,100%,72%,1) 0px, transparent 50%) padding-box,
+      linear-gradient(#c299ff 0 100%) padding-box;
+    mask-image:
+      linear-gradient(to bottom, black, black),
+      radial-gradient(ellipse at 50% 50%, black 40%, transparent 65%),
+      radial-gradient(ellipse at 66% 66%, black 5%, transparent 40%),
+      radial-gradient(ellipse at 33% 33%, black 5%, transparent 40%),
+      radial-gradient(ellipse at 66% 33%, black 5%, transparent 40%),
+      radial-gradient(ellipse at 33% 66%, black 5%, transparent 40%),
+      conic-gradient(from var(--cursor-angle) at var(--glow-focus-x) var(--glow-focus-y), transparent 5%, black 15%, black 85%, transparent 95%);
+    mask-composite: subtract, add, add, add, add, add;
+    opacity: calc(var(--fill-opacity) * (var(--edge-proximity) - var(--color-sensitivity)) / (100 - var(--color-sensitivity)));
+    mix-blend-mode: soft-light;
+  }
+  .border-glow-card > .edge-light {
+    inset: calc(var(--glow-padding) * -1);
+    pointer-events: none;
+    z-index: 1;
+    mask-image: conic-gradient(from var(--cursor-angle) at var(--glow-focus-x) var(--glow-focus-y), black 2.5%, transparent 10%, transparent 90%, black 97.5%);
+    opacity: calc((var(--edge-proximity) - var(--edge-sensitivity)) / (100 - var(--edge-sensitivity)));
+    mix-blend-mode: plus-lighter;
+  }
+  .border-glow-card > .edge-light::before {
+    content: "";
+    position: absolute;
+    inset: var(--glow-padding);
+    border-radius: inherit;
+    box-shadow:
+      inset 0 0 0 1px hsl(40deg 80% 80% / 100%),
+      inset 0 0 1px 0 hsl(40deg 80% 80% / 60%),
+      inset 0 0 3px 0 hsl(40deg 80% 80% / 50%),
+      inset 0 0 6px 0 hsl(40deg 80% 80% / 40%),
+      inset 0 0 15px 0 hsl(40deg 80% 80% / 30%),
+      inset 0 0 25px 2px hsl(40deg 80% 80% / 20%),
+      inset 0 0 50px 2px hsl(40deg 80% 80% / 10%),
+      0 0 1px 0 hsl(40deg 80% 80% / 60%),
+      0 0 3px 0 hsl(40deg 80% 80% / 50%),
+      0 0 6px 0 hsl(40deg 80% 80% / 40%),
+      0 0 15px 0 hsl(40deg 80% 80% / 30%),
+      0 0 25px 2px hsl(40deg 80% 80% / 20%),
+      0 0 50px 2px hsl(40deg 80% 80% / 10%);
+  }
+  .border-glow-card .inner { display: flex; flex-direction: column; position: relative; overflow: auto; z-index: 1; }
+
+  .panel {
+    width: 100%; height: 100%;
+    display: grid; grid-template-rows: 1fr auto;
+    color: var(--text); border-radius: 18px; overflow: hidden;
+  }
+  section {
+    overflow: auto; padding: 8vh 26px 0;
+    display: flex; flex-direction: column; align-items: center; text-align: center;
+    gap: 20px;
+  }
+  .big { font-size: 24px; font-weight: 900; line-height: 1.08; }
+  .status { font-size: 11px; font-weight: 750; color: var(--text-muted); margin-top: 4px; }
+  .ask { max-width: min(620px, 94%); font-size: 17px; font-weight: 650; line-height: 1.65; white-space: pre-wrap; }
+  .form { width: min(560px, 94%); display: grid; gap: 14px; justify-items: center; margin-top: auto; padding-bottom: 6vh; }
+
+  /* 输入框：BorderGlow 胶囊（圆角 34、无边框线框），比主对话输入框更大 */
+  .glow-input {
+    --edge-proximity: 0;
+    --cursor-angle: 45deg;
+    --edge-sensitivity: 20;
+    --color-sensitivity: calc(var(--edge-sensitivity) + 20);
+    --border-radius: 34px;
+    --glow-padding: 40px;
+    --cone-spread: 29;
+    --glow-focus-x: 50%;
+    --glow-focus-y: 120%;
+    --card-bg: #120F17;
+    --fill-opacity: 0.5;
+    position: relative;
+    border-radius: var(--border-radius);
+    isolation: isolate;
+    transform: translate3d(0, 0, 0.01px);
+    display: grid;
+    background: var(--card-bg);
+    overflow: visible;
+    box-shadow: rgba(0,0,0,.1) 0 1px 2px, rgba(0,0,0,.1) 0 2px 4px, rgba(0,0,0,.1) 0 4px 8px, rgba(0,0,0,.1) 0 8px 16px, rgba(0,0,0,.1) 0 16px 32px, rgba(0,0,0,.1) 0 32px 64px;
+  }
+  .glow-input::before,
+  .glow-input::after,
+  .glow-input > .edge-light {
+    content: "";
+    position: absolute; inset: 0;
+    border-radius: inherit;
+    transition: opacity 0.25s ease-out;
+    z-index: -1;
+  }
+  .glow-input:not(:hover)::before,
+  .glow-input:not(:hover)::after,
+  .glow-input:not(:hover) > .edge-light {
+    opacity: 0;
+    transition: opacity 0.75s ease-in-out;
+  }
+  .glow-input::before {
+    border: 1px solid transparent;
+    background:
+      linear-gradient(var(--card-bg) 0 100%) padding-box,
+      linear-gradient(rgb(255 255 255 / 0%) 0% 100%) border-box,
+      radial-gradient(at 80% 55%, hsla(268,100%,76%,1) 0px, transparent 50%) border-box,
+      radial-gradient(at 69% 34%, hsla(349,100%,74%,1) 0px, transparent 50%) border-box,
+      radial-gradient(at 8% 6%, hsla(136,100%,78%,1) 0px, transparent 50%) border-box,
+      radial-gradient(at 41% 38%, hsla(192,100%,64%,1) 0px, transparent 50%) border-box,
+      radial-gradient(at 86% 85%, hsla(186,100%,74%,1) 0px, transparent 50%) border-box,
+      radial-gradient(at 82% 18%, hsla(52,100%,65%,1) 0px, transparent 50%) border-box,
+      radial-gradient(at 51% 4%, hsla(12,100%,72%,1) 0px, transparent 50%) border-box,
+      linear-gradient(#c299ff 0 100%) border-box;
+    opacity: calc((var(--edge-proximity) - var(--color-sensitivity)) / (100 - var(--color-sensitivity)));
+    mask-image: conic-gradient(from var(--cursor-angle) at var(--glow-focus-x) var(--glow-focus-y),
+      black calc(var(--cone-spread) * 1%), transparent calc((var(--cone-spread) + 15) * 1%),
+      transparent calc((100 - var(--cone-spread) - 15) * 1%), black calc((100 - var(--cone-spread)) * 1%));
+  }
+  .glow-input::after {
+    border: 1px solid transparent;
+    background:
+      radial-gradient(at 80% 55%, hsla(268,100%,76%,1) 0px, transparent 50%) padding-box,
+      radial-gradient(at 69% 34%, hsla(349,100%,74%,1) 0px, transparent 50%) padding-box,
+      radial-gradient(at 8% 6%, hsla(136,100%,78%,1) 0px, transparent 50%) padding-box,
+      radial-gradient(at 41% 38%, hsla(192,100%,64%,1) 0px, transparent 50%) padding-box,
+      radial-gradient(at 86% 85%, hsla(186,100%,74%,1) 0px, transparent 50%) padding-box,
+      radial-gradient(at 82% 18%, hsla(52,100%,65%,1) 0px, transparent 50%) padding-box,
+      radial-gradient(at 51% 4%, hsla(12,100%,72%,1) 0px, transparent 50%) padding-box,
+      linear-gradient(#c299ff 0 100%) padding-box;
+    mask-image:
+      linear-gradient(to bottom, black, black),
+      radial-gradient(ellipse at 50% 50%, black 40%, transparent 65%),
+      radial-gradient(ellipse at 66% 66%, black 5%, transparent 40%),
+      radial-gradient(ellipse at 33% 33%, black 5%, transparent 40%),
+      radial-gradient(ellipse at 66% 33%, black 5%, transparent 40%),
+      radial-gradient(ellipse at 33% 66%, black 5%, transparent 40%),
+      conic-gradient(from var(--cursor-angle) at var(--glow-focus-x) var(--glow-focus-y), transparent 5%, black 15%, black 85%, transparent 95%);
+    mask-composite: subtract, add, add, add, add, add;
+    opacity: calc(var(--fill-opacity) * (var(--edge-proximity) - var(--color-sensitivity)) / (100 - var(--color-sensitivity)));
+    mix-blend-mode: soft-light;
+  }
+  .glow-input > .edge-light {
+    inset: calc(var(--glow-padding) * -1);
+    pointer-events: none;
+    z-index: 1;
+    mask-image: conic-gradient(from var(--cursor-angle) at var(--glow-focus-x) var(--glow-focus-y), black 2.5%, transparent 10%, transparent 90%, black 97.5%);
+    opacity: calc((var(--edge-proximity) - var(--edge-sensitivity)) / (100 - var(--edge-sensitivity)));
+    mix-blend-mode: plus-lighter;
+  }
+  .glow-input > .edge-light::before {
+    content: "";
+    position: absolute;
+    inset: var(--glow-padding);
+    border-radius: inherit;
+    box-shadow:
+      inset 0 0 0 1px hsl(40deg 80% 80% / 100%),
+      inset 0 0 1px 0 hsl(40deg 80% 80% / 60%),
+      inset 0 0 3px 0 hsl(40deg 80% 80% / 50%),
+      inset 0 0 6px 0 hsl(40deg 80% 80% / 40%),
+      inset 0 0 15px 0 hsl(40deg 80% 80% / 30%),
+      inset 0 0 25px 2px hsl(40deg 80% 80% / 20%),
+      inset 0 0 50px 2px hsl(40deg 80% 80% / 10%),
+      0 0 1px 0 hsl(40deg 80% 80% / 60%),
+      0 0 3px 0 hsl(40deg 80% 80% / 50%),
+      0 0 6px 0 hsl(40deg 80% 80% / 40%),
+      0 0 15px 0 hsl(40deg 80% 80% / 30%),
+      0 0 25px 2px hsl(40deg 80% 80% / 20%),
+      0 0 50px 2px hsl(40deg 80% 80% / 10%);
+  }
+  .glow-input .inner { display: flex; flex-direction: column; position: relative; overflow: auto; z-index: 1; }
+  .glow-input textarea {
+    flex: 1; background: transparent; color: #e8e8e8;
+    border: none; border-radius: 32px;
+    padding: 16px 26px; font-size: 17px; outline: none; resize: none;
+    min-height: 64px; line-height: 1.5; font-family: inherit; text-align: center;
+  }
+  .glow-input textarea::placeholder { color: var(--text-dim); }
+
+  footer { padding: 8px 24px 18px; display: flex; align-items: center; justify-content: space-between; }
+  .back { height: 42px; border: none; background: transparent; color: var(--text-dim); padding: 0 10px; font-size: 12px; font-weight: 800; cursor: pointer; }
+  .done { display: grid; gap: 8px; justify-items: center; }
+  .done .check { font-size: 40px; line-height: 1; color: var(--ok); }
+</style>
+</head>
+<body>
+
+<div class="border-glow-card" id="panelGlow" style="width: min(760px, calc(100vw - 36px)); height: min(74vh, 720px);">
+  <div class="edge-light"></div>
+  <div class="panel">
+    <section id="stage">
+      <div style="display:grid; gap:4px; justify-items:center; text-align:center;">
+        <div class="big">自定义 API 端点</div>
+        <div class="status" id="status">第 1 步 / 共 3 步</div>
+      </div>
+      <div class="ask" id="ask">请输入请求地址（Base URL）</div>
+      <div class="form" id="form"></div>
+    </section>
+
+    <footer>
+      <button class="back" id="back" style="visibility:hidden;">← 上一步</button>
+      <span></span>
+    </footer>
+  </div>
+</div>
+
+<script>
+// 多步引导：一步一问（Base URL → API Key → 模型 ID → 完成），回车进入下一步
+var STEP = 0;
+var data = { baseUrl: "", apiKey: "", modelId: "" };
+var steps = [
+  { status: "第 1 步 / 共 3 步", ask: "请输入请求地址（Base URL）", ph: "https://api.example.com/v1", key: "baseUrl" },
+  { status: "第 2 步 / 共 3 步", ask: "请输入 API Key", ph: "sk-...", key: "apiKey" },
+  { status: "第 3 步 / 共 3 步", ask: "请输入模型 ID", ph: "gpt-4o-mini / deepseek-chat / ...", key: "modelId" },
+];
+
+// BorderGlow 鼠标跟踪（弹窗）
+(function () {
+  var card = document.getElementById("panelGlow");
+  function track(card) {
+    card.addEventListener("mousemove", function (e) {
+      var r = card.getBoundingClientRect();
+      var px = e.clientX - r.left, py = e.clientY - r.top;
+      var cx = r.width / 2, cy = r.height / 2;
+      var dx = px - cx, dy = py - cy;
+      var kx = dx !== 0 ? cx / Math.abs(dx) : Infinity;
+      var ky = dy !== 0 ? cy / Math.abs(dy) : Infinity;
+      var prox = Math.min(Math.max(Math.max(1 / Math.min(kx, ky), 0.5), 0), 1);
+      var fx = r.width / 2, fy = r.height * 2.5;
+      var adx = px - fx, ady = py - fy;
+      var deg = adx === 0 && ady === 0 ? 0 : Math.atan2(ady, adx) * (180 / Math.PI) + 90;
+      if (deg < 0) deg += 360;
+      card.style.setProperty("--edge-proximity", (prox * 100).toFixed(3));
+      card.style.setProperty("--cursor-angle", deg.toFixed(3) + "deg");
+    });
+    card.addEventListener("mouseleave", function () {
+      card.style.setProperty("--edge-proximity", "0");
+    });
+  }
+  track(card);
+  // 输入框每次重建后也要挂跟踪
+  window.trackInput = function (el) { track(el); };
+})();
+
+function next() {
+  if (STEP < steps.length) {
+    var inp = document.getElementById("inp");
+    if (inp && !inp.value.trim()) return;
+    STEP++;
+  } else {
+    // 完成页：回车/关闭由宿主弹窗处理（预览里提示）
+    alert("配置完成（预览：实际写入 ~/.pi/agent/models.json）");
+    return;
+  }
+  render();
+}
+
+function render() {
+  var statusEl = document.getElementById("status");
+  var askEl = document.getElementById("ask");
+  var formEl = document.getElementById("form");
+  var backEl = document.getElementById("back");
+
+  if (STEP < steps.length) {
+    var s = steps[STEP];
+    statusEl.textContent = s.status;
+    askEl.textContent = s.ask;
+    formEl.innerHTML =
+      '<div class="glow-input" id="glowInput" style="width:100%;">' +
+        '<div class="edge-light"></div>' +
+        '<div class="inner"><textarea id="inp" rows="1" placeholder="' + s.ph + '" autofocus></textarea></div>' +
+      '</div>';
+    var inp = document.getElementById("inp");
+    inp.focus();
+    window.trackInput(document.getElementById("glowInput"));
+    inp.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" && !e.shiftKey) {
+        e.preventDefault();
+        next();
+      }
+    });
+    backEl.style.visibility = STEP > 0 ? "visible" : "hidden";
+  } else {
+    statusEl.textContent = "配置完成";
+    askEl.innerHTML = "";
+    formEl.innerHTML =
+      '<div class="done">' +
+        '<div class="check">✓</div>' +
+        '<div class="ask">已写入 ' + data.baseUrl + '<br>主模型切换为 <b>' + data.modelId + '</b></div>' +
+        '<div class="hint" style="font-size:11px;color:var(--text-dim);">~/.pi/agent/models.json</div>' +
+      '</div>';
+    backEl.style.visibility = "hidden";
+  }
+}
+
+document.getElementById("back").addEventListener("click", function () {
+  if (STEP > 0) { STEP--; render(); }
+});
+
+render();
+</script>
+
+</body>
+</html>

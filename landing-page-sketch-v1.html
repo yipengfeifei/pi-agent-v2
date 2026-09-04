@@ -1,0 +1,305 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>中国采购 · AI 全案代理 — 为中小卖家跑完从比价到验货</title>
+<style>
+  :root{
+    --ink:#0f172a;            /* slate-900 正文 */
+    --ink-soft:#334155;       /* slate-700 次要文本 */
+    --muted:#64748b;          /* slate-500 标签/占位 */
+    --bg:#ffffff;
+    --surface:#f8fafc;        /* slate-50 */
+    --line:#e2e8f0;           /* slate-200 分隔线 */
+    --brand:#0f766e;          /* teal-700 主色 */
+    --brand-ink:#0b4f4a;
+    --cta:#b45309;            /* amber-700 CTA */
+    --cta-ink:#ffffff;
+    --radius:14px;
+    --maxw:1080px;
+    --gap:8px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:-apple-system,"SF Pro Text","PingFang SC","Noto Sans SC","Microsoft YaHei",sans-serif;
+    color:var(--ink);
+    background:var(--bg);
+    line-height:1.65;
+    font-size:16px;
+    text-wrap:pretty;
+    -webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:var(--maxw);margin:0 auto;padding:0 24px}
+  section{padding:72px 0}
+  .eyebrow{font-size:13px;font-weight:600;letter-spacing:.06em;color:var(--brand);text-transform:uppercase;margin-bottom:12px}
+  h1{font-size:clamp(30px,5vw,46px);font-weight:700;line-height:1.2;letter-spacing:-.015em;max-width:16em}
+  h2{font-size:clamp(24px,3.4vw,34px);font-weight:700;line-height:1.25;letter-spacing:-.01em}
+  h3{font-size:18px;font-weight:600;line-height:1.4}
+  p{color:var(--ink-soft)}
+  .lead{font-size:clamp(17px,2vw,20px);color:var(--ink-soft);max-width:34em}
+  .muted{color:var(--muted)}
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    font-size:16px;font-weight:600;text-decoration:none;
+    padding:14px 22px;border-radius:10px;border:none;cursor:pointer;
+    background:var(--cta);color:var(--cta-ink);
+    transition:transform .12s ease,box-shadow .12s ease;
+  }
+  .btn:hover{transform:translateY(-1px);box-shadow:0 8px 20px rgba(180,83,9,.25)}
+  .btn.secondary{background:var(--surface);color:var(--ink);border:1px solid var(--line)}
+  .btn.block{width:100%}
+  .grid{display:grid;gap:24px}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g4{grid-template-columns:repeat(4,1fr)}
+  @media (max-width:900px){.g3,.g4{grid-template-columns:repeat(2,1fr)}}
+  @media (max-width:560px){.g3,.g4{grid-template-columns:1fr}section{padding:56px 0}}
+
+  /* nav */
+  nav{position:sticky;top:0;background:rgba(255,255,255,.92);backdrop-filter:blur(8px);border-bottom:1px solid var(--line);z-index:20}
+  nav .wrap{display:flex;align-items:center;justify-content:space-between;height:60px}
+  .brand{font-weight:700;color:var(--ink)}
+  .brand .dot{color:var(--brand)}
+  nav a:not(.btn){color:var(--ink-soft);text-decoration:none;font-size:14px;margin-left:24px}
+  nav a:not(.btn):hover{color:var(--ink)}
+  .nav-links{display:flex;align-items:center}
+  @media (max-width:720px){.nav-links a:not(.btn){display:none}}
+
+  /* hero */
+  .hero{padding:96px 0 72px;background:
+    radial-gradient(1200px 480px at 85% -10%, rgba(15,118,110,.08), transparent 60%),
+    var(--bg);}
+  .hero .grid{grid-template-columns:1.25fr .9fr;align-items:center}
+  @media (max-width:860px){.hero .grid{grid-template-columns:1fr}.hero{padding:64px 0 48px}}
+  .hero .proof{display:flex;gap:28px;margin-top:28px;color:var(--muted);font-size:14px}
+  .hero .proof b{display:block;font-size:22px;color:var(--ink);font-variant-numeric:tabular-nums}
+  .photo-slot{
+    aspect-ratio:4/3;border:1.5px dashed var(--brand);border-radius:var(--radius);
+    display:flex;align-items:center;justify-content:center;
+    color:var(--brand);font-size:14px;text-align:center;padding:24px;
+    background:var(--surface);
+  }
+
+  /* doubt / benefit */
+  .doubt{border-top:1px solid var(--line);padding-top:20px}
+  .doubt h3{margin-bottom:6px}
+  .doubt p{font-size:15px}
+
+  /* service cards */
+  .card{
+    border:1px solid var(--line);border-radius:var(--radius);padding:28px 24px;
+    background:var(--bg);display:flex;flex-direction:column;gap:12px;
+  }
+  .card.pop{box-shadow:0 12px 32px rgba(15,23,42,.08);border-color:var(--brand)}
+  .price{font-size:28px;font-weight:700;font-variant-numeric:tabular-nums;letter-spacing:-.02em}
+  .price small{font-size:13px;color:var(--muted);font-weight:500}
+  .card ul{list-style:none;display:flex;flex-direction:column;gap:8px;font-size:15px;color:var(--ink-soft);margin:4px 0 16px}
+  .card li{padding-left:22px;position:relative}
+  .card li::before{content:"";position:absolute;left:2px;top:8px;width:7px;height:7px;border-radius:50%;background:var(--brand)}
+  .tag{font-size:12px;font-weight:600;color:var(--brand-ink);background:rgba(15,118,110,.08);border-radius:999px;padding:3px 10px;align-self:flex-start}
+
+  /* steps */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:32px;counter-reset:step}
+  @media (max-width:860px){.steps{grid-template-columns:1fr}}
+  .step{border-top:3px solid var(--brand);padding-top:18px}
+  .step .num{font-size:13px;font-weight:700;color:var(--brand);letter-spacing:.08em}
+  .step h3{margin:8px 0 6px}
+  .step p{font-size:15px}
+
+  /* quote strip */
+  .quote{border-left:3px solid var(--brand);padding:16px 20px;background:var(--surface);border-radius:0 10px 10px 0;font-size:17px}
+  .quote cite{display:block;margin-top:8px;font-size:13px;font-style:normal;color:var(--muted)}
+
+  /* form */
+  form{display:grid;gap:14px;max-width:560px}
+  label{font-size:13px;font-weight:600;color:var(--ink-soft)}
+  input[type=email]{font-size:16px;padding:14px 16px;border:1px solid var(--line);border-radius:10px;background:var(--bg)}
+  input[type=email]:focus{outline:2px solid var(--brand);outline-offset:2px;border-color:transparent}
+  .form-note{font-size:13px;color:var(--muted)}
+
+  footer{border-top:1px solid var(--line);padding:40px 0 56px}
+  footer .grid{grid-template-columns:1fr 1fr auto;align-items:center}
+  @media (max-width:720px){footer .grid{grid-template-columns:1fr;gap:12px}}
+  footer a{color:var(--ink-soft);text-decoration:none}
+</style>
+</head>
+<body>
+
+<nav>
+  <div class="wrap">
+    <span class="brand">[你的品牌名]<span class="dot">·</span>AI Sourcing</span>
+    <div class="nav-links">
+      <a href="#services">服务</a>
+      <a href="#how">流程</a>
+      <a href="#proof">信任</a>
+      <a class="btn" href="#lead">领免费工具</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap grid">
+    <div>
+      <div class="eyebrow">For 中小电商卖家</div>
+      <h1>你已经花了太多时间讨价还价。<br>剩下的采购流程，交给 AI 完成。</h1>
+      <p class="lead" style="margin-top:20px">
+        发一份询价单，我用 AI 帮你整理报价对比、核查工厂底细、检查样品 ——
+        从"找到供应商"到"货到手上"，一条龙跑完。
+      </p>
+      <div style="display:flex;gap:12px;flex-wrap:wrap;margin-top:28px">
+        <a class="btn" href="#lead" style="min-width:200px">免费领《AI 报价对比模板》</a>
+        <a class="btn secondary" href="#services">看 4 个服务</a>
+      </div>
+      <div class="proof">
+        <div><b>3–5 天</b>从询价到可下单的对比清单</div>
+        <div><b>¥ 0</b>前期咨询费</div>
+        <div><b>3 单</b>案例价名额，先到先得</div>
+      </div>
+    </div>
+    <div class="photo-slot" aria-label="Photo placeholder">放一张你的验厂照 / 询价单截图<br>（占位：替换成真实照片）</div>
+  </div>
+</header>
+
+<section id="pain">
+  <div class="wrap">
+    <div class="eyebrow">他们说</div>
+    <h2 style="margin-bottom:36px">这些不是广告语，是中小卖家在评论区里的话</h2>
+    <div class="grid g3">
+      <div class="doubt">
+        <h3>"比价比找厂还痛"</h3>
+        <p>拿 5 家报价单，中英文拗口、单位不统一，人工整理要几个小时。AI 在 1 分钟内做成同一张表。</p>
+      </div>
+      <div class="doubt">
+        <h3>"供应商不联系你，挂了也没用"</h3>
+        <p>拿了 9 个工厂名单却一个都不回复 —— 交付名单不是交付结果。我负责把名单变成能落地的单子。</p>
+      </div>
+      <div class="doubt">
+        <h3>"我不会谈判，也不敢砍价"</h3>
+        <p>跨语言沟通 + 报价谈判，AI 双语模板给你每一句该说什么，我替你盯到确认单。</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section id="services" style="background:var(--surface)">
+  <div class="wrap">
+    <div class="eyebrow">服务（起步清单价）</div>
+    <h2 style="margin-bottom:36px">每个环节 100 元以内，先做起来再说</h2>
+    <div class="grid g4">
+      <div class="card">
+        <span class="tag">最痛 · 先做</span>
+        <h3>报价单 AI 对比</h3>
+        <div class="price">$29 <small>/ 次</small></div>
+        <ul>
+          <li>5 份报价单 → 1 张同口径对比表</li>
+          <li>标出单价/运费/MOQ 差异</li>
+          <li>24 小时交付</li>
+        </ul>
+        <a class="btn secondary block" href="#lead">发报价单给我</a>
+      </div>
+      <div class="card">
+        <span class="tag">避坑</span>
+        <h3>供应商 AI 背调</h3>
+        <div class="price">$19 <small>/ 次</small></div>
+        <ul>
+          <li>工商注册 / 年限 / 风险记录核查</li>
+          <li>出具一页风险摘要</li>
+          <li>下单前先过这一关</li>
+        </ul>
+        <a class="btn secondary block" href="#lead">查这家工厂</a>
+      </div>
+      <div class="card">
+        <span class="tag">省图钱</span>
+        <h3>AI 产品图 5 张</h3>
+        <div class="price">$39 <small>/ 组</small></div>
+        <ul>
+          <li>白底 + 3 张场景图</li>
+          <li>适合 Amazon / Shopify 首图</li>
+          <li>48 小时交付</li>
+        </ul>
+        <a class="btn secondary block" href="#lead">做一组图</a>
+      </div>
+      <div class="card pop">
+        <span class="tag">拉新</span>
+        <h3>AI UGC 视频广告</h3>
+        <div class="price">$49 <small>/ 条</small></div>
+        <ul>
+          <li>TikTok / Reels 竖版 15–30s</li>
+          <li>真人感 AI 出镜或口播稿</li>
+          <li>适合素材测试，省 $1200 试错</li>
+        </ul>
+        <a class="btn block" href="#lead">做一条素材</a>
+      </div>
+    </div>
+    <p class="muted" style="margin-top:24px">价格为起步验证价，前 3 单按案例价优先排期 —— [可改成你的真实报价]</p>
+  </div>
+</section>
+
+<section id="how">
+  <div class="wrap">
+    <div class="eyebrow">怎么合作</div>
+    <h2 style="margin-bottom:40px">三步，注册都不需要</h2>
+    <div class="steps">
+      <div class="step"><div class="num">01</div><h3>发材料</h3><p>把询价单、工厂链接或产品图发我（聊天/邮箱都行）。</p></div>
+      <div class="step"><div class="num">02</div><h3>AI 出初稿，我盯结尾</h3><p>比价表、背调页、图片、视频脚本 —— AI 加速出活，我负责核对事实和供应商跟进。</p></div>
+      <div class="step"><div class="num">03</div><h3>确认即用</h3><p>拿到的就是能直接下单/上架的结果。不满意，改到好为止。</p></div>
+    </div>
+  </div>
+</section>
+
+<section id="proof" style="background:var(--surface)">
+  <div class="wrap">
+    <div class="eyebrow">信任</div>
+    <h2 style="margin-bottom:32px">他们正在经历的事，就是我要解决的</h2>
+    <div class="grid g3">
+      <div class="quote">"给了 9 个工厂联系人，没有一个回复，我还在等。"<cite>—— 某找厂服务真实差评（占位替换成你自己的客户评价）</cite></div>
+      <div class="quote">"每月在 Fiverr 花 €200 做产品图，肉疼。"<cite>—— r/AmazonFBA 卖家原话（占位替换）</cite></div>
+      <div class="quote">"测 6 条 TikTok 素材要 $1,200。"<cite>—— 素材测试预算基准（占位替换）</cite></div>
+    </div>
+  </div>
+</section>
+
+<section id="lead">
+  <div class="wrap grid" style="grid-template-columns:1.1fr .9fr;align-items:center">
+    <div>
+      <div class="eyebrow">免费工具</div>
+      <h2>领《AI 报价对比模板》</h2>
+      <p class="lead" style="margin-top:14px">Excel 一张表：粘贴 5 家报价单字段，自动出同口径对比。到手的第 1 天就能省 3 小时。</p>
+      <p class="muted" style="margin-top:12px">（模板 + 10 条工厂谈判双语话术，一起发你）</p>
+    </div>
+    <div>
+      <form id="lead-form" action="#lead" method="post">
+        <label for="email">你的邮箱（或 WhatsApp / 微信）</label>
+        <input type="email" id="email" name="email" placeholder="you@example.com" required>
+        <button class="btn block" type="submit">领取免费模板</button>
+        <p class="form-note" id="form-note" role="status">先占着位置 —— 表单接入 Tally / Netlify Forms 后即可收集询盘。</p>
+      </form>
+    </div>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap grid">
+    <span class="brand">[你的品牌名]<span class="dot">·</span>AI Sourcing</span>
+    <div style="display:flex;gap:24px;font-size:14px">
+      <a href="mailto:you@example.com">you@example.com（占位）</a>
+      <a href="#">WhatsApp（占位）</a>
+      <a href="#">微信（占位）</a>
+    </div>
+    <span class="muted" style="font-size:13px">© 2026 · 页面草稿 v1</span>
+  </div>
+</footer>
+
+<script>
+  document.getElementById('lead-form').addEventListener('submit', function(e){
+    e.preventDefault();
+    const note = document.getElementById('form-note');
+    const email = document.getElementById('email').value.trim();
+    note.textContent = email
+      ? '已记录 ' + email + ' —— 表单后端接入后会自动发模板。'
+      : '填个邮箱就能领取。';
+  });
+</script>
+</body>
+</html>

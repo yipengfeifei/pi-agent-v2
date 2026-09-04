@@ -1,0 +1,23 @@
+{
+  "1688.com": {
+    "search": {
+      "script": "(() => {\n  const anchors = [...document.querySelectorAll('a[href*=\"offerId\"]')].filter(a =>\n    /detail\\.(m\\.)?1688\\.com/.test(a.href) || /detail\\.1688\\.com\\/offer/.test(a.href))\n  return anchors.slice(0, 8).map(a => {\n    let card = a\n    while (card && !/search-offer/.test(card.className || '') && card.parentElement) card = card.parentElement\n    const titleEl = card.querySelector('.offer-title-row')\n    const title = (titleEl ? titleEl.innerText : a.title || '').replace(/\\s+/g, ' ').trim()\n    const priceMain = card.querySelector('.price-item .text-main')\n    const priceDec = card.querySelector('.price-item > div:nth-child(3)')\n    const price = (priceMain ? priceMain.innerText.trim() : '') + (priceDec ? priceDec.innerText.trim() : '')\n    const allText = (card.innerText || '').replace(/\\s+/g, ' ')\n    const sales = (allText.match(/[\\d.]+万?\\+?件/) || [null])[0]\n    const href = a.href\n    return { title, price, sales, href }\n  })\n})()",
+      "notes": "打开搜索结果页有两条已验证路径：\n【方案 A：GBK URL 直拼】在 bash 里用 python3 生成 GBK 编码 URL：\n  python3 -c \"import urllib.parse; print('https://s.1688.com/selloffer/offer_search.htm?keywords=' + urllib.parse.quote('关键词'.encode('gbk')))\"\n  拿到 URL 后在 ego-browser 里 gotoAndWait(url, { timeout: 30 }) 打开。\n  注意：不要在页面 js() 里做编码——页面上下文没有 require/iconv-lite，会报错（容易误判为方案不可用，其实只是实现方式错了）。\n  用 UTF-8 编码会被 1688 按 GBK 解码成乱码，且无登录态/风控时会被重定向为无关推荐内容（如宠物饲料）——打开后检查 pageInfo().title 是否含搜索词，含乱码即编码错了。\n【方案 B：UI 搜索框（更稳，已验证）】打开 https://www.1688.com 首页 → fillInput('input[name=keywords] 或 #alisearch-input', '关键词') → pressKey('Enter') → wait 3-5s 等 SSR 直出。让网站自己处理编码，无乱码/重定向风险。\n页面加载：SSR 直出，打开后 wait 1-2s 即可提取，不要用 wait:true 或 waitForNetworkIdle（有轮询永不空闲）。\n提取（两条路径共用）：卡片 = 标题链接(a[href*=offerId] 匹配 detail.1688.com/offer)向上找 .search-offer-wrapper；标题取 .offer-title-row；价格 = .price-item .text-main(整数) + .price-item 第3个div(小数)；销量从卡片 innerText 正则 [\\d.]+万?\\+?件 提取，'全网'前缀表示含下游渠道总销量；.offer-desc-item .desc-text 是起批量(≥N包)不是销量。",
+      "updatedAt": "2026-08-09"
+    }
+  },
+  "book.douban.com": {
+    "top250": {
+      "script": "(() => {\n  const items = [...document.querySelectorAll('tr.item')].slice(0, 10)\n  return items.map(el => {\n    const title = el.querySelector('.pl2 a')?.innerText.replace(/\\s+/g, ' ').trim() || ''\n    const author = el.querySelector('p.pl')?.innerText.trim() || ''\n    const rating = el.querySelector('.rating_nums')?.innerText.trim() || ''\n    const count = el.querySelector('.star .pl')?.innerText.match(/(\\d+)人评价/)?.[1] || ''\n    return { title, author, rating, count }\n  })\n})()",
+      "notes": "每行 tr.item：书名在 .pl2 a，作者/出版社/价格在 p.pl（如需纯作者取第一个 / 前），评分 .rating_nums，评价人数在 .star .pl 内匹配 /(\\d+)人评价/。注意不要用裸 .pl 选评价人数，会命中作者行。",
+      "updatedAt": "2026-08-09"
+    }
+  },
+  "weather.com.cn": {
+    "forecast": {
+      "script": "(() => {\n  const ul = [...document.querySelectorAll('ul')].find(u => u.className.includes('t'))\n  return [...ul.querySelectorAll('li')].map(li => {\n    const winEl = li.querySelector('p.win em')\n    const win = (winEl && (winEl.getAttribute('title') || winEl.innerText || '').trim()) || null\n    const tem = [...li.querySelectorAll('p.tem span, p.tem i')].map(e => e.innerText.trim()).filter(Boolean)\n    return {\n      date: (li.querySelector('h1')?.innerText || '').trim(),\n      wea: (li.querySelector('p.wea')?.getAttribute('title') || li.querySelector('p.wea')?.innerText || '').trim(),\n      tem: tem.join('/'),\n      win,\n    }\n  })\n})()",
+      "notes": "7天预报页：ul.t.clearfix > li。h1=日期；p.wea 的 title 属性=天气现象（白天/夜间合并）；p.tem 内 span/i=温度（今天仅当日温度，其余为 最高/最低）；p.win em 的 title=风向风力——注意：部分城市页面（如北京）风向只有背景图标无文本，win 返回 null 属正常，非提取错误。页面 SSR 直出，openOrReuseTab 后 wait 1-2s 即可，不要用 wait:true 或 waitForNetworkIdle（页面有轮询永不空闲）。",
+      "updatedAt": "2026-08-09"
+    }
+  }
+}

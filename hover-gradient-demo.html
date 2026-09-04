@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="UTF-8">
+<title>侧边栏 hover/选中 渐变预览</title>
+<style>
+  :root {
+    --side-bg: #141414;
+    --accent: 96, 165, 250;      /* #60a5fa 蓝 */
+    --accent-alt: 167, 139, 250; /* #a78bfa 紫（备选色相） */
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    background: #0c0c0f;
+    display: flex; gap: 24px; padding: 32px; font-family: -apple-system, "PingFang SC", sans-serif;
+  }
+  .side {
+    width: 240px; background: var(--side-bg);
+    border: 1px solid #2a2a2a; border-radius: 10px;
+    padding: 20px 12px 12px; color: #e2e2ea; font-size: 13px;
+  }
+  .side h3 { font-size: 12px; color: #9ca3af; font-weight: 500; margin: 14px 6px 6px; }
+  .side h3:first-child { margin-top: 0; }
+
+  /* 行基础样式：hover = 渐变透明，选中 = 渐变（稍深） */
+  .row {
+    display: flex; align-items: center; gap: 6px;
+    min-height: 36px; padding: 0 10px; border-radius: 8px;
+    cursor: pointer; user-select: none; margin-bottom: 2px;
+    background: transparent;
+    transition: background 0.15s;
+    position: relative; overflow: hidden; /* 扫光裁剪到行内 */
+  }
+
+  /* 扫光（Agent V2 侧边栏 GlareHover 同款）：悬停时一道 -30° 白光从左到右扫过 */
+  .row::before {
+    content: '';
+    position: absolute; inset: 0;
+    background: linear-gradient(
+      -30deg,
+      hsla(0, 0%, 0%, 0) 60%,
+      rgba(255, 255, 255, 0.3) 70%,
+      hsla(0, 0%, 0%, 0) 100%
+    );
+    background-size: 300% 300%;
+    background-repeat: no-repeat;
+    background-position: -100% -100%;
+    transition: none; /* play-once：移开立即复位，不反向扫 */
+    z-index: 1;
+    pointer-events: none;
+  }
+  .row:hover::before {
+    transition: background-position 0.8s ease;
+    background-position: 100% 100%;
+  }
+  /* hover：左起渐变、向右渐隐到透明 */
+  .row:hover {
+    background: linear-gradient(90deg,
+      rgba(var(--accent), 0.16),
+      rgba(var(--accent), 0.05) 55%,
+      transparent);
+  }
+  /* 选中：同款渐变，稍深，白字 */
+  .row.selected {
+    background: linear-gradient(90deg,
+      rgba(var(--accent), 0.22),
+      rgba(var(--accent), 0.06) 55%,
+      transparent);
+    color: #fff;
+  }
+  .row .caret { width: 10px; font-size: 10px; color: #8a8a96; flex-shrink: 0; }
+  .row .name { flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row .meta { font-size: 11px; color: #8a8a96; flex-shrink: 0; }
+  .row.sub { padding-left: 24px; min-height: 32px; }
+
+  /* 白色变体 */
+  .side.white .row:hover { background: linear-gradient(90deg, rgba(255,255,255,0.10), rgba(255,255,255,0.03) 55%, transparent); }
+  .side.white .row.selected { background: linear-gradient(90deg, rgba(255,255,255,0.16), rgba(255,255,255,0.05) 55%, transparent); }
+
+  /* 动效版：悬停左缘滑出 / 移开收回（Agent V2 侧边栏同款 translateX 过渡） */
+  .rail-host {
+    position: relative; width: 240px; height: 480px; flex-shrink: 0;
+  }
+  .rail-host .side {
+    position: absolute; left: 0; top: 0; bottom: 0;
+    width: 240px; height: 480px;
+    transform: translateX(calc(-100% + 16px)); /* 收起：露 16px 触发条 */
+    transition: transform 0.28s ease;
+    z-index: 10;
+  }
+  .rail-host:hover .side { transform: translateX(0); }
+  /* 触发条提示（rail 滑出后隐藏） */
+  .rail-host::after {
+    content: '悬停滑出';
+    position: absolute; left: 0; top: 0; bottom: 0; width: 16px;
+    display: flex; align-items: center; justify-content: center;
+    writing-mode: vertical-rl; font-size: 10px; color: #8a8a96;
+    background: rgba(255,255,255,0.1); border-radius: 10px 0 0 10px;
+    pointer-events: none; z-index: 11;
+    transition: opacity 0.28s;
+  }
+  .rail-host:hover::after { opacity: 0; }
+
+  .hint { color: #6b7280; font-size: 11px; margin-top: 10px; line-height: 1.7; }
+</style>
+</head>
+<body>
+
+  <!-- 动效版：悬停左缘滑出 / 移开收回（Agent V2 同款） -->
+  <div class="rail-host">
+    <div class="side">
+      <h3>聊天</h3>
+      <div class="row"><span class="caret">▼</span><span class="name">聊天</span></div>
+      <div class="row sub"><span class="caret">○</span><span class="name">昨天的会话</span><span class="meta">3 条</span></div>
+      <div class="row sub selected"><span class="caret">○</span><span class="name">选中会话（渐变）</span><span class="meta">40 条</span></div>
+      <h3>项目</h3>
+      <div class="row"><span class="caret">▼</span><span class="name">pi Agent V2</span><span class="meta">6</span></div>
+      <div class="row sub"><span class="caret">○</span><span class="name">打包验证</span><span class="meta">2 条</span></div>
+      <div class="row sub"><span class="caret">○</span><span class="name">窗口尺寸调整</span><span class="meta">5 条</span></div>
+      <div class="hint">← 悬停左缘 ⇢ 整个侧边栏滑出（translateX 0.28s），移开收回<br>行内：渐变 hover/选中 + 白光扫光</div>
+    </div>
+  </div>
+
+  <!-- 蓝色变体（当前选中态同款色） -->
+  <div class="side">
+    <h3>蓝 #60a5fa（当前选中同款）</h3>
+    <div class="row"><span class="caret">▼</span><span class="name">聊天</span></div>
+    <div class="row sub"><span class="caret">○</span><span class="name">昨天的会话</span><span class="meta">3 条</span></div>
+    <div class="row sub selected"><span class="caret">○</span><span class="name">选中会话（渐变）</span><span class="meta">40 条</span></div>
+    <h3>项目</h3>
+    <div class="row"><span class="caret">▼</span><span class="name">pi Agent V2</span><span class="meta">6</span></div>
+    <div class="row sub"><span class="caret">○</span><span class="name">打包验证</span><span class="meta">2 条</span></div>
+    <div class="row sub"><span class="caret">○</span><span class="name">窗口尺寸调整</span><span class="meta">5 条</span></div>
+    <div class="row"><span class="caret">▶</span><span class="name">自媒体项目</span><span class="meta">3</span></div>
+    <div class="hint">← 鼠标悬停行：渐变 + 白光斜扫（GlareHover 同款）<br>hover 0.16 / 选中 0.22，90deg 左起渐隐；扫光 -30deg 白 0.3，800ms</div>
+  </div>
+
+  <!-- 白色变体（中性灰阶高亮） -->
+  <div class="side white">
+    <h3>白 #ffffff（中性灰阶）</h3>
+    <div class="row"><span class="caret">▼</span><span class="name">聊天</span></div>
+    <div class="row sub"><span class="caret">○</span><span class="name">昨天的会话</span><span class="meta">3 条</span></div>
+    <div class="row sub selected"><span class="caret">○</span><span class="name">选中会话（渐变）</span><span class="meta">40 条</span></div>
+    <h3>项目</h3>
+    <div class="row"><span class="caret">▼</span><span class="name">pi Agent V2</span><span class="meta">6</span></div>
+    <div class="row sub"><span class="caret">○</span><span class="name">打包验证</span><span class="meta">2 条</span></div>
+    <div class="row sub"><span class="caret">○</span><span class="name">窗口尺寸调整</span><span class="meta">5 条</span></div>
+    <div class="row"><span class="caret">▶</span><span class="name">自媒体项目</span><span class="meta">3</span></div>
+    <div class="hint">← 悬停对比：渐变 + 白光斜扫<br>hover 白 0.10 / 选中白 0.16，向左渐隐到透明</div>
+  </div>
+
+</body>
+</html>

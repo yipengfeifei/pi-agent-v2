@@ -1,0 +1,254 @@
+{
+  "artifact_name": "结构化对比表",
+  "artifact_type": "standardized_comparison_table",
+  "schema_version": "1.0.0",
+  "generated_at": "2026-08-08",
+  "generator_node": "standardize",
+  "upstream_inputs": [
+    {"input_id": "INPUT-01", "name": "场地候选清单", "data_date": "2026-08-08", "note": "北京·200人婚礼·2026年9月中旬 场地检索证据包（22 家场地）"},
+    {"input_id": "INPUT-02", "name": "供应商候选清单.json", "data_date": "2026-08-08", "path": "供应商候选清单.json", "note": "北京婚庆供应商七大类调研（策划/摄影摄像/化妆/司仪/花艺/甜品台/乐队）"}
+  ],
+
+  "canonical_variables": {
+    "currency": {"code": "CNY", "note": "所有金额单位为人民币元"},
+    "price_basis": {
+      "per_table": "每桌（默认 10 人/桌口径，未确认桌均人数时不强行换算）",
+      "per_person": "每位",
+      "per_event": "每场/每次服务",
+      "per_package": "全案/套系",
+      "per_day": "每天"
+    },
+    "price_direction": "from（所有报价均为'起'价/区间参考价，实际以报价单为准）",
+    "capacity": {"unit": "persons", "note": "可容纳宾客人数"},
+    "date_window": {
+      "start": "2026-09-11", "end": "2026-09-20",
+      "availability": "unknown", "volatility": "high",
+      "action": "所有场地须电话确认档期；9 月为旺季，热门周末(09-12/09-13/09-19/09-20)通常紧张"
+    },
+    "rating_scale": {
+      "scale": "0-5",
+      "note": "婚礼纪等平台原生 5 分制直接入 rating；phb123 10 分制按 /2 折算并标注 origin_scale；好评率/满意度为不同口径，仅入 rating_note，不计入 rating"
+    },
+    "status_enum": {"verified": "官方页/权威媒体/平台商家页", "unverified": "第三方聚合/榜单/软文线索", "uncertain": "多源冲突或无法核实"},
+    "missing_representation": "null = 原始输入缺失，不补全；缺失明细见 missing_fields",
+    "data_as_of": "2026-08-08",
+    "volatility_note": "价格/档期为 high volatility，有效期约 6-12 个月，下单前须电话核实实时报价与档期"
+  },
+
+  "field_mapping": {
+    "venues": {
+      "raw_id": "原清单编号（A1-C8）",
+      "适配宴会厅/配置": "venue_hall",
+      "宴会容量": "capacity_persons{min,max,value}",
+      "餐标/价格": "meal_price{min,max,unit,basis,original}",
+      "场地费": "venue_fee{min,max,unit,basis,original}",
+      "电话": "phone",
+      "坐标(approx)": "lat/lon（由地址推算，unverified）",
+      "档期": "date_window（canonical，所有场地一致，可订状态 unknown）",
+      "评分": "rating（本输入无评分数据，全为 null）"
+    },
+    "suppliers": {
+      "tier_price_ranges": "price_tiers[]（品类价位区间，canonical 口径，下游不得另行自抽）",
+      "suppliers[]": "suppliers[]（具名供应商）",
+      "price_hint/price": "price{min,max,unit,basis,original}",
+      "positioning": "notes",
+      "reputation": "rating + rating_note + reputation_note",
+      "source": "source_ref",
+      "source_date": "source_date",
+      "confidence/volatility/source_status": "同名保留"
+    }
+  },
+
+  "venues": [
+    {"venue_id": "V-A01", "raw_id": "A1", "name": "北京丽晶酒店", "category": "星级酒店宴会厅", "address": "东城区金宝街99号", "district": "东城区", "venue_hall": "宴会厅", "capacity_persons": {"value": 500}, "fits_200pax": true, "meal_price": null, "venue_fee": null, "phone": "+86 10 85221888", "email": "sales@regent-beijing.com", "lat": 39.915, "lon": 116.418, "rating": null, "rating_note": null, "notes": null, "source_ref": "regent-beijing.com 官方婚宴页", "source_status": "verified", "data_date": "2026-08"},
+    {"venue_id": "V-A02", "raw_id": "A2", "name": "北京金融街丽思卡尔顿", "category": "星级酒店宴会厅", "address": "西城区金城坊东街1号", "district": "西城区", "venue_hall": "丽思卡尔顿宴会厅 504㎡(8m 挑高)", "capacity_persons": {"value": 320}, "fits_200pax": true, "meal_price": null, "venue_fee": null, "phone": "+86 10 6629 6665", "lat": 39.9154, "lon": 116.3624, "rating": null, "rating_note": null, "notes": null, "source_ref": "ritzcarlton.com 官方页", "source_status": "verified", "data_date": "2026-08"},
+    {"venue_id": "V-A03", "raw_id": "A3", "name": "北京四季酒店", "category": "星级酒店宴会厅", "address": "朝阳区亮马桥路48号", "district": "朝阳区", "venue_hall": "大宴会厅 I 或 II 338㎡（可合并 650㎡）", "capacity_persons": {"value": 180, "note": "单厅 180 人；I+II 合并 360 人（200 人需合并厅或确认分区）"}, "fits_200pax": true, "meal_price": null, "venue_fee": null, "phone": "+86 10 5695 8888", "lat": 39.9489, "lon": 116.4624, "rating": null, "rating_note": null, "notes": "200 人需双厅合并使用", "source_ref": "fourseasons.com 官方页", "source_status": "verified", "data_date": "2026-08"},
+    {"venue_id": "V-A04", "raw_id": "A4", "name": "北京嘉里大酒店", "category": "星级酒店宴会厅", "address": "朝阳区光华路1号", "district": "朝阳区", "venue_hall": "大宴会厅 + 屋顶花园", "capacity_persons": {"value": null, "note": "官方披露 6000㎡ 活动空间（总面积非人数），未披露人数容量"}, "fits_200pax": "unknown", "meal_price": {"min": null, "max": null, "unit": "CNY", "basis": "per_table", "original": "有婚宴包价（未公布）"}, "venue_fee": null, "phone": "+86 10 6561 8833", "lat": 39.9169, "lon": 116.4623, "rating": null, "rating_note": null, "notes": "有婚宴包价，需询价", "source_ref": "shangri-la.com 官方页", "source_status": "verified", "data_date": "2026-08"},
+    {"venue_id": "V-A05", "raw_id": "A5", "name": "北京诺金酒店", "category": "星级酒店宴会厅", "address": "朝阳区将台路甲2号", "district": "朝阳区", "venue_hall": "永乐大宴会厅 1600㎡(9m 无柱)", "capacity_persons": {"value": 960}, "fits_200pax": true, "meal_price": {"min": null, "max": null, "unit": "CNY", "basis": "per_table", "original": "有婚宴套餐（未公布）"}, "venue_fee": null, "phone": "+86 10 5926 8888", "lat": 39.9797, "lon": 116.4895, "rating": null, "rating_note": null, "notes": "有婚宴套餐，需询价", "source_ref": "nuohotel.com 官方页", "source_status": "verified", "data_date": "2026-08"},
+    {"venue_id": "V-A06", "raw_id": "A6", "name": "北京王府半岛酒店", "category": "星级酒店宴会厅", "address": "东城区金鱼胡同8号", "district": "东城区", "venue_hall": "宴会厅（含屋顶雲景廊）", "capacity_persons": {"value": 200, "direction": "from"}, "fits_200pax": true, "meal_price": null, "venue_fee": null, "phone": "+86 10 8516 2888", "lat": 39.9156, "lon": 116.4123, "rating": null, "rating_note": null, "notes": "定制报价", "source_ref": "peninsula.com 官方页", "source_status": "verified", "data_date": "2026-08"},
+    {"venue_id": "V-A07", "raw_id": "A7", "name": "北京瑞吉酒店", "category": "星级酒店宴会厅", "address": "朝阳区建国门外大街21号", "district": "朝阳区", "venue_hall": "阿斯特宴会厅 750㎡", "capacity_persons": {"value": 432}, "fits_200pax": true, "meal_price": null, "venue_fee": null, "phone": "+86 10 6460 6688", "lat": 39.9098, "lon": 116.4467, "rating": null, "rating_note": null, "notes": "定制报价", "source_ref": "marriott.com/st-regis 官方页", "source_status": "verified", "data_date": "2026-08"},
+    {"venue_id": "V-A08", "raw_id": "A8", "name": "北京宝格丽酒店", "category": "星级酒店宴会厅", "address": "朝阳区新源南路8号院", "district": "朝阳区", "venue_hall": "宝格丽宴会厅 520㎡ + 河畔花园", "capacity_persons": {"value": 300}, "fits_200pax": true, "meal_price": null, "venue_fee": null, "phone": "+86 10 8555 8555", "lat": 39.9497, "lon": 116.4531, "rating": null, "rating_note": null, "notes": "定制报价（顶级定位）", "source_ref": "bulgarihotels.com 官方页", "source_status": "verified", "data_date": "2026-08"},
+    {"venue_id": "V-A09", "raw_id": "A9", "name": "北京前门文华东方", "category": "星级酒店宴会厅", "address": "东城区前门东大街", "district": "东城区", "venue_hall": "文华园 255㎡", "capacity_persons": {"value": 180, "note": "略低于 200 人命题，仅作参考"}, "fits_200pax": false, "meal_price": null, "venue_fee": null, "phone": "+86 10 8509 8888", "lat": 39.8997, "lon": 116.3977, "rating": null, "rating_note": null, "notes": "容量不达标，除非缩减宾客数", "source_ref": "mandarinoriental.com 官方页", "source_status": "verified", "data_date": "2026-08"},
+    {"venue_id": "V-A10", "raw_id": "A10", "name": "北京三里屯洲际", "category": "星级酒店宴会厅", "address": "朝阳区三里屯1号", "district": "朝阳区", "venue_hall": "大宴会厅 800㎡", "capacity_persons": {"value": 650}, "fits_200pax": true, "meal_price": null, "venue_fee": null, "phone": "+86 10 6530 8888", "lat": 39.9341, "lon": 116.4549, "rating": null, "rating_note": null, "notes": "定制报价", "source_ref": "ihg.com 官方页", "source_status": "verified", "data_date": "2026-08"},
+    {"venue_id": "V-A11", "raw_id": "A11", "name": "北京饭店", "category": "星级酒店宴会厅（历史五星）", "address": "东城区东长安街33号", "district": "东城区", "venue_hall": "金色大厅 2000㎡ / 会展中心", "capacity_persons": {"value": 1000, "note": "千人级"}, "fits_200pax": true, "meal_price": null, "venue_fee": null, "phone": "+86 10 6513 7766", "lat": 39.9085, "lon": 116.4096, "rating": null, "rating_note": null, "notes": "宴会转分机 288/388", "source_ref": "chinabeijinghotel.com.cn 官方页", "source_status": "verified", "data_date": "2026-08"},
+    {"venue_id": "V-B01", "raw_id": "B1", "name": "花嫁丽舍（朝阳店）", "category": "一站式婚礼堂", "address": "朝阳区金盏乡蟹岛路1号蟹岛国际会展中心2号馆", "district": "朝阳区", "venue_hall": "婚礼堂多厅", "capacity_persons": {"value": null, "note": "未披露人数，按厅配置"}, "fits_200pax": "unknown", "meal_price": {"min": 5988, "max": null, "unit": "CNY", "basis": "per_table", "direction": "from", "original": "¥5988/桌起（含在套餐）"}, "venue_fee": {"min": null, "max": null, "unit": "CNY", "basis": "per_event", "original": "含在套餐"}, "phone": null, "lat": 40.0212, "lon": 116.5361, "rating": null, "rating_note": null, "notes": "关联供应商条目 SU-PL-13（婚礼堂一站式）", "source_ref": "hotel.hunliji.com/beijing/detail_132677", "source_status": "verified", "data_date": "2026-08"},
+    {"venue_id": "V-B02", "raw_id": "B2", "name": "花嫁丽舍（海岛空中花园店）", "category": "一站式婚礼堂", "address": "丰台区马家楼119号", "district": "丰台区", "venue_hall": "6 宴会厅(层高8m无柱)+3 仪式堂+2 空中花园", "capacity_persons": {"value": null, "note": "未披露人数，按厅配置"}, "fits_200pax": "unknown", "meal_price": {"min": 5988, "max": null, "unit": "CNY", "basis": "per_table", "direction": "from", "original": "¥5988/桌起（含在套餐）"}, "venue_fee": {"min": null, "max": null, "unit": "CNY", "basis": "per_event", "original": "含在套餐"}, "phone": null, "lat": 39.8545, "lon": 116.3421, "rating": null, "rating_note": null, "notes": "关联供应商条目 SU-PL-13", "source_ref": "hotel.hunliji.com/beijing/detail_132678", "source_status": "verified", "data_date": "2026-08"},
+    {"venue_id": "V-B03", "raw_id": "B3", "name": "繁景艺术中心", "category": "一站式婚礼堂/艺术场地", "address": "朝阳区东四环产业园（毗邻朝阳大悦城）", "district": "朝阳区", "venue_hall": "7 主题宴会厅 8-35 桌 + 17m 教堂 + 水系草坪，园区 20000㎡", "capacity_persons": {"value": 350, "note": "按 35 桌×10人 推算上限，原输入未直接披露人数"}, "fits_200pax": "likely", "meal_price": null, "venue_fee": null, "phone": null, "lat": 39.9241, "lon": 116.5168, "rating": null, "rating_note": null, "notes": "官网/公众号线上对接", "source_ref": "繁景艺术中心官网/公众号", "source_status": "unverified", "data_date": "2026-08"},
+    {"venue_id": "V-C01", "raw_id": "C1", "name": "华彬庄园", "category": "户外庄园", "address": "昌平区南口镇南口农场华彬庄园", "district": "昌平区", "venue_hall": "多功能厅 784㎡ 300人 / 欧式厅 320㎡ 260人 / 大草坪 12600㎡", "capacity_persons": {"min": 260, "max": 300}, "fits_200pax": true, "meal_price": {"min": 4880, "max": null, "unit": "CNY", "basis": "per_table", "direction": "from", "original": "¥4880/桌起"}, "venue_fee": {"min": 30000, "max": null, "unit": "CNY", "basis": "per_event", "direction": "from", "original": "3 万起"}, "phone": "+86 10 6299 6666", "lat": 40.1886, "lon": 116.1289, "rating": null, "rating_note": null, "notes": null, "source_ref": "华彬庄园官网", "source_status": "verified", "data_date": "2026-08"},
+    {"venue_id": "V-C02", "raw_id": "C2", "name": "拉斐特城堡酒店", "category": "户外庄园/城堡", "address": "昌平区北七家镇（温榆河畔）", "district": "昌平区", "venue_hall": "仪式大厅 1100㎡ 350人 / 枫丹白露厅 722㎡ 350人 / 户外圣彼得广场", "capacity_persons": {"value": 350}, "fits_200pax": true, "meal_price": {"min": 3888, "max": null, "unit": "CNY", "basis": "per_table", "direction": "from", "original": "¥3888/桌起"}, "venue_fee": {"min": 20000, "max": null, "unit": "CNY", "basis": "per_event", "direction": "from", "original": "2 万起"}, "phone": "010-69722180 / 010-57238866", "lat": 40.107, "lon": 116.4337, "rating": null, "rating_note": null, "notes": null, "source_ref": "拉斐特城堡酒店官网", "source_status": "verified", "data_date": "2026-08"},
+    {"venue_id": "V-C03", "raw_id": "C3", "name": "笙白艺术空间", "category": "艺术空间（园区型）", "address": "朝阳区八里庄北里8号院", "district": "朝阳区", "venue_hall": "宴会厅 440㎡ 200人/24桌 + 东院草坪 400㎡ 200人", "capacity_persons": {"value": 200}, "fits_200pax": true, "meal_price": {"min": 5288, "max": null, "unit": "CNY", "basis": "per_table", "direction": "from", "original": "¥5288/桌起"}, "venue_fee": {"min": 20000, "max": null, "unit": "CNY", "basis": "per_event", "direction": "from", "original": "2 万起"}, "phone": null, "lat": 39.9237, "lon": 116.5092, "rating": null, "rating_note": null, "notes": "公开电话缺失，经公众号/平台询价", "source_ref": "知乎《2026婚礼场地挑选指南》", "source_status": "unverified", "data_date": "2026-08"},
+    {"venue_id": "V-C04", "raw_id": "C4", "name": "溪时一空间", "category": "艺术空间（园区型）", "address": "朝阳区星河湾1号院西侧", "district": "朝阳区", "venue_hall": "时镜宴会 500㎡ + 草坪 800㎡", "capacity_persons": {"value": null, "note": "未披露人数，按面积推断可容纳 200+"}, "fits_200pax": "likely", "meal_price": {"min": 5680, "max": null, "unit": "CNY", "basis": "per_table", "direction": "from", "original": "¥5680/桌起"}, "venue_fee": {"min": 25000, "max": null, "unit": "CNY", "basis": "per_event", "direction": "from", "original": "2.5 万"}, "phone": null, "lat": 39.9289, "lon": 116.5221, "rating": null, "rating_note": null, "notes": "公开电话缺失", "source_ref": "知乎《2026婚礼场地挑选指南》", "source_status": "unverified", "data_date": "2026-08"},
+    {"venue_id": "V-C05", "raw_id": "C5", "name": "悉林空间", "category": "艺术空间（园区型）", "address": "朝阳区东风南路一号院西侧", "district": "朝阳区", "venue_hall": "中庭草坪 320㎡ 300人 / 阳光房 260㎡ 160人", "capacity_persons": {"min": 160, "max": 300, "note": "中庭草坪 300 人满足 200；阳光房仅 160 人不满足"}, "fits_200pax": "partial", "meal_price": {"min": 5680, "max": null, "unit": "CNY", "basis": "per_table", "direction": "from", "original": "¥5680/桌"}, "venue_fee": {"min": 25000, "max": null, "unit": "CNY", "basis": "per_event", "direction": "from", "original": "2.5 万"}, "phone": null, "lat": 39.9166, "lon": 116.5036, "rating": null, "rating_note": null, "notes": "200 人只能走中庭草坪方案", "source_ref": "知乎《2026婚礼场地挑选指南》", "source_status": "unverified", "data_date": "2026-08"},
+    {"venue_id": "V-C06", "raw_id": "C6", "name": "中国油画院·美地艺术讲堂", "category": "艺术空间", "address": "朝阳区高碑店文化新大街1704号", "district": "朝阳区", "venue_hall": "主厅 300㎡ 22.8m 高，200 人观礼", "capacity_persons": {"value": 200}, "fits_200pax": true, "meal_price": {"min": 5800, "max": null, "unit": "CNY", "basis": "per_table", "direction": "from", "original": "¥5800/桌起"}, "venue_fee": {"min": 30000, "max": null, "unit": "CNY", "basis": "per_event", "direction": "from", "original": "3 万起"}, "phone": null, "lat": 39.9024, "lon": 116.5451, "rating": null, "rating_note": null, "notes": "公开电话缺失", "source_ref": "知乎《2026婚礼场地挑选指南》", "source_status": "unverified", "data_date": "2026-08"},
+    {"venue_id": "V-C07", "raw_id": "C7", "name": "果园西餐厅", "category": "户外餐厅/庄园", "address": "朝阳区何各庄村顺白路南", "district": "朝阳区", "venue_hall": "湖心仪式区 200 人 + 主餐厅 120×2", "capacity_persons": {"value": 200, "note": "湖心仪式区 200 人；主餐厅 120×2（含分区容量）"}, "fits_200pax": true, "meal_price": {"min": null, "max": null, "unit": "CNY", "basis": "per_person", "original": "688元/位 或 7288元/桌", "note": "双口径并存，换算后桌均约 10.6 人，与常规 10 人/桌口径冲突，见 conflicts"}, "venue_fee": {"min": 30000, "max": null, "unit": "CNY", "basis": "per_event", "direction": "from", "original": "3 万起"}, "phone": null, "lat": 40.0261, "lon": 116.5111, "rating": null, "rating_note": null, "notes": "公开电话缺失", "source_ref": "知乎《2026婚礼场地挑选指南》", "source_status": "unverified", "data_date": "2026-08"},
+    {"venue_id": "V-C08", "raw_id": "C8", "name": "青普文化行馆·八达岭瑞云", "category": "京郊度假村", "address": "张家口怀来县东花园镇（京郊）", "district": "京郊·张家口怀来", "venue_hall": "巴克斯广场 1600㎡ 240人 / 伽拿花园 1600㎡ 240人", "capacity_persons": {"value": 240}, "fits_200pax": true, "meal_price": {"min": 5180, "max": null, "unit": "CNY", "basis": "per_table", "direction": "from", "original": "¥5180/桌起"}, "venue_fee": {"min": 8800, "max": null, "unit": "CNY", "basis": "per_event", "direction": "from", "original": "户外 8800 起"}, "phone": null, "lat": 40.26, "lon": 115.8, "rating": null, "rating_note": null, "notes": "行政区划属河北省张家口（京郊），命题'北京'范围外，需确认宾客动线，见 conflicts", "source_ref": "知乎《2026婚礼场地挑选指南》", "source_status": "unverified", "data_date": "2026-08"}
+  ],
+
+  "supplier_categories": [
+    {
+      "category": "婚庆策划", "category_id": "PL",
+      "price_tiers": [
+        {"tier_id": "TI-PL-1", "tier_name": "套系类（模板套餐）", "price": {"min": 10000, "max": 30000, "unit": "CNY", "basis": "per_package", "approx": true, "original": "1-3万"}, "note": "道具可复用，性价比高，适合预算低", "volatility": "high"},
+        {"tier_id": "TI-PL-2", "tier_name": "半定制", "price": {"min": 30000, "max": 100000, "unit": "CNY", "basis": "per_package", "approx": true, "original": "3-10万"}, "note": "可改色系/细节/加logo，含部分四大金刚", "volatility": "high"},
+        {"tier_id": "TI-PL-3", "tier_name": "全定制", "price": {"min": 50000, "max": 200000, "unit": "CNY", "basis": "per_package", "approx": true, "open_ended": true, "original": "5-20万+"}, "note": "主题策划费另计 2000-10000；高端品牌 10-30 万常见，顶级可上百万", "volatility": "high"},
+        {"tier_id": "TI-PL-4", "tier_name": "北京人员+布置总费用", "price": {"min": 50000, "max": 200000, "unit": "CNY", "basis": "per_package", "approx": true, "original": "5-20万为主，常见6-12万"}, "note": "知乎行业账号 Neko酱 2021 口径，仍为行业常用参考", "volatility": "high"}
+      ],
+      "suppliers": [
+        {"supplier_id": "SU-PL-01", "name": "汇爱婚礼", "since": 2006, "price": null, "price_note": "高端，无公开起价，报价透明分项", "rating": null, "rating_note": null, "reputation_note": "CNPP/买购网2025十大婚庆品牌榜首梯队；多榜单前列", "notes": "高端定制，户外/小众风格，2008年引入婚礼堂概念，复爱合缘集团旗下", "source_ref": "maigoo.cn / cnpp.cn / 163.com 2026榜单", "source_date": "2025-07/2026", "source_status": "verified", "confidence": "high", "volatility": "high"},
+        {"supplier_id": "SU-PL-02", "name": "摩卡婚礼MOCHA", "since": 1999, "price": null, "price_note": "中高端，透明分项报价", "rating": null, "rating_note": null, "reputation_note": "十大婚庆品牌；执行稳定性好评", "notes": "人文定制中高端，与50+星级酒店/特色场地合作，自有灯光音响库", "source_ref": "maigoo.cn / cnblogs 评测", "source_date": "2025", "source_status": "verified", "confidence": "high", "volatility": "high"},
+        {"supplier_id": "SU-PL-03", "name": "美薇亭婚礼", "since": 2007, "price": null, "price_note": "中高端", "rating": null, "rating_note": null, "reputation_note": "十大品牌；数千场案例", "notes": "数字化管理，'负担得起的奢侈'，曾服务郎平/佟大为等", "source_ref": "maigoo.cn / cityhui.com", "source_date": "2025", "source_status": "verified", "confidence": "medium", "volatility": "high"},
+        {"supplier_id": "SU-PL-04", "name": "艾恩婚礼", "since": 2012, "price": {"min": 30000, "max": 3000000, "unit": "CNY", "basis": "per_package", "approx": true, "original": "3万-300万跨度，亲民起价"}, "rating": null, "rating_note": null, "reputation_note": "年轻品牌口碑上升", "notes": "中端定制，朝阳公园城堡婚礼堂，花艺团队服务希尔顿/四季/香奈儿", "source_ref": "cityhui.com", "source_date": "2025", "source_status": "unverified", "confidence": "medium", "volatility": "high"},
+        {"supplier_id": "SU-PL-05", "name": "Sunny喜铺", "since": 2005, "price": {"min": 11500, "max": 33520, "unit": "CNY", "basis": "per_package", "approx": true, "original": "套餐 11500-33520；代表套系 18900/19999/34520"}, "rating": null, "rating_note": null, "reputation_note": "老牌一站式", "notes": "一站式西式婚礼，朝阳门外大街联合大厦", "source_ref": "jiehun.com.cn / hunbohui.cn", "source_date": "2023-2024", "source_status": "verified", "confidence": "medium", "volatility": "high"},
+        {"supplier_id": "SU-PL-06", "name": "乐美婚礼", "price": {"min": 30000, "max": 168000, "unit": "CNY", "basis": "per_package", "approx": true, "original": "30000-168000"}, "rating": null, "rating_note": null, "notes": "高端策划，百子湾爱工厂", "source_ref": "jiehun.com.cn", "source_date": "2023", "source_status": "unverified", "confidence": "medium", "volatility": "high"},
+        {"supplier_id": "SU-PL-07", "name": "迦南之约", "price": {"min": 23000, "max": 120000, "unit": "CNY", "basis": "per_package", "approx": true, "original": "23000-120000"}, "rating": null, "rating_note": null, "notes": "基督教会背景婚庆", "source_ref": "hunbohui.cn", "source_date": "2023", "source_status": "unverified", "confidence": "low", "volatility": "high"},
+        {"supplier_id": "SU-PL-08", "name": "艾尔婚礼", "price": {"min": 12000, "max": 29999, "unit": "CNY", "basis": "per_package", "approx": true, "original": "12000-29999"}, "rating": null, "rating_note": null, "notes": "中端定制，绿地中央广场", "source_ref": "hunbohui.cn", "source_date": "2023", "source_status": "unverified", "confidence": "low", "volatility": "high"},
+        {"supplier_id": "SU-PL-09", "name": "爱蒂尔婚礼策划", "price": {"min": 26381, "max": null, "unit": "CNY", "basis": "per_package", "direction": "from", "approx": true, "original": "人均约26381起"}, "rating": null, "rating_note": null, "reputation_note": "phb123 人气品牌", "notes": "2021 年采集价，接近过期（见 stale_values）", "source_ref": "phb123.com", "source_date": "2021", "source_status": "unverified", "confidence": "low", "volatility": "high"},
+        {"supplier_id": "SU-PL-10", "name": "罗曼婚礼(北京)", "price": {"min": 18858, "max": null, "unit": "CNY", "basis": "per_package", "direction": "from", "approx": true, "original": "人均约18858起"}, "rating": null, "rating_note": null, "notes": "2021 年采集价，接近过期（见 stale_values）", "source_ref": "phb123.com", "source_date": "2021", "source_status": "unverified", "confidence": "low", "volatility": "high"},
+        {"supplier_id": "SU-PL-11", "name": "因为爱婚礼策划", "price": null, "rating": 4.05, "rating_note": "phb123 8.1/10 分折算（origin_scale: 10）", "reputation_note": "phb123 8.1分（口碑10）", "notes": "海淀远大路永泰福朋喜来登", "source_ref": "phb123.com", "source_date": "2021", "source_status": "unverified", "confidence": "low", "volatility": "high"},
+        {"supplier_id": "SU-PL-12", "name": "花海阁", "price": null, "rating": 3.75, "rating_note": "phb123 7.5/10 分折算（origin_scale: 10）", "reputation_note": "phb123 7.5分", "notes": "王府井东街", "source_ref": "phb123.com", "source_date": "2021", "source_status": "unverified", "confidence": "low", "volatility": "high"},
+        {"supplier_id": "SU-PL-13", "name": "婚礼堂一站式（格乐利雅/诺丁山/花嫁丽舍/圣拉维/嘉美麓德/伯妮）", "price": {"min": 5999, "max": 8999, "unit": "CNY", "basis": "per_table", "direction": "from", "original": "婚宴 5999-8999/桌起（摩卡艺术中心）"}, "rating": null, "rating_note": null, "reputation_note": "CNPP十大品牌", "notes": "婚宴+策划一站式婚礼会所；与场地 V-B01/V-B02 花嫁丽舍关联；5999 与花嫁丽舍 5988 存在 11 元口径差异（见 conflicts）", "source_ref": "cnpp.cn / hunliji.com 酒店页", "source_date": "2025-2026", "source_status": "verified", "confidence": "medium", "volatility": "high"}
+      ],
+      "evidence_gaps": ["阳光喜匠/莫吉托/优悦/心缘纪/禧阁等仅见软文榜单（cnblogs），无权威背书，未纳入", "多数品牌最新档期报价需电话确认"]
+    },
+    {
+      "category": "摄影摄像", "category_id": "PH",
+      "price_tiers": [
+        {"tier_id": "TI-PH-1", "tier_name": "婚纱照-经济型", "price": {"min": 2899, "max": 5000, "unit": "CNY", "basis": "per_package", "direction": "from", "original": "2899-5000起"}, "note": "绮绫良佰2899、北遇映画/花田映像/爱菲尔美3999、巴黎风尚汉服套餐5000", "volatility": "high"},
+        {"tier_id": "TI-PH-2", "tier_name": "婚纱照-中端", "price": {"min": 5000, "max": 9000, "unit": "CNY", "basis": "per_package", "direction": "from", "original": "5000-9000起"}, "note": "韩国匠艺4998、蒙娜丽莎5999、金夫人7299、CD视觉8688", "volatility": "high"},
+        {"tier_id": "TI-PH-3", "tier_name": "婚纱照-高端", "price": {"min": 9000, "max": 30000, "unit": "CNY", "basis": "per_package", "original": "9000-30000"}, "note": "壹home胶片7888-23888、城市花园8699起、铂爵旅拍3000起(领券)", "volatility": "high"},
+        {"tier_id": "TI-PH-4", "tier_name": "婚纱照-市场整体", "price": {"min": 2899, "max": 30000, "unit": "CNY", "basis": "per_package", "original": "2899-上万元；2026评测口径3000-30000"}, "volatility": "high"},
+        {"tier_id": "TI-PH-5", "tier_name": "跟拍-摄影单机位", "price": {"min": 1000, "max": 3000, "unit": "CNY", "basis": "per_event", "original": "1000-3000/场（北京工作室实际1600起/10h）"}, "volatility": "high"},
+        {"tier_id": "TI-PH-6", "tier_name": "跟拍-摄影双机位", "price": {"min": 2500, "max": 5000, "unit": "CNY", "basis": "per_event", "original": "2500-5000/场"}, "volatility": "high"},
+        {"tier_id": "TI-PH-7", "tier_name": "跟拍-摄像单机位", "price": {"min": 800, "max": 1500, "unit": "CNY", "basis": "per_event", "original": "800-1500/场"}, "volatility": "high"},
+        {"tier_id": "TI-PH-8", "tier_name": "跟拍-摄像双机位", "price": {"min": 1000, "max": 3000, "unit": "CNY", "basis": "per_event", "original": "1000-3000/场"}, "volatility": "high"},
+        {"tier_id": "TI-PH-9", "tier_name": "跟拍-摄影+摄像组合", "price": {"min": 2600, "max": 3500, "unit": "CNY", "basis": "per_event", "original": "2600-3500/10h（单双机组合）"}, "volatility": "high"},
+        {"tier_id": "TI-PH-10", "tier_name": "跟拍-高端一对一", "price": {"min": 3000, "max": 5000, "unit": "CNY", "basis": "per_event", "original": "3000-5000"}, "volatility": "high"}
+      ],
+      "suppliers": [
+        {"supplier_id": "SU-PH-01", "name": "北遇映画", "price": {"min": 3999, "max": null, "unit": "CNY", "basis": "per_package", "direction": "from", "original": "3999起"}, "rating": null, "rating_note": null, "reputation_note": "新京报/婚礼纪评测头部", "notes": "婚纱照；情绪纪实风格，真实客片", "source_ref": "hunliji.com bai_ke 25189(2025-02-11) / bjnews.com.cn(2026-03-26)", "source_date": "2025-02/2026-03", "source_status": "verified", "confidence": "high", "volatility": "high"},
+        {"supplier_id": "SU-PH-02", "name": "巴黎风尚", "price": {"min": 5000, "max": null, "unit": "CNY", "basis": "per_package", "direction": "from", "original": "约5000汉服套餐；整体低10-30%"}, "rating": null, "rating_note": "美团满分店铺，98%满意度（满意度口径，非评分，不入 rating）", "reputation_note": "美团满分店铺，98%满意度", "notes": "婚纱照；高性价比+无隐形消费，19家连锁，5000平实景基地", "source_ref": "bjnews.com.cn(2026-03-26)", "source_date": "2026-03", "source_status": "verified", "confidence": "medium", "volatility": "high"},
+        {"supplier_id": "SU-PH-03", "name": "壹home胶片摄影", "price": {"min": 7888, "max": 23888, "unit": "CNY", "basis": "per_package", "original": "7888-23888"}, "rating": null, "rating_note": null, "notes": "婚纱照；胶片/复古风格", "source_ref": "bjnews.com.cn(2026-03-26)", "source_date": "2026-03", "source_status": "verified", "confidence": "medium", "volatility": "high"},
+        {"supplier_id": "SU-PH-04", "name": "影楼系合集（金夫人/蒙娜丽莎/韩国匠艺/铂爵旅拍/城市花园/玫瑰星座/CD视觉/喜桃/希漾/水晶之恋/聚焦/梵希旅拍/花田映像/爱菲尔美/绮绫良佰）", "price": {"min": 2899, "max": 9288, "unit": "CNY", "basis": "per_package", "direction": "from", "original": "2899-9288起，详见价格区间"}, "rating": null, "rating_note": null, "notes": "婚纱照；聚合条目，成员 15 家影楼系，共享同一来源与区间", "source_ref": "hunliji.com bai_ke 25189(2025-02-11)", "source_date": "2025-02", "source_status": "verified", "confidence": "high", "volatility": "high"},
+        {"supplier_id": "SU-PH-05", "name": "慕格摄影", "price": {"min": 1600, "max": 3500, "unit": "CNY", "basis": "per_event", "original": "摄影单机1600/双机2500/摄影+摄像2600/双机+摄像3500（均 10h）"}, "rating": null, "rating_note": null, "notes": "婚礼当天跟拍；北京朝阳（双井/劲松/潘家园）", "source_ref": "beijing.liebiao.com(2025)", "source_date": "2025", "source_status": "verified", "confidence": "medium", "volatility": "high"},
+        {"supplier_id": "SU-PH-06", "name": "荣摄影婚礼跟拍", "price": {"min": 3188, "max": 4988, "unit": "CNY", "basis": "per_event", "original": "3188-4988"}, "rating": 4.6, "rating_note": "婚礼纪 5 分制", "reputation_note": "婚礼纪4.6分", "notes": "婚礼当天跟拍；北京海淀（北三环中路）", "source_ref": "beijing.hunliji.com 商家页", "source_date": "2026", "source_status": "verified", "confidence": "medium", "volatility": "high"},
+        {"supplier_id": "SU-PH-07", "name": "婚登跟拍市场（个体工作室）", "price": {"min": 399, "max": 699, "unit": "CNY", "basis": "per_event", "original": "399起，'大日子'(520/521等)上浮200-300"}, "rating": null, "rating_note": null, "notes": "北京晚报深度报道：无合同约束、跳单频发，需书面约定时间/点位/底片归属", "source_ref": "北京晚报 2025-06-04", "source_date": "2025-06", "source_status": "verified", "confidence": "high", "volatility": "high"}
+      ],
+      "evidence_gaps": ["北京婚礼跟拍摄影师/摄像师名单化收录不足，建议小红书/婚礼纪按风格筛选客片", "婚纱照与跟拍价格随淡旺季浮动：1/6/7/12月淡季议价空间大，3-10月旺季；低价引流(2999)实际成交常为标价2-3倍"]
+    },
+    {
+      "category": "化妆造型（新娘跟妆）", "category_id": "MU",
+      "price_tiers": [
+        {"tier_id": "TI-MU-1", "tier_name": "跟妆-入门/平价", "price": {"min": 299, "max": 680, "unit": "CNY", "basis": "per_event", "original": "299-680"}, "note": "婚礼纪北京榜：易彤299起、LM澜美458起；专业档跟妆680", "volatility": "high"},
+        {"tier_id": "TI-MU-2", "tier_name": "跟妆-中端", "price": {"min": 680, "max": 1380, "unit": "CNY", "basis": "per_event", "original": "680-1380"}, "note": "资深档880、首席档1380（灵越）；零度视觉880/1280", "volatility": "high"},
+        {"tier_id": "TI-MU-3", "tier_name": "跟妆-高端/总监级", "price": {"min": 1500, "max": 2899, "unit": "CNY", "basis": "per_event", "original": "1500-2899"}, "note": "总监级1980（灵越）、孔唯399-2899；一线大牌化妆品", "volatility": "high"},
+        {"tier_id": "TI-MU-4", "tier_name": "早妆（单造型不跟妆）", "price": {"min": 380, "max": 1080, "unit": "CNY", "basis": "per_event", "original": "380-1080"}, "volatility": "high"},
+        {"tier_id": "TI-MU-5", "tier_name": "亲友妆加购", "price": {"min": 200, "max": 200, "unit": "CNY", "basis": "per_person", "original": "200/人"}, "volatility": "high"}
+      ],
+      "suppliers": [
+        {"supplier_id": "SU-MU-01", "name": "灵越彩妆造型", "price": {"min": 680, "max": 1980, "unit": "CNY", "basis": "per_event", "original": "跟妆 专业680/资深880/首席1380/总监1980；早妆380-1080；亲友妆+200/人；5环外需报销路费或包住宿"}, "rating": null, "rating_note": null, "notes": "北京朝阳大望路；58 同城 2026-07-27 更新", "source_ref": "bj.58.com(2026-07-27更新)", "source_date": "2026-07", "source_status": "verified", "confidence": "high", "volatility": "high"},
+        {"supplier_id": "SU-MU-02", "name": "孔唯", "price": {"min": 399, "max": 2899, "unit": "CNY", "basis": "per_event", "original": "399-2899"}, "rating": 4.6, "rating_note": "婚礼纪 5 分制，48 条好评", "reputation_note": "婚礼纪4.6分，48条好评", "notes": "北京昌平", "source_ref": "invitation.hunliji.com 商家页", "source_date": "2026", "source_status": "verified", "confidence": "medium", "volatility": "high"},
+        {"supplier_id": "SU-MU-03", "name": "易彤 / LM澜美妆造工作室", "price": {"min": 299, "max": 458, "unit": "CNY", "basis": "per_event", "direction": "from", "original": "299起 / 458起"}, "rating": null, "rating_note": null, "reputation_note": "婚礼纪2026北京跟妆排行前列", "notes": "北京", "source_ref": "m.hunliji.com 排行页", "source_date": "2026", "source_status": "verified", "confidence": "medium", "volatility": "high"},
+        {"supplier_id": "SU-MU-04", "name": "零度视觉彩妆造型", "price": {"min": 380, "max": 1280, "unit": "CNY", "basis": "per_event", "original": "早妆380/480；跟妆680/880/1280"}, "rating": null, "rating_note": null, "notes": "北京", "source_ref": "kuyifen.com(2024-09-06)", "source_date": "2024-09", "source_status": "unverified", "confidence": "medium", "volatility": "high"}
+      ],
+      "evidence_gaps": ["高端明星化妆师(3000+)档位公开报价少，需试妆面议", "试妆一般免费，须提前2天预约并付定金"]
+    },
+    {
+      "category": "司仪主持", "category_id": "MC",
+      "price_tiers": [
+        {"tier_id": "TI-MC-1", "tier_name": "低档/新人主持", "price": {"min": 800, "max": 2000, "unit": "CNY", "basis": "per_event", "original": "800-2000/场"}, "note": "含兼职1000-1800/天（智联2026）；婚礼纪口径800-3000", "volatility": "high"},
+        {"tier_id": "TI-MC-2", "tier_name": "中档", "price": {"min": 2000, "max": 4000, "unit": "CNY", "basis": "per_event", "original": "2000-4000/场"}, "volatility": "high"},
+        {"tier_id": "TI-MC-3", "tier_name": "高档/资深", "price": {"min": 4000, "max": 7000, "unit": "CNY", "basis": "per_event", "original": "4000-7000/场"}, "note": "北京日报2023：资深级7000", "volatility": "high"},
+        {"tier_id": "TI-MC-4", "tier_name": "名人/明星司仪", "price": {"min": 10000, "max": 100000, "unit": "CNY", "basis": "per_event", "open_ended": true, "original": "1万-10万+/场"}, "note": "可上数十万", "volatility": "high"},
+        {"tier_id": "TI-MC-5", "tier_name": "北京市场整体口径", "price": {"min": 1000, "max": 10000, "unit": "CNY", "basis": "per_event", "original": "1000-10000均属正常"}, "note": "按档期(旺季5/10月贵)、地点(6环外加收住宿)、是否带音乐师/督导浮动", "volatility": "high"}
+      ],
+      "suppliers": [
+        {"supplier_id": "SU-MC-01", "name": "北京中传艺声文化传媒（晨峰老师主持团队）", "price": {"min": 1000, "max": 10000, "unit": "CNY", "basis": "per_event", "original": "1000-10000区间"}, "rating": null, "rating_note": null, "notes": "电视台/晚宴/户外多风格主持团队，10年从业；北京朝阳", "source_ref": "beijing.liebiao.com(2025-11)", "source_date": "2025-11", "source_status": "verified", "confidence": "medium", "volatility": "high"},
+        {"supplier_id": "SU-MC-02", "name": "王老师（电视节目主持出身，11年婚礼主持）", "price": null, "price_note": "面议，档期充裕", "rating": null, "rating_note": null, "notes": "北京海淀/朝阳", "source_ref": "bj.58.com(2025-12-11)", "source_date": "2025-12", "source_status": "unverified", "confidence": "medium", "volatility": "high"},
+        {"supplier_id": "SU-MC-03", "name": "北京颐弘文化（中式婚礼主持）", "price": {"min": 1000, "max": 1800, "unit": "CNY", "basis": "per_day", "original": "兼职1000-1800/天"}, "rating": null, "rating_note": null, "notes": "北京朝阳", "source_ref": "zhaopin.com(2026更新)", "source_date": "2026", "source_status": "verified", "confidence": "medium", "volatility": "high"}
+      ],
+      "evidence_gaps": ["司仪选择重看现场视频与临场应变，建议视频连面试音再定", "北京日报提示：市场兼职半路出家者多，需验资历/听原声"]
+    },
+    {
+      "category": "花艺", "category_id": "FL",
+      "price_tiers": [
+        {"tier_id": "TI-FL-1", "tier_name": "全案婚礼花艺", "price": {"min": 12000, "max": 15000, "unit": "CNY", "basis": "per_package", "original": "12000-15000"}, "note": "手捧花+胸花+主客桌花+路引+花门/仪式亭+签到台等全套", "volatility": "high"},
+        {"tier_id": "TI-FL-2", "tier_name": "简易布置（气球/少量鲜花）", "price": {"min": 4000, "max": 5000, "unit": "CNY", "basis": "per_package", "original": "4000-5000"}, "volatility": "high"},
+        {"tier_id": "TI-FL-3", "tier_name": "高端精致布置", "price": {"min": 40000, "max": 50000, "unit": "CNY", "basis": "per_package", "open_ended": true, "original": "4万-5万+"}, "volatility": "high"},
+        {"tier_id": "TI-FL-4", "tier_name": "基础套餐（仿真花为主）", "price": {"min": 5000, "max": 10000, "unit": "CNY", "basis": "per_package", "original": "5000-10000"}, "volatility": "high"},
+        {"tier_id": "TI-FL-5", "tier_name": "单项参考（历史价）", "price": {"min": 80, "max": 3000, "unit": "CNY", "basis": "per_item", "original": "花门1000-3000、路引80-200/个、套花380-680、主桌花80-200、客桌花60-200", "stale": true}, "note": "2010 年报价，仅作量级参考（见 stale_values）", "volatility": "high"}
+      ],
+      "suppliers": [
+        {"supplier_id": "SU-FL-01", "name": "艾恩婚礼花艺团队", "price": null, "rating": null, "rating_note": null, "notes": "常年为希尔顿/康莱德/四季/君悦等酒店及 Chanel/Fendi/Chloe 提供花艺", "source_ref": "cityhui.com", "source_date": "2025", "source_status": "unverified", "confidence": "low", "volatility": "high"},
+        {"supplier_id": "SU-FL-02", "name": "婚庆公司自带花艺部门（摩卡/汇爱等）", "price": null, "rating": null, "rating_note": null, "notes": "大牌均有花艺团队或欧洲直采供应链", "source_ref": "cnblogs评测 / 163.com 2026", "source_date": "2026", "source_status": "unverified", "confidence": "low", "volatility": "high"}
+      ],
+      "evidence_gaps": ["北京独立花艺师名单化公开报价极少，价格多为婚庆全案内嵌，建议'独立花艺师+婚庆布置'拆单询价", "旺季(5/10月)鲜花价格上浮明显"]
+    },
+    {
+      "category": "甜品台", "category_id": "DS",
+      "price_tiers": [
+        {"tier_id": "TI-DS-1", "tier_name": "纯色/基础套系", "price": {"min": 1399, "max": 2000, "unit": "CNY", "basis": "per_package", "original": "1399-2000"}, "note": "婚礼纪蓝白套系1399；接亲网口径纯色1500-2000", "volatility": "high"},
+        {"tier_id": "TI-DS-2", "tier_name": "主题/定制套系", "price": {"min": 2000, "max": 2500, "unit": "CNY", "basis": "per_package", "open_ended": true, "original": "2000-2500+"}, "note": "时光印记简易户外1980(原价2280)；主题定制约2500", "volatility": "high"}
+      ],
+      "suppliers": [
+        {"supplier_id": "SU-DS-01", "name": "心意摩卡烘焙婚礼甜品台", "price": {"min": 1399, "max": 1399, "unit": "CNY", "basis": "per_package", "original": "蓝白套系1399(原价1500)"}, "rating": null, "rating_note": null, "notes": "含甜品/器皿/饰品纸品，不含背板桌布桌花；婚礼纪在售套餐可下单核价", "source_ref": "hunliji.com package 229211", "source_date": "2026", "source_status": "verified", "confidence": "medium", "volatility": "high"},
+        {"supplier_id": "SU-DS-02", "name": "时光印记甜品", "price": {"min": 1980, "max": 1980, "unit": "CNY", "basis": "per_package", "original": "简易户外套系1980(原价2280)"}, "rating": null, "rating_note": "婚礼纪 100% 好评（好评率口径，非评分，不入 rating）", "reputation_note": "婚礼纪100%好评", "notes": "北京（高丽营东街）；5环内免费配送", "source_ref": "m.hunliji.com package 746382", "source_date": "2026", "source_status": "verified", "confidence": "medium", "volatility": "high"}
+      ],
+      "evidence_gaps": ["大品牌甜品台(翻糖定制/进口原料)高价档公开报价少，需按宾客数定制询价"]
+    },
+    {
+      "category": "乐队/现场演出", "category_id": "BD",
+      "price_tiers": [
+        {"tier_id": "TI-BD-1", "tier_name": "一般乐队（本地三四线）", "price": {"min": 3000, "max": 4000, "unit": "CNY", "basis": "per_event", "original": "3000-4000/场"}, "volatility": "high"},
+        {"tier_id": "TI-BD-2", "tier_name": "知名乐队", "price": {"min": 10000, "max": null, "unit": "CNY", "basis": "per_event", "direction": "from", "original": "1万+/场"}, "volatility": "high"},
+        {"tier_id": "TI-BD-3", "tier_name": "婚礼纪平台口径", "price": {"min": 3000, "max": 10000, "unit": "CNY", "basis": "per_event", "original": "乐队3000-10000/场（按规模知名度）；舞蹈演员2000-5000；魔术2000-6000"}, "volatility": "high"},
+        {"tier_id": "TI-BD-4", "tier_name": "一线城市高端档", "price": {"min": 100000, "max": null, "unit": "CNY", "basis": "per_event", "direction": "from", "open_ended": true, "original": "10万-几十万/场"}, "note": "头部艺人/交响配置", "volatility": "high"},
+        {"tier_id": "TI-BD-5", "tier_name": "最低门槛", "price": {"min": 1000, "max": null, "unit": "CNY", "basis": "per_event", "direction": "from", "original": "千元起步"}, "volatility": "high"},
+        {"tier_id": "TI-BD-6", "tier_name": "经验法则", "price": null, "original": "约等于一桌婚宴酒席的钱", "note": "婚礼纪口径，不做数值化", "volatility": "medium"}
+      ],
+      "suppliers": [
+        {"supplier_id": "SU-BD-01", "name": "智凡活动策划公司", "price": null, "price_note": "区间见 TI-BD-3", "rating": null, "rating_note": null, "notes": "乐队(流行/摇滚/民乐/管弦/小提琴迎宾队)+歌手+乐器演奏+曲艺一条龙；北京", "source_ref": "beijing.liebiao.com", "source_date": "2025", "source_status": "verified", "confidence": "medium", "volatility": "high"},
+        {"supplier_id": "SU-BD-02", "name": "婚庆公司乐队打包（摩卡/汇爱等）", "price": null, "rating": null, "rating_note": null, "notes": "策划公司常含乐队/演出资源", "source_ref": "婚匠网/婚礼纪", "source_date": "2025-2026", "source_status": "unverified", "confidence": "low", "volatility": "high"}
+      ],
+      "evidence_gaps": ["北京专业婚礼弦乐团(如弦乐四重奏)公开价目缺失，建议直接询演奏团体或经策划公司中转", "注意场地音响/挑高条件对乐队形式的限制"]
+    }
+  ],
+
+  "conflicts": [
+    {"conflict_id": "CF-01", "field": "meal_price", "entities": ["V-B01 花嫁丽舍朝阳店", "V-B02 花嫁丽舍海岛店", "SU-PL-13 婚礼堂一站式"], "values": {"花嫁丽舍": "5988 元/桌起", "婚礼堂一站式口径": "5999 元/桌起（摩卡艺术中心）"}, "reason": "同源（婚礼纪/CNPP）但两处数字差 11 元，可能为不同门店/时段促销口径", "resolution": "保留双值不覆盖；电话核实时以实际报价单为准", "confidence": "uncertain"},
+    {"conflict_id": "CF-02", "field": "capacity_persons", "entities": ["V-A09 北京前门文华东方"], "values": {"披露容量": "180 人"}, "reason": "低于命题 200 人，fits_200pax=false", "resolution": "保留候选仅作参考，或缩减宾客数后使用", "confidence": "verified"},
+    {"conflict_id": "CF-03", "field": "capacity_persons", "entities": ["V-C05 悉林空间"], "values": {"中庭草坪": "300 人", "阳光房": "160 人"}, "reason": "分区容量口径不一致，200 人仅中庭草坪方案满足", "resolution": "fits_200pax=partial，询价时明确宴会区", "confidence": "verified"},
+    {"conflict_id": "CF-04", "field": "meal_price", "entities": ["V-C07 果园西餐厅"], "values": {"688 元/位": "200 人×688=137,600", "7288 元/桌": "20 桌×7288=145,760"}, "reason": "位价与桌价换算后桌均约 10.6 人，与常规 10 人/桌口径冲突，两口径总价差约 6%", "resolution": "保留双值；询价时确认计价方式与桌均人数", "confidence": "uncertain"},
+    {"conflict_id": "CF-05", "field": "scope/地域", "entities": ["V-C08 青普文化行馆·八达岭瑞云"], "values": {"命题范围": "北京", "实际行政区划": "河北省张家口怀来县（京郊）"}, "reason": "行政区划在命题'北京'范围外", "resolution": "保留并标注京郊，下游按宾客动线自行决策是否纳入", "confidence": "verified"},
+    {"conflict_id": "CF-06", "field": "rating", "entities": ["SU-PL-11/SU-PL-12(phb123 10分制)", "SU-PH-06/SU-MU-02(婚礼纪 5 分制)", "SU-PH-02/SU-DS-02(满意度/好评率)"], "values": {"10分制": "8.1/7.5 → 折算 4.05/3.75", "5分制": "4.6 直接入 rating", "好评率": "98%/100% 不入 rating"}, "reason": "三种口径不可合并", "resolution": "已按 canonical rating_scale 折算并标注 origin_scale；好评率仅入 rating_note", "confidence": "verified"}
+  ],
+
+  "stale_values": [
+    {"field": "花艺单项价（花门/路引/桌花等）", "stale": "2010 年榉荣轩报价单（花门1000-3000、路引80-200等）", "reason": "2010 年数据，仅作量级参考", "replacement": "全案花艺 12000-15000（TI-FL-1）"},
+    {"field": "乐队价", "stale": "400-800/场(2010)", "reason": "2010 年数据", "replacement": "3000-10000/场（TI-BD-3，婚礼纪 2025 口径）"},
+    {"field": "策划公司套餐价（乐美/迦南之约/艾尔）", "stale": "2023 年采集", "reason": "套餐价随时改版", "replacement": "以电话实时报价为准"},
+    {"field": "策划人均价（爱蒂尔/罗曼）", "stale": "phb123 2021 年采集（人均26381/18858起）", "reason": "2021 年数据，接近过期", "replacement": "以 TI-PL-1~3 行业区间或电话实时报价为准"}
+  ],
+
+  "missing_fields": [
+    {"entity_group": "场地 A 组（11 家五星酒店）", "fields": ["meal_price", "venue_fee"], "note": "酒店普遍不公开刊价（宝格丽/四季/半岛等），需询价，缺失率 100%"},
+    {"entity_group": "场地（22 家全部）", "fields": ["rating"], "note": "无任何评分数据，下游排序需在电话核实时顺带收集"},
+    {"entity_group": "场地 C 组", "fields": ["phone"], "note": "C3-C8 共 6 家公开电话缺失，需经公众号/平台询价"},
+    {"entity_group": "场地 A/B 组", "fields": ["capacity_persons"], "note": "V-A04(嘉里)、V-B01/V-B02(花嫁丽舍) 未披露人数容量"},
+    {"entity_group": "供应商", "fields": ["独立花艺师公开报价", "弦乐团价目", "高端甜品定制报价", "策划品牌实时档期价"], "note": "见各品类 evidence_gaps"},
+    {"entity_group": "全局", "fields": ["实时档期可用性"], "note": "9/11-9/20 可用性无公开数据，所有场地须电话确认（volatility: high）"}
+  ],
+
+  "evidence_gaps": [
+    "实时档期：9/11-9/20 可用性无公开数据，只能电话确认——已列为待办动作",
+    "微信版《星级酒店篇》被反爬拦截，酒店档期细节未补齐",
+    "北京独立花艺师/高端甜品定制/婚礼乐团名单化报价稀缺",
+    "排名类 cnblogs/163 来源为软文（低可信），仅作线索未纳入 verified",
+    "婚纱照品牌价均为'起价'，实际成交受加片/服装分区影响，常为标价 2-3 倍"
+  ],
+
+  "downstream_usage": {
+    "推荐动作": "按 fits_200pax=true 且容量≥200 的场地做第一轮电话询价（统一话术：200 人、9 月中旬、询问档期+餐标+场地费），锁定 2-3 家实地考察",
+    "数据契约": "下游引用价格一律使用本表 price{min,max,unit,basis} 与 price_tiers，不得从散文重新抽取口径",
+    "更新机制": "电话核实结果回填时，对变更字段输出 proposed_update（field/old_value/new_value/reason/source_ref/confidence/downstream_impact）"
+  }
+}

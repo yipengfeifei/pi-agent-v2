@@ -1,0 +1,227 @@
+{
+  "artifact_name": "推荐组合与风险预案",
+  "artifact_type": "recommendation_and_risk_plan",
+  "schema_version": "1.0.0",
+  "generated_at": "2026-08-08",
+  "generator_node": "analyze-judge",
+  "upstream_inputs": [
+    {"input_id": "INPUT-01", "name": "结构化对比表.json", "path": "结构化对比表.json", "data_date": "2026-08-08", "note": "22 场地 + 7 品类供应商 canonical 口径，价格引用一律走 price{min,max,unit,basis}"},
+    {"input_id": "INPUT-02", "name": "婚礼主题与预算分配方案.json", "path": "婚礼主题与预算分配方案.json", "data_date": "2026-08-08", "note": "THEME-01/02/03 三主题、预算 30 万闭合、执行计划与 Gate、风险 R1-R7 + 分支 B1-B4"},
+    {"input_id": "INPUT-03", "name": "供应商候选清单.json", "path": "供应商候选清单.json", "data_date": "2026-08-08", "note": "原始供应商调研，已并入结构化对比表"}
+  ],
+  "decision_context": {
+    "constraints": [
+      "总预算 30 万硬上限（含应急金 3 万）；200 人 = 20 桌（10 人/桌口径）",
+      "档期窗口 2026-09-11~09-20，周末仅 09-12/13/19/20；volatility high，可用性 unknown",
+      "筹备窗口 36 天（08-08 → 09-13），全案最硬约束；婚纱照 3-6 周出片是隐性关键路径",
+      "庄园系预算线：场地+餐饮 ≤ 14 万；酒店系 ≤ 16 万（上游 G1 口径）"
+    ],
+    "unresolved_upstream_conflicts": [
+      "CF-01 花嫁丽舍 5988 vs 婚礼堂一站式 5999（差 11 元）：本节点不裁决，询价定",
+      "CF-04 果园西餐厅 688/位 vs 7288/桌（桌均 10.6 人口径冲突，两口径总价差约 6%）：本节点不裁决，且因此将其降权（见 comparison_matrix）",
+      "CF-05 青普八达岭瑞云行政区划属河北张家口：本节点判定为动线否决项（见 R8）"
+    ]
+  },
+
+  "comparison_matrix": {
+    "method": "加权评分 0-5，权重：容量匹配 20% / 成本 25% / 天气暴露（雨备天然性）20% / 宾客动线 15% / 触达与验证 10% / 主题契合 10%。价格取 '起' 价 + 场地费估算（canonical 口径），档期一律 unknown 不参与评分（电话确认后重排）。",
+    "scores": [
+      {"venue_id": "V-C02", "name": "拉斐特城堡酒店", "group": "庄园系", "capacity": 5, "cost": 5, "weather": 5, "access": 2, "reach": 5, "theme": 5, "weighted": 4.6, "rank": 1, "evidence": "餐标 3,888/桌起 + 场地费 2 万起 = 庄园系最低（约 9.8 万 < 14 万线）；1100㎡ 仪式大厅 + 722㎡ 枫丹白露厅可室内承雨备；350 人容量冗余；官网 verified + 双电话。短板：昌平北七家，动线成本高（R8）"},
+      {"venue_id": "V-C03", "name": "笙白艺术空间", "group": "庄园系", "capacity": 4, "cost": 4, "weather": 4, "access": 5, "reach": 3, "theme": 5, "weighted": 4.2, "rank": 2, "evidence": "朝阳八里庄市区内，动线全表最优；440㎡ 宴会厅 200 人 + 东院草坪 400㎡；餐标 5,288 + 场地费 2 万 = 约 12.6 万 < 14 万线；容量无冗余（200 人满配）。短板：无公开电话（公众号询价），source_status unverified"},
+      {"venue_id": "V-C01", "name": "华彬庄园", "group": "庄园系", "capacity": 5, "cost": 4, "weather": 5, "access": 1, "reach": 5, "theme": 5, "weighted": 4.0, "rank": 3, "evidence": "784㎡ 多功能厅 + 欧式厅 + 12,600㎡ 大草坪，室内冗余好；餐标 4,880 + 场地费 3 万 = 约 12.8 万 < 14 万线；官网 verified + 电话。短板：昌平南口，全表动线最远（R8 最高暴露）"},
+      {"venue_id": "V-C06", "name": "中国油画院·美地艺术讲堂", "group": "庄园系", "capacity": 4, "cost": 3, "weather": 5, "access": 4, "reach": 3, "theme": 5, "weighted": 4.0, "rank": 4, "evidence": "主厅 300㎡ 22.8m 高，雨备天然最优 + 出片率最高；餐标 5,800 + 场地费 3 万 = 约 14.6 万 **超 14 万线**；朝阳高碑店。仅当 G1 询价有档且能压餐标时启用，否则降级为考察参考"},
+      {"venue_id": "V-C04", "name": "溪时一空间", "group": "庄园系", "capacity": 4, "cost": 4, "weather": 4, "access": 4, "reach": 3, "theme": 4, "weighted": 3.9, "rank": 5, "evidence": "500㎡ 时镜宴会厅 + 800㎡ 草坪；餐标 5,680 + 场地费 2.5 万 = 约 13.9 万贴线；容量为面积推断（200+ 未披露）。无电话，unverified"},
+      {"venue_id": "V-C05", "name": "悉林空间", "group": "庄园系", "capacity": 3, "cost": 4, "weather": 2, "access": 4, "reach": 3, "theme": 4, "weighted": 3.3, "rank": 6, "evidence": "200 人仅中庭草坪方案满足（阳光房 160 不达标，CF-03），雨备最差；餐标 5,680 + 场地费 2.5 万 = 13.9 万贴线"},
+      {"venue_id": "V-C07", "name": "果园西餐厅", "group": "庄园系", "capacity": 4, "cost": 2, "weather": 2, "access": 4, "reach": 3, "theme": 4, "weighted": 3.0, "rank": 7, "evidence": "CF-04 双口径冲突未决：按位价 13.8 万 / 按桌价 14.6 万，加 3 万场地费后 14-17.6 万超线风险大；湖心仪式户外依赖高；无电话"},
+      {"venue_id": "V-C08", "name": "青普文化行馆·八达岭瑞云", "group": "庄园系", "capacity": 4, "cost": 5, "weather": 2, "access": 1, "reach": 3, "theme": 3, "weighted": 3.1, "rank": 8, "evidence": "成本最低（餐标 5,180 + 场地费 8,800 = 约 11.2 万），但行政区划属河北张家口（CF-05），200 人动线不可行，判定否决（除非全员包车度假式，非默认场景）"},
+      {"venue_id": "V-A01", "name": "北京丽晶酒店", "group": "酒店系", "capacity": 5, "cost": 2, "weather": 5, "access": 5, "reach": 5, "theme": 3, "weighted": 3.9, "rank": "酒店系 1", "evidence": "东城金宝街位置中心 + 500 人容量 + verified 电话；餐标缺失（100% 需询价），成本按酒店系 15-17 万估算，仅 THEME-02 路径启用"},
+      {"venue_id": "V-A07", "name": "北京瑞吉酒店", "group": "酒店系", "capacity": 5, "cost": 2, "weather": 5, "access": 5, "reach": 5, "theme": 3, "weighted": 3.9, "rank": "酒店系 2", "evidence": "建国门外大街 750㎡ 阿斯特宴会厅 432 人；餐标缺失需询价"},
+      {"venue_id": "V-A10", "name": "北京三里屯洲际", "group": "酒店系", "capacity": 5, "cost": 2, "weather": 5, "access": 5, "reach": 5, "theme": 3, "weighted": 3.9, "rank": "酒店系 3", "evidence": "三里屯 800㎡ 大宴会厅 650 人；餐标缺失需询价"},
+      {"venue_id": "V-A08", "name": "北京宝格丽酒店", "group": "酒店系", "capacity": 4, "cost": 1, "weather": 5, "access": 5, "reach": 5, "theme": 3, "weighted": 3.5, "rank": "酒店系 4", "evidence": "顶级定位（定制报价），超预算风险最高，仅预算外参考"},
+      {"venue_id": "V-A03", "name": "北京四季酒店", "group": "酒店系", "capacity": 3, "cost": 2, "weather": 5, "access": 5, "reach": 5, "theme": 3, "weighted": 3.5, "rank": "酒店系 5", "evidence": "单厅 180 人不达标，200 人需双厅合并（额外成本）"},
+      {"venue_id": "V-B02", "name": "花嫁丽舍（海岛空中花园店）", "group": "婚礼堂", "capacity": 4, "cost": 5, "weather": 5, "access": 3, "reach": 3, "theme": 3, "weighted": 4.2, "rank": "婚礼堂 1", "evidence": "6 宴会厅（8m 无柱）+ 3 仪式堂 + 2 空中花园；5,988/桌起含策划布置场地费（打包约 13 万）；丰台；无电话。B2 兜底首选"},
+      {"venue_id": "V-B01", "name": "花嫁丽舍（朝阳店）", "group": "婚礼堂", "capacity": 3, "cost": 5, "weather": 5, "access": 3, "reach": 3, "theme": 3, "weighted": 4.0, "rank": "婚礼堂 2", "evidence": "蟹岛国际会展中心；5,988/桌起含套餐；容量未披露需确认"},
+      {"venue_id": "V-B03", "name": "繁景艺术中心", "group": "婚礼堂", "capacity": 4, "cost": 4, "weather": 4, "access": 4, "reach": 2, "theme": 4, "weighted": 3.9, "rank": "婚礼堂 3", "evidence": "7 主题宴会厅 8-35 桌 + 17m 教堂 + 水系草坪；fits_200pax=likely；餐标缺失需询价；无电话"}
+    ]
+  },
+
+  "recommendations": {
+    "combination_verdict": {
+      "choice": "THEME-01 金秋·花园晚宴（庄园系）",
+      "date": "主 09-13（周日）/ 备 09-19（周六），询价统一报双日期",
+      "venue_track": "V-C02 拉斐特城堡（首选）→ V-C03 笙白艺术空间（次选，动线最优）→ V-C01 华彬庄园（三选，雨备好但动线最远）",
+      "supplier_track": "策划 摩卡/艾恩（≤5.5 万）· 婚纱照 北遇映画（1.0 万档）· 跟拍 慕格双机组合（~0.6 万）· 造型 灵越总监级（0.2 万）· 司仪 晨峰团队试音（0.4 万）· 花艺 TI-FL-1 拆单询价（1.2 万）· 甜品台 心意摩卡（0.14 万）· 乐队 TI-BD-1（0.3-0.4 万）",
+      "reasoning": [
+        "成本：拉斐特 场地+餐饮 ≈ 9.8 万，为 14 万预算线内最省组合，释放 ~4 万给策划/影像/花艺，30 万预算闭合（上游 master_table 已核）",
+        "风险：拉斐特有 1100㎡ 室内仪式大厅，雨备天然性庄园系并列最优，对冲 THEME-01 最大软肋（户外天气 R3/R9）",
+        "档期：9 月旺季庄园/艺术空间竞争低于五星酒店，且 C 组询价链路（公众号/平台）比酒店快，匹配 36 天窗口",
+        "动线是唯一显著短板（R8），以摆渡车/住宿方案对冲；若 G1 询价发现拉斐特无档或无摆渡条件，立即切 V-C03（朝阳）"
+      ],
+      "rejections_with_reason": [
+        "V-C08 青普：成本最低但行政区划在河北，200 人动线不可行（CF-05 + R8）",
+        "V-C07 果园：CF-04 双口径冲突未决 + 总价可能超线 14-17.6 万 + 户外依赖高，除非询价澄清口径否则不进入考察名单",
+        "V-C05 悉林：200 人仅户外草坪方案，雨备最差，与 9 月天气风险对冲能力为零",
+        "V-A08 宝格丽 / TI-PL-3 全定制 / TI-FL-3 高端花艺：预算外，明确不进入询价名单",
+        "SU-PH-07 婚登跟拍个体市场：跳单频发（北京晚报 verified），禁止作为主供应商，仅书面合同兜底"
+      ]
+    },
+    "venue_shortlist_by_track": {
+      "THEME-01 询价名单（4 家）": ["V-C02 拉斐特城堡", "V-C03 笙白艺术空间", "V-C01 华彬庄园", "V-C06 中国油画院（仅压价成功才启用）"],
+      "THEME-02 询价名单（3 家，仅当 G0 决策切酒店系）": ["V-A01 丽晶", "V-A07 瑞吉", "V-A10 三里屯洲际"],
+      "THEME-03 兜底（B2 触发即启用，有公开套餐价）": ["V-B02 花嫁丽舍海岛店", "V-B01 花嫁丽舍朝阳店", "V-B03 繁景艺术中心"]
+    },
+    "supplier_shortlist": [
+      {"module": "婚庆策划", "budget_line": "5.5 万（硬上限）", "primary": "摩卡婚礼 MOCHA（中高端透明分项、执行稳定、自有灯光音响库）或 艾恩婚礼（3 万起亲民，朝阳公园城堡婚礼堂）", "backup": "Sunny 喜铺套系（1.15-3.35 万，模板化省预算）", "avoid": "汇爱婚礼（高端无公开起价，TI-PL-3 全定制 5-20 万+ 超线风险）；TI-PL-2 半定制低档位锁定，超 5.5 万即切婚礼堂打包（B2）", "confidence": "medium"},
+      {"module": "婚纱照", "budget_line": "1.0 万", "primary": "北遇映画（3,999 起，新京报/婚礼纪头部，情绪纪实风格，与庄园/艺术空间主题契合）", "backup": "巴黎风尚（5,000 起，美团满分店，无隐形消费）", "avoid": "低价引流 2,999 套餐——实测成交常为标价 2-3 倍（结构化对比表 evidence_gaps），签约须锁定套餐明细与加片价；预算 1.0 万对应 TI-PH-2 中端档", "confidence": "high"},
+      {"module": "婚礼跟拍", "budget_line": "1.5 万", "primary": "慕格摄影（摄影双机 2,500 + 摄像组合 3,500，均 10h，合计约 0.6 万，朝阳）", "backup": "荣摄影（3,188-4,988，婚礼纪 4.6 分，海淀）", "avoid": "SU-PH-07 婚登个体市场（跳单频发）；合同中写时间/点位/底片归属/违约条款", "confidence": "medium"},
+      {"module": "新娘跟妆", "budget_line": "0.5 万", "primary": "灵越彩妆造型（总监级 1,980，2026-07-27 更新 verified；早妆 380-1,080；亲友妆 200/人）", "backup": "孔唯（399-2,899，婚礼纪 4.6 分 48 好评，昌平——若场地在昌平则顺路）", "avoid": "高端明星化妆师（3,000+ 档公开报价少，超预算）；提前 2 天预约付定金；5 环外需报销路费/包住宿（预算含余量）", "confidence": "high"},
+      {"module": "司仪", "budget_line": "0.4 万", "primary": "中传艺声·晨峰团队（1,000-10,000 区间内取中档，10 年从业，户外多风格，匹配庄园仪式）", "backup": "王老师（面议、档期充裕，电视节目主持出身）", "avoid": "兼职半路出家司仪（北京日报提示），必须视频连面试音/看现场视频后再定", "confidence": "medium"},
+      {"module": "花艺", "budget_line": "1.2 万", "primary": "TI-FL-1 全案花艺（1.2-1.5 万）拆单询价：独立花艺师 + 婚庆布置分拆，避免全案内嵌溢价", "backup": "TI-FL-4 基础套餐（0.5-1 万，仿真花为主，压缩路径）；庄园可借自然景观减量（上游预算已注）", "avoid": "TI-FL-3 高端（4-5 万+）；旺季（9 月）鲜花价格上浮明显，签约锁价", "confidence": "low", "note": "独立花艺师公开报价稀缺（evidence_gap），本模块为全表最大询价不确定项"},
+      {"module": "甜品台", "budget_line": "0.2 万", "primary": "心意摩卡烘焙（蓝白套系 1,399，婚礼纪在售套餐可下单核价）", "backup": "时光印记（简易户外 1,980，100% 好评，5 环内免费配送）", "avoid": "翻糖定制/进口原料高价档（无公开报价）", "confidence": "medium"},
+      {"module": "乐队", "budget_line": "0.5 万", "primary": "TI-BD-1 一般乐队 3,000-4,000（智凡活动策划等，流行/弦乐迎宾可选）", "backup": "婚庆公司乐队打包（摩卡/汇爱，策划合同内嵌）", "avoid": "知名乐队 1 万+/场；签约前确认场地音响/挑高对乐队形式的限制", "confidence": "medium"}
+    ]
+  },
+
+  "risks": {
+    "method": "risk rubric：severity × probability → impact，含 trigger / response / owner。上游 R1-R7 已具现，本节点保留引用并补充 3 项上游未覆盖维度（R8 宾客动线、R9 天气具体化、R10 桌数波动）。",
+    "inherited_risks": [
+      {"risk_id": "R1", "name": "旺季档期冲突", "severity": "high", "probability": "high", "trigger": "G1 询价 <2 家有档", "response": "双日期话术（09-13+09-19）→ 婚礼堂兜底 B2 → 工作日 B1", "confidence": "high"},
+      {"risk_id": "R2", "name": "酒店餐标/最低消费超预算", "severity": "high", "probability": "high", "trigger": "酒店系询价 >16 万线", "response": "询价话术带预算上限；超限切庄园/婚礼堂", "confidence": "high"},
+      {"risk_id": "R3", "name": "户外天气（上游已有，本节点细化见 R9）", "severity": "medium", "probability": "medium", "response": "雨备条款入合同（B3）", "confidence": "medium"},
+      {"risk_id": "R4", "name": "筹备窗口 36 天", "severity": "high", "probability": "high", "trigger": "P0/P1 拖延", "response": "本周内定主题+询价；婚纱照立即定档（3-6 周出片关键路径）", "confidence": "high"},
+      {"risk_id": "R5", "name": "价格上浮（volatility high）", "severity": "medium", "probability": "medium", "response": "合同锁价 + 应急金 3 万", "confidence": "medium"},
+      {"risk_id": "R6", "name": "个体供应商跳单", "severity": "medium", "probability": "medium", "response": "全书面合同 + 定金凭证留档（B4 追索）", "confidence": "high"},
+      {"risk_id": "R7", "name": "策划超支（3-10 万跨度）", "severity": "medium", "probability": "medium", "response": "5.5 万硬上限；超限婚礼堂打包或 TI-PL-1 简化", "confidence": "medium"}
+    ],
+    "new_risks": [
+      {
+        "risk_id": "R8",
+        "name": "宾客动线（本节点新增，上游 R 系列未覆盖）",
+        "severity": "high",
+        "probability": "medium（若选昌平/京郊场地则 high）",
+        "impact": "200 人规模下，偏远场地（V-C01 华彬 昌平南口 / V-C02 拉斐特 昌平北七家 / V-C08 青普 河北）增加摆渡车、住宿、迟到、宾客体验损耗成本 0.5-2 万，且异地宾客占比未知",
+        "evidence": "V-C08 行政区划在河北张家口（CF-05 verified）；V-C01/V-C02 均昌平，距市中心 30-40km",
+        "trigger": "G0 确认异地宾客占比高 或 选定昌平场地",
+        "response": [
+          "动线评分已入 comparison_matrix（权重 15%），决策时一并权衡",
+          "首选组合内优先市区场地（V-C03 笙白 朝阳）作为动线对冲",
+          "若选拉斐特/华彬：书面确认摆渡车方案（市区集合点→场地）与异地宾客住宿安排，费用从应急金或压缩模块平移",
+          "V-C08 直接排除出候选（除非全员包车度假式，非默认场景）"
+        ],
+        "owner": "G0 决策 + P2 签约条款",
+        "confidence": "high（动线事实 verified；概率为推断）"
+      },
+      {
+        "risk_id": "R9",
+        "name": "9 月天气具体化（户外仪式核心体验风险）",
+        "severity": "medium-high",
+        "probability": "medium",
+        "impact": "THEME-01 卖点是户外仪式出片，9 月中旬北京进入秋雨期；降雨/大风直接打掉核心体验；晚间户外晚宴昼夜温差大（金秋夜体感凉）",
+        "evidence": "9 月为北京降水概率上升期、昼夜温差增大（季节统计推断，非预报）；庄园系 5 家中 4 家有室内冗余，V-C05 无（评分已反映）",
+        "trigger": "婚礼前 7 天天气预报降雨/大风（上游 B3 触发点）",
+        "response": [
+          "签约时书面锁定雨备条款：室内厅切换 / 帐篷加装 / 仪式精简进厅，明确费用归属（B3）",
+          "首选组合优先室内冗余好的场地（V-C02 1100㎡ 仪式大厅 / V-C01 784㎡ 多功能厅），降低 B3 触发时的体验降级",
+          "晚宴时段加暖场/防风预案（暖灯、披肩等），预算含在策划 5.5 万内",
+          "T-7 天气预警后每日更新，T-3 定最终场地形态"
+        ],
+        "owner": "P2 合同条款 + P4 预警机制",
+        "confidence": "medium（气候为统计推断，非预报；雨备成本未量化）"
+      },
+      {
+        "risk_id": "R10",
+        "name": "桌数波动（RSVP 回收与加桌价）",
+        "severity": "medium",
+        "probability": "medium",
+        "impact": "200 人 = 20 桌为估算口径；RSVP 回收 90% 时实际 18-22 桌区间，±2 桌按 5,950/桌即 ±1.2 万波动，超 10% 预算偏差线",
+        "evidence": "上游 guests=200、tables_estimate=20 且 note 注明'询价时确认桌均人数'；果园双口径（CF-04）即桌均口径不确定的实例",
+        "trigger": "G3.5 RSVP 回收 <90% 或实际桌数偏离 20 桌",
+        "response": [
+          "签约时锁定加桌价与减桌退款条款（书面）",
+          "请柬 RSVP 截止设 T-14，早于上游 G3.5 的 T-7，给 1 周缓冲追访",
+          "桌数偏差 ±10% 内从应急金吸收，超出触发 budget_rules 平移"
+        ],
+        "owner": "P3 签约条款 + P4 RSVP 回收",
+        "confidence": "medium"
+      }
+    ]
+  },
+
+  "branch_plans": {
+    "summary": "上游 B1-B4 已具现，本节点补充优先级与触发顺序，供下游直接消费。",
+    "B1": {"trigger": "G1 no-go：周末均无档", "path": "询工作日 09-14~18（本地宾客为主时接受）→ 或顺延 09-26/27（需用户确认，已出命题窗口）", "priority": "第三顺位"},
+    "B2": {"trigger": "场地/策划超预算线，或档期全面告急", "path": "切 THEME-03 婚礼堂：V-B02 花嫁丽舍海岛店（5,988/桌起打包，约 13 万）→ V-B01 → V-B03 繁景；唯一有公开套餐价可立即核价的路径", "priority": "第二顺位（36 天窗口下实际是最快兜底）"},
+    "B3": {"trigger": "T-7 降雨/大风预警", "path": "启用雨备条款：室内厅 / 帐篷 / 仪式进厅；T-3 定最终形态", "priority": "天气触发即启用，与主线并行而非替代"},
+    "B4": {"trigger": "核心供应商违约（跳单/失联）", "path": "冻结模块预算 → 启用备选名单（本文件 supplier_shortlist 的 backup 列）→ 溢价从应急金支出", "priority": "随时可用"}
+  },
+
+  "fact_inference_assumption": {
+    "facts": [
+      "22 家场地中 fits_200pax=true 的 15 家；酒店系餐标/场地费缺失率 100%；C 组 6 家无公开电话（结构化对比表 missing_fields，verified）",
+      "庄园系公开餐标区间 3,888-5,800/桌 + 场地费 8,800-30,000/场；婚礼堂 5,988-8,999/桌打包含策划布置（结构化对比表 canonical 口径）",
+      "V-C08 行政区划属河北张家口怀来县（CF-05 verified）",
+      "上游预算 30 万闭合（master_table 加总 = 30.0 万，方案文件自述 12KB JSON 校验通过）"
+    ],
+    "inference": [
+      "拉斐特城堡为庄园系成本/风险综合最优 —— 由 3,888 餐标 + 2 万场地费（最低）+ 1100㎡ 室内冗余（雨备最好）推出，但受 G1 询价结果约束",
+      "9 月中旬户外仪式天气风险为 medium —— 季节统计推断，非预报，置信度 medium",
+      "36 天窗口下婚礼堂是最快兜底 —— 由'有公开套餐价可立即核价'推出，唯一不依赖电话询价链路的路径"
+    ],
+    "assumptions": [
+      "200 人 = 20 桌（10 人/桌）口径成立，桌均人数待询价确认（CF-04 显示该假设可能松动）",
+      "宾客异地占比高 → 周末优先、市区场地优先；该占比为 unknown，是动线策略的最大变量",
+      "评分使用'起'价，实际成交通常上浮（canonical price_direction=from）",
+      "9 月 11-20 档期 availability unknown，评分未含档期维度，G1 询价后必须重排"
+    ]
+  },
+
+  "counterexamples": {
+    "considered": [
+      "成本反例：V-C08 青普总价 11.2 万 < 拉斐特 9.8 万？—— 否，拉斐特更低且无地域问题；即便青普更省，行政区划在河北使 200 人动线不可行，反例不成立",
+      "动线反例：若 80% 宾客在市区且无摆渡车预算，笙白（朝阳）应排第一 —— 成立，故推荐为'拉斐特首选 + 笙白次选'双轨，以 G1 询价与 G0 宾客构成裁决，非单一锁定",
+      "雨备反例：若用户把天气风险置于成本之上，油画院（室内 22.8m 高）最优 —— 但其总价 14.6 万超 14 万线，需餐标压价成功才成立，故仅列考察名单",
+      "策划反例：5.5 万硬上限下'半定制'是否够用？—— TI-PL-2 低档 3-5.5 万可执行，但布置深度受限；反例成立场景是用户坚持全定制（TI-PL-3），此时切 B2 婚礼堂打包更省",
+      "婚纱照反例：北遇 3,999 起但成交常 2-3 倍 → 已列入 avoid 提示，签约锁定套餐明细"
+    ],
+    "none_reverses_combination_verdict": true,
+    "note": "所有反例均指向'G0 宾客构成'与'G1 询价结果'两个上游事实缺口，而非本节点可静态裁决"
+  },
+
+  "confidence": {
+    "combination": "medium-high",
+    "venue_ranking": "medium（价格为'起'价 + 档期 unknown + 无 rating 数据，G1 询价后重排）",
+    "supplier_shortlist": "medium（多数需电话/到店核实；策划与花艺为最大不确定项）",
+    "risk_judgement": "medium（R1/R4/R6 为 high；R8 动线事实 verified 但概率为推断；R9 为季节统计非预报）",
+    "notable_issues": [
+      "INFO：所有场地 rating 为 null（结构化对比表 missing_fields），无法用口碑数据交叉验证排序，建议电话核实时顺带收集",
+      "INFO：策划/司仪/花艺部分条目 source_date 为 2021-2023（stale_values），未用于价格锚定，仅作存在性线索"
+    ]
+  },
+
+  "what_would_change_my_mind": [
+    "G1 询价结果：任一候选的档期/真实餐标/服务费与'起'价偏离 >20%，场地排序立即重排",
+    "G0 宾客构成确认：异地宾客占比高 → 日期锁定周末 + 场地动线权重上调（可能推翻拉斐特首选）",
+    "用户对主题的最终拍板：选 THEME-02 → 本文件切换酒店系询价名单与成本线（≤16 万）",
+    "果园西餐厅 CF-04 口径澄清：若按位价 688 且含服务费，其总价可能回到线内，重新进入候选"
+  ],
+
+  "verification_needed": [
+    {"item": "15 家 fits_200pax=true 场地电话/公众号询价", "fields": ["档期", "餐标", "服务费", "最低消费", "加桌价", "雨备条款", "摆渡车/进场时间"], "owner": "P1 G1", "deadline": "2026-08-15", "confidence_if_missing": "组合推荐置信度降为 low"},
+    {"item": "酒店系 11 家餐标（缺失率 100%）", "owner": "仅 THEME-02 路径需要", "note": "G0 不切酒店系则跳过，省时间"},
+    {"item": "婚纱照品牌套餐明细与加片价", "owner": "P2 立即定档", "note": "3-6 周出片是隐性关键路径，先于其他供应商签约"},
+    {"item": "独立花艺师报价（evidence_gap）", "owner": "P3", "note": "全表最大询价不确定项，预算 1.2 万留 0.3 万弹性"},
+    {"item": "宾客构成（异地占比）", "owner": "G0 与用户确认", "note": "决定日期（周末 vs 工作日）与动线策略（R8）"},
+    {"item": "拉斐特雨备条款 + 摆渡车方案书面化", "owner": "P2 签约", "note": "不写入合同则 B3 触发时费用归属无依据"}
+  ],
+
+  "downstream_usage": {
+    "可直接消费": [
+      "P1 询价名单：THEME-01 四家（V-C02/V-C03/V-C01/V-C06）+ 兜底婚礼堂三家，按统一话术（200 人/双日期/预算上限）执行",
+      "供应商定标排序：supplier_shortlist 每模块 primary/backup/avoid 三列即询价顺序与避雷清单",
+      "签约条款 checklist：R8/R9/R10 的 response 即合同必写条款（雨备/加桌价/摆渡车/底片归属）",
+      "G3.5 前 RSVP 截止提前至 T-14（R10 响应，早于上游 T-7 缓冲 1 周）"
+    ],
+    "数据契约": "价格引用一律走 结构化对比表 price{min,max,unit,basis} 与 price_tiers；CF-01/CF-04 未裁决冲突保留双值，签约/询价结果回填 proposed_update（field/old_value/new_value/reason/source_ref/confidence/downstream_impact）",
+    "跳过": "未做：可视化 HTML 报告页（非本节点职责）；未替用户拍板 G0（主题/日期/宾客构成）——默认值沿用上游 THEME-01 + 09-13，僵持不空耗档期"
+  }
+}

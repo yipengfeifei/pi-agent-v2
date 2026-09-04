@@ -1,0 +1,97 @@
+{
+  "version": 1,
+  "profiles": {
+    "form.fill": {
+      "name": "表单填充",
+      "kind": "form_fill",
+      "verificationMode": "objective",
+      "skillIds": ["action-form-fill"],
+      "completion": ["所有必填字段存在", "字段类型和格式通过 schema 校验", "目标表单提交成功并返回记录标识"],
+      "knownFailures": [
+        {"code": "missing_required_field", "signals": ["missing_required_field", "required_field_missing"], "strategy": "retry_with_modified_params", "instruction": "重新从当前任务和上游物料提取缺失字段；无法确定的字段保持 missing，不要猜值。"},
+        {"code": "invalid_field_format", "signals": ["invalid_field_format", "schema_mismatch", "format_error"], "strategy": "retry_with_modified_params", "instruction": "按字段 schema 纠正格式后重试，保留原始值和转换结果。"},
+        {"code": "permission_denied", "signals": ["permission_denied", "forbidden", "unauthorized"], "strategy": "ask_user", "instruction": "当前执行身份没有提交权限，需要用户提供可用权限或选择有权限的目标。"}
+      ]
+    },
+    "tool.mcp": {
+      "name": "MCP 工具调用",
+      "kind": "tool_call",
+      "verificationMode": "objective",
+      "skillIds": ["action-mcp-tool-call"],
+      "completion": ["选择的工具与目标匹配", "参数通过工具 schema 校验", "工具返回成功 response"],
+      "knownFailures": [
+        {"code": "invalid_arguments", "signals": ["invalid_arguments", "argument_validation_failed", "schema_mismatch"], "strategy": "retry_with_modified_params", "instruction": "只修正工具 schema 指出的参数；不要更换工具或补造未提供的值。"},
+        {"code": "rate_limited", "signals": ["rate_limited", "too_many_requests", "429"], "strategy": "retry_with_modified_params", "instruction": "按退避策略等待后重试；同一参数不要高频重复调用。"},
+        {"code": "not_found", "signals": ["not_found", "resource_not_found", "404"], "strategy": "substitute_node", "instruction": "检查资源标识；如果目标资源确实不存在，选择同一目标的备用工具或返回明确阻塞。"},
+        {"code": "permission_denied", "signals": ["permission_denied", "forbidden", "unauthorized"], "strategy": "ask_user", "instruction": "当前 MCP 身份无权执行，需要用户补充授权或改选目标。"}
+      ]
+    },
+    "code.generate": {
+      "name": "代码生成",
+      "kind": "code_generation",
+      "verificationMode": "objective",
+      "skillIds": ["action-code-generation"],
+      "completion": ["文件写入目标路径", "代码可解析或构建", "相关测试或验证命令通过"],
+      "knownFailures": [
+        {"code": "syntax_error", "signals": ["syntax_error", "parse_error", "syntaxerror"], "strategy": "retry_with_modified_params", "instruction": "读取实际错误位置，做最小修复后重新运行同一验证命令。"},
+        {"code": "test_failed", "signals": ["test_failed", "assertion_failed", "failing_test"], "strategy": "retry_with_modified_params", "instruction": "根据失败测试定位行为缺口，修复实现并重新运行失败测试，不要只改测试。"},
+        {"code": "dependency_missing", "signals": ["dependency_missing", "module_not_found", "cannot_find_module"], "strategy": "substitute_node", "instruction": "先检查项目已有依赖和本地实现；优先使用已有能力，不要未经计划新增依赖。"}
+      ]
+    },
+    "content.generate": {
+      "name": "内容生成",
+      "kind": "content_generation",
+      "verificationMode": "checklist",
+      "skillIds": ["action-content-generation"],
+      "completion": ["内容覆盖输入要求", "未知事实没有被写成确定事实", "输出结构可供下游消费"],
+      "knownFailures": [
+        {"code": "unsupported_claim", "signals": ["unsupported_claim", "编造", "hallucinated_claim"], "strategy": "retry_with_modified_params", "instruction": "删除上游没有支持的事实，只保留可追溯输入或明确标记 unknown。"},
+        {"code": "missing_required_point", "signals": ["missing_required_point", "missing_field", "要点缺失"], "strategy": "retry_with_modified_params", "instruction": "对照当前节点验收标准补齐缺失要点，不扩大主题范围。"}
+      ]
+    },
+    "communication.email": {
+      "name": "邮件回复",
+      "kind": "communication",
+      "verificationMode": "checklist",
+      "skillIds": ["action-communication-email"],
+      "completion": ["收件人和主题正确", "必须传达的信息点全部出现", "附件和发送状态明确", "未把未知事实写成确定事实"],
+      "knownFailures": [
+        {"code": "recipient_invalid", "signals": ["recipient_invalid", "invalid_recipient", "收件人无效"], "strategy": "ask_user", "instruction": "收件人地址无法确认，需要用户补充或确认。"},
+        {"code": "attachment_missing", "signals": ["attachment_missing", "missing_attachment", "附件缺失"], "strategy": "retry_with_modified_params", "instruction": "从当前任务目录和交付物清单重新定位附件；找不到时明确列出缺失项。"},
+        {"code": "provider_rejected", "signals": ["provider_rejected", "send_rejected", "发送被拒"], "strategy": "retry_with_modified_params", "instruction": "检查收件人、主题、正文和附件格式后只重试一次。"}
+      ]
+    },
+    "software.operation": {
+      "name": "软件操作",
+      "kind": "software_operation",
+      "verificationMode": "tool_and_state",
+      "skillIds": ["action-software-operation", "execution-reasoning"],
+      "completion": ["当前应用和目标状态已通过真实证据确认", "本节点目标动作依据工具反馈完成", "副作用已通过独立读取、截图或查询工具验证", "跨应用交接物包含真实记录标识或可定位证据"],
+      "knownFailures": [
+        {"code": "tool_not_available", "signals": ["tool_not_available", "unknown_tool", "tool not found"], "strategy": "substitute_node", "instruction": "从当前环境能力地图选择同一应用的兼容工具；不得凭空调用未发现的工具。"},
+        {"code": "application_not_available", "signals": ["application_not_available", "app_not_running", "application not found"], "strategy": "retry_with_modified_params", "instruction": "先激活目标应用并重新获取界面快照；如果应用不存在，明确返回缺失软件。"},
+        {"code": "ui_state_changed", "signals": ["ui_state_changed", "element_not_found", "selector_not_found", "element not found"], "strategy": "retry_with_modified_params", "instruction": "重新 snapshot/navigation，依据当前界面重新定位元素，不要复用过期坐标或选择器。"},
+       {"code": "mcp_call_failed", "signals": ["mcp_call_failed", "mcp_error", "tool_error", "server_error"], "strategy": "retry_with_modified_params", "instruction": "保留 MCP 返回的错误码和请求参数，按该工具指导修正后重试一次。"},
+        {"code": "model_error", "signals": ["model_error", "process exited", "provider"], "strategy": "retry_with_modified_params", "instruction": "保持任务目标不变，减少上下文和输出负担后重试；如果当前模型返回 provider 错误，切到下一个已配置 worker 模型再继续。"},
+        {"code": "software_verification_failed", "signals": ["software_verification_failed", "verification_failed", "verification_status_failed"], "strategy": "retry_with_modified_params", "instruction": "重新读取目标应用状态并对照完成标准；只修复未满足的状态，不重复无效副作用。"},
+        {"code": "software_verification_tool_missing", "signals": ["software_verification_tool_missing", "独立验证工具缺失", "没有调用验证工具"], "strategy": "retry_with_modified_params", "instruction": "调用 verificationPlan 中的独立读取、查询或截图工具，并把实际证据写入结果；不要用正文自述替代工具验证。"},
+        {"code": "software_verification_tool_invalid", "signals": ["software_verification_tool_invalid", "验证工具不是读取工具", "用发送工具验证"], "strategy": "retry_with_modified_params", "instruction": "把 verificationPlan 改为读取、查询、截图或状态回读能力；不要再次执行创建、发送、删除或更新动作来证明上一次副作用成功。"},
+        {"code": "empty_output", "signals": ["empty_output", "output_too_short", "model returned empty", "空输出"], "strategy": "retry_with_modified_params", "instruction": "重新执行当前软件动作，优先调用已经声明的工具并立即输出最小可验证 JSON；不得只返回空内容或让下游猜测状态。"},
+        {"code": "unplanned_tool", "signals": ["software_unplanned_tool", "unplanned_tool", "未计划工具", "未发现工具"], "strategy": "retry_with_modified_params", "instruction": "只使用当前节点 toolPlan、verificationPlan 和能力地图中存在的工具；禁止用 bash、osascript、shell 或其他未发现工具绕过失败。"},
+        {"code": "tool_execution_failed", "signals": ["tool_execution_failed", "osascript execution error", "calendar create failed", "calendar list failed"], "strategy": "retry_with_modified_params", "instruction": "严格按工具 schema 重新发现并调用同一工具；不要改用未计划工具。若参数已正确仍失败，保留真实错误交给调度器。"}
+      ]
+    },
+    "generic.execution": {
+      "name": "通用执行",
+      "kind": "generic",
+      "verificationMode": "checklist",
+      "skillIds": [],
+      "completion": ["当前子任务产出可消费结果", "结果包含验证依据或明确缺口", "结果可交接给下游"],
+      "knownFailures": [
+        {"code": "completion_gate_failed", "signals": ["completion_gate_failed", "missing_handoff_packet", "handoff_status_"], "strategy": "retry_with_modified_params", "instruction": "只补齐完成标准、验证依据和交接物，不扩大原任务范围。"},
+        {"code": "timeout", "signals": ["timeout", "inactivity_timeout", "first_output_timeout"], "strategy": "retry_with_modified_params", "instruction": "压缩输出范围，先完成最小可验证结果，再补充细节。"},
+        {"code": "model_error", "signals": ["model_error", "process exited", "provider"], "strategy": "retry_with_modified_params", "instruction": "保持任务目标不变，减少上下文和输出负担后重试。"}
+      ]
+    }
+  }
+}

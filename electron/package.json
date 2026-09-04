@@ -1,0 +1,36 @@
+{
+  "name": "fly",
+  "version": "0.1.0",
+  "private": true,
+  "main": "main.js",
+  "scripts": {
+    "build:app": "node ../scripts/build-app.mjs"
+  },
+  "devDependencies": {
+    "electron": "^37.2.0",
+    "electron-builder": "^26.0.12"
+  },
+  "build": {
+    "appId": "com.fly.app",
+    "productName": "FLY",
+    "files": [
+      "main.js",
+      "preload.js",
+      "out/**",
+      "backend/**",
+      ".pi/**",
+      "AGENTS.md"
+    ],
+    "asar": false,
+    "directories": {
+      "output": "dist"
+    },
+    "mac": {
+      "target": [
+        "dir"
+      ],
+      "category": "public.app-category.developer-tools"
+    },
+    "electronDist": "node_modules/electron/dist"
+  }
+}

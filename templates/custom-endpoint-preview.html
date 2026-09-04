@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>自定义 API 端点弹窗预览</title>
+<style>
+  :root {
+    --bg: #1a1a1a;
+    --bg-panel: #242424;
+    --bg-secondary: #20262f;
+    --border: rgba(255,255,255,0.12);
+    --text: #ececf1;
+    --text-muted: #9b9ba4;
+    --text-dim: #6b6b74;
+    --accent: #5aa2f0;
+  }
+  * { box-sizing: border-box; margin: 0; }
+  body { background: rgba(0,0,0,.55); font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; height: 100dvh; display: flex; align-items: center; justify-content: center; }
+  .panel {
+    background: var(--bg-panel); border: 1px solid var(--border); border-radius: 12px;
+    width: 480px; max-width: 92vw; overflow: hidden;
+    box-shadow: 0 18px 60px rgba(0,0,0,0.35);
+  }
+  .head { padding: 12px 14px; border-bottom: 1px solid var(--border); display: flex; justify-content: space-between; align-items: center; }
+  .head strong { font-size: 13px; }
+  .head .x { padding: 2px 8px; font-size: 13px; background: transparent; border: 1px solid var(--border); border-radius: 6px; color: var(--text-muted); cursor: pointer; }
+  .body { padding: 14px; display: grid; gap: 10px; }
+  .field { display: grid; gap: 4px; }
+  .field label { font-size: 11px; color: var(--text-dim); }
+  .field input {
+    background: var(--bg); color: var(--text); border: 1px solid var(--border); border-radius: 6px;
+    padding: 7px 10px; font-size: 12.5px; outline: none;
+  }
+  .field input:focus { border-color: var(--accent); }
+  .hint { font-size: 11px; color: var(--text-dim); line-height: 1.5; }
+  .foot { padding: 10px 14px 14px; display: flex; gap: 8px; justify-content: flex-end; }
+  .foot button { padding: 6px 14px; font-size: 12.5px; border-radius: 6px; cursor: pointer; }
+  .save { background: var(--accent); color: #0b0f14; border: none; font-weight: 650; }
+  .save:disabled { opacity: .45; cursor: not-allowed; }
+  .cancel { background: transparent; border: 1px solid var(--border); color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<div class="panel">
+  <div class="head">
+    <strong>自定义 API 端点</strong>
+    <button class="x">✕</button>
+  </div>
+  <div class="body">
+    <div class="field">
+      <label>请求地址（Base URL）</label>
+      <input placeholder="https://api.example.com/v1" value="https://api.siliconflow.cn/v1">
+    </div>
+    <div class="field">
+      <label>API Key</label>
+      <input type="password" placeholder="sk-..." value="sk-demo1234567890">
+    </div>
+    <div class="field">
+      <label>模型 ID</label>
+      <input placeholder="gpt-4o-mini / deepseek-chat / ..." value="deepseek-chat">
+    </div>
+    <div class="hint">保存后写入 <code>~/.pi/agent/models.json</code>，并切换为主模型（未显式指定 MAIN_MODEL 时）。OpenAI 兼容格式。</div>
+  </div>
+  <div class="foot">
+    <button class="cancel">取消</button>
+    <button class="save">保存并启用</button>
+  </div>
+</div>
+
+</body>
+</html>

@@ -1,0 +1,171 @@
+{
+  "artifact_name": "供应商候选清单",
+  "artifact_type": "supplier_candidate_list",
+  "scope": "北京地区婚庆供应商",
+  "generated_at": "2026-08-08",
+  "as_of": "2025Q1-2026Q2 公开信息",
+  "volatility_note": "所有价格字段为 high volatility，有效期约 6-12 个月，下单前须电话/到店核实实时报价",
+  "summary": "北京一场婚礼人员+现场布置总费用多在 5-20 万元（常见 6-12 万）；现场布置一般不低于 2 万。婚庆策划分套系/半定制/全定制三档；四大金刚（司仪、跟妆、摄影、摄像）单项报价：司仪 1000-7000+、跟妆 300-2000、跟拍摄影 1000-5000、摄像 800-3000。花艺全案 1.2-1.5 万，甜品台 1400-2500，乐队 3000-10000/场。",
+
+  "categories": [
+    {
+      "category": "婚庆策划",
+      "tier_price_ranges": {
+        "套系类（模板套餐）": {"range": "1-3万", "note": "道具可复用，性价比高，适合预算低", "volatility": "high"},
+        "半定制": {"range": "3-10万", "note": "可改色系/细节/加logo，含部分四大金刚", "volatility": "high"},
+        "全定制": {"range": "5-20万+", "note": "主题策划费另计 2000-10000；高端品牌 10-30万常见，顶级可上百万", "volatility": "high"},
+        "北京人员+布置总费用": {"range": "5-20万为主，常见6-12万", "note": "知乎行业账号Neko酱 2021 口径，仍为行业常用参考", "volatility": "high"}
+      },
+      "suppliers": [
+        {"name": "汇爱婚礼", "since": 2006, "positioning": "高端定制，户外/小众风格，2008年引入婚礼堂概念，复爱合缘集团旗下", "price_hint": "高端，无公开起价，报价透明分项", "reputation": "CNPP/买购网2025十大婚庆品牌榜首梯队；多榜单前列", "source": "maigoo.cn / cnpp.cn / 163.com 2026榜单", "source_date": "2025-07/2026", "source_status": "verified", "confidence": "high", "volatility": "high"},
+        {"name": "摩卡婚礼MOCHA", "since": 1999, "positioning": "人文定制中高端，与50+星级酒店/特色场地合作，自有灯光音响库", "price_hint": "中高端，透明分项报价", "reputation": "十大婚庆品牌；执行稳定性好评", "source": "maigoo.cn / cnblogs 评测", "source_date": "2025", "source_status": "verified", "confidence": "high", "volatility": "high"},
+        {"name": "美薇亭婚礼", "since": 2007, "positioning": "数字化管理，'负担得起的奢侈'，曾服务郎平/佟大为等名人", "price_hint": "中高端", "reputation": "十大品牌；数千场案例", "source": "maigoo.cn / cityhui.com", "source_date": "2025", "source_status": "verified", "confidence": "medium", "volatility": "high"},
+        {"name": "艾恩婚礼", "since": 2012, "positioning": "中端定制，朝阳公园城堡婚礼堂，花艺团队服务希尔顿/四季/香奈儿", "price_hint": "3万-300万跨度，亲民起价", "reputation": "年轻品牌口碑上升", "source": "cityhui.com", "source_date": "2025", "source_status": "unverified", "confidence": "medium", "volatility": "high"},
+        {"name": "Sunny喜铺", "since": 2005, "positioning": "一站式西式婚礼，朝阳门外大街联合大厦", "price_hint": "套餐 11500-33520；代表套系18900/19999/34520", "reputation": "老牌一站式", "source": "jiehun.com.cn / hunbohui.cn", "source_date": "2023-2024", "source_status": "verified", "confidence": "medium", "volatility": "high"},
+        {"name": "乐美婚礼", "positioning": "高端策划，百子湾爱工厂", "price_hint": "30000-168000", "source": "jiehun.com.cn", "source_date": "2023", "source_status": "unverified", "confidence": "medium", "volatility": "high"},
+        {"name": "迦南之约", "positioning": "基督教会背景婚庆", "price_hint": "23000-120000", "source": "hunbohui.cn", "source_date": "2023", "source_status": "unverified", "confidence": "low", "volatility": "high"},
+        {"name": "艾尔婚礼", "positioning": "中端定制，绿地中央广场", "price_hint": "12000-29999", "source": "hunbohui.cn", "source_date": "2023", "source_status": "unverified", "confidence": "low", "volatility": "high"},
+        {"name": "爱蒂尔婚礼策划", "positioning": "北京品牌", "price_hint": "人均约26381起", "reputation": "phb123 人气品牌", "source": "phb123.com", "source_date": "2021", "source_status": "unverified", "confidence": "low", "volatility": "high"},
+        {"name": "罗曼婚礼(北京)", "positioning": "北京品牌", "price_hint": "人均约18858起", "source": "phb123.com", "source_date": "2021", "source_status": "unverified", "confidence": "low", "volatility": "high"},
+        {"name": "因为爱婚礼策划", "positioning": "海淀远大路永泰福朋喜来登", "reputation": "phb123 8.1分（口碑10）", "source": "phb123.com", "source_date": "2021", "source_status": "unverified", "confidence": "low", "volatility": "high"},
+        {"name": "花海阁", "positioning": "王府井东街", "reputation": "phb123 7.5分", "source": "phb123.com", "source_date": "2021", "source_status": "unverified", "confidence": "low", "volatility": "high"},
+        {"name": "婚礼堂一站式（格乐利雅/诺丁山/花嫁丽舍/圣拉维/嘉美麓德/伯妮）", "positioning": "婚宴+策划一站式婚礼会所", "price_hint": "婚宴 5999-8999/桌起（摩卡艺术中心）", "reputation": "CNPP十大品牌", "source": "cnpp.cn / hunliji.com 酒店页", "source_date": "2025-2026", "source_status": "verified", "confidence": "medium", "volatility": "high"}
+      ],
+      "evidence_gaps": ["阳光喜匠/莫吉托/优悦/心缘纪/禧阁等仅见于博客类软文榜单（cnblogs），无权威背书，未纳入主推，需线下核验", "多数品牌最新档期报价需电话确认"]
+    },
+    {
+      "category": "摄影摄像",
+      "sub": [
+        {
+          "sub_category": "婚纱照（婚前拍摄）",
+          "tier_price_ranges": {
+            "经济型": {"range": "2899-5000起", "note": "绮绫良佰2899、北遇映画/花田映像/爱菲尔美3999、巴黎风尚汉服套餐5000", "volatility": "high"},
+            "中端": {"range": "5000-9000起", "note": "韩国匠艺4998、蒙娜丽莎5999、金夫人7299、CD视觉8688", "volatility": "high"},
+            "高端": {"range": "9000-30000", "note": "壹home胶片7888-23888、城市花园8699起、铂爵旅拍3000起(领券)", "volatility": "high"},
+            "市场整体": {"range": "2899-上万元；2026评测口径3000-30000", "volatility": "high"}
+          },
+          "suppliers": [
+            {"name": "北遇映画", "price": "3999起", "positioning": "情绪纪实风格，真实客片", "reputation": "新京报/婚礼纪评测头部", "source": "hunliji.com bai_ke 25189(2025-02-11) / bjnews.com.cn(2026-03-26)", "source_status": "verified", "confidence": "high"},
+            {"name": "巴黎风尚", "price": "约5000汉服套餐；整体低10-30%", "positioning": "高性价比+无隐形消费，19家连锁，5000平实景基地", "reputation": "美团满分店铺，98%满意度", "source": "bjnews.com.cn(2026-03-26)", "source_status": "verified", "confidence": "medium"},
+            {"name": "壹home胶片摄影", "price": "7888-23888", "positioning": "胶片/复古风格", "source": "bjnews.com.cn(2026-03-26)", "source_status": "verified", "confidence": "medium"},
+            {"name": "金夫人/蒙娜丽莎/韩国匠艺/铂爵旅拍/城市花园/玫瑰星座/CD视觉/喜桃/希漾/水晶之恋/聚焦/梵希旅拍/花田映像/爱菲尔美/绮绫良佰", "price": "2899-9288起，详见价格区间", "positioning": "影楼系为主", "source": "hunliji.com bai_ke 25189(2025-02-11)", "source_status": "verified", "confidence": "high"}
+          ]
+        },
+        {
+          "sub_category": "婚礼当天跟拍（摄影/摄像）",
+          "tier_price_ranges": {
+            "摄影单机位": {"range": "1000-3000/场（北京工作室实际1600起/10h）", "volatility": "high"},
+            "摄影双机位": {"range": "2500-5000/场", "volatility": "high"},
+            "摄像单机位": {"range": "800-1500/场", "volatility": "high"},
+            "摄像双机位": {"range": "1000-3000/场", "volatility": "high"},
+            "摄影+摄像组合": {"range": "2600-3500/10h（单双机组合）", "volatility": "high"},
+            "高端一对一": {"range": "3000-5000", "volatility": "high"}
+          },
+          "suppliers": [
+            {"name": "慕格摄影", "city": "北京朝阳（双井/劲松/潘家园）", "price": "摄影单机1600/10h、双机2500/10h、摄影+摄像2600、双机+摄像3500", "source": "beijing.liebiao.com(2025)", "source_status": "verified", "confidence": "medium"},
+            {"name": "荣摄影婚礼跟拍", "city": "北京海淀（北三环中路）", "price": "3188-4988", "reputation": "婚礼纪4.6分", "source": "beijing.hunliji.com 商家页", "source_status": "verified", "confidence": "medium"},
+            {"name": "婚登跟拍市场（个体工作室）", "price": "399起，'大日子'(520/521等)上浮200-300", "note": "北京晚报深度报道：无合同约束、跳单频发，需书面约定", "source": "北京晚报 2025-06-04", "source_status": "verified", "confidence": "high"}
+          ],
+          "evidence_gaps": ["北京婚礼跟拍摄影师/摄像师名单化收录不足，建议在小红书/婚礼纪按风格筛选真实客片"]
+        }
+      ],
+      "evidence_gaps": ["婚纱照与跟拍价格均随淡旺季浮动：1/6/7/12月淡季议价空间大，3-10月旺季", "避坑：低价引流(2999)实际成交常为标价2-3倍，服装分区/加片80-150元/张等隐形消费"]
+    },
+    {
+      "category": "化妆造型（新娘跟妆）",
+      "tier_price_ranges": {
+        "跟妆-入门/平价": {"range": "299-680", "note": "婚礼纪北京榜：易彤299起、LM澜美458起；专业档跟妆680", "volatility": "high"},
+        "跟妆-中端": {"range": "680-1380", "note": "资深档880、首席档1380（灵越）；零度视觉880/1280", "volatility": "high"},
+        "跟妆-高端/总监级": {"range": "1500-2899", "note": "总监级1980（灵越）、孔唯399-2899；一线大牌化妆品", "volatility": "high"},
+        "早妆（单造型不跟妆）": {"range": "380-1080", "volatility": "high"},
+        "亲友妆加购": {"range": "200/人", "volatility": "high"}
+      },
+      "suppliers": [
+        {"name": "灵越彩妆造型", "city": "北京朝阳大望路", "price": "跟妆 专业680/资深880/首席1380/总监1980；早妆380-1080；亲友妆+200/人；5环外需报销路费或包住宿", "source": "bj.58.com(2026-07-27更新)", "source_status": "verified", "confidence": "high"},
+        {"name": "孔唯", "city": "北京昌平", "price": "399-2899", "reputation": "婚礼纪4.6分，48条好评", "source": "invitation.hunliji.com 商家页", "source_status": "verified", "confidence": "medium"},
+        {"name": "易彤 / LM澜美妆造工作室", "city": "北京", "price": "299起 / 458起", "reputation": "婚礼纪2026北京跟妆排行前列", "source": "m.hunliji.com 排行页", "source_status": "verified", "confidence": "medium"},
+        {"name": "零度视觉彩妆造型", "city": "北京", "price": "早妆380/480；跟妆680/880/1280", "source": "kuyifen.com(2024-09-06)", "source_status": "unverified", "confidence": "medium"}
+      ],
+      "evidence_gaps": ["高端明星化妆师(3000+)档位公开报价少，需试妆面议", "试妆一般免费，须提前2天预约并付定金"]
+    },
+    {
+      "category": "司仪主持",
+      "tier_price_ranges": {
+        "低档/新人主持": {"range": "800-2000/场", "note": "含兼职1000-1800/天（智联2026）；婚礼纪口径800-3000", "volatility": "high"},
+        "中档": {"range": "2000-4000/场", "volatility": "high"},
+        "高档/资深": {"range": "4000-7000/场", "note": "北京日报2023：资深级7000", "volatility": "high"},
+        "名人/明星司仪": {"range": "1万-10万+/场", "note": "可上数十万", "volatility": "high"},
+        "北京市场整体口径": {"range": "1000-10000均属正常", "note": "按档期(旺季5/10月贵)、地点(6环外加收住宿)、是否带音乐师/督导浮动", "volatility": "high"}
+      },
+      "suppliers": [
+        {"name": "北京中传艺声文化传媒（晨峰老师主持团队）", "city": "北京朝阳", "positioning": "电视台/晚宴/户外多风格主持团队，10年从业", "price": "1000-10000区间", "source": "beijing.liebiao.com(2025-11)", "source_status": "verified", "confidence": "medium"},
+        {"name": "王老师（电视节目主持出身，11年婚礼主持）", "city": "北京海淀/朝阳", "price": "面议，档期充裕", "source": "bj.58.com(2025-12-11)", "source_status": "unverified", "confidence": "medium"},
+        {"name": "北京颐弘文化（中式婚礼主持）", "city": "北京朝阳", "price": "兼职1000-1800/天", "source": "zhaopin.com(2026更新)", "source_status": "verified", "confidence": "medium"}
+      ],
+      "evidence_gaps": ["司仪选择重看现场视频与临场应变，建议视频连面试音再定", "北京日报提示：市场兼职半路出家者多，需验资历/听原声"]
+    },
+    {
+      "category": "花艺",
+      "tier_price_ranges": {
+        "全案婚礼花艺（手捧花+胸花+主客桌花+路引+花门/仪式亭+签到台等全套）": {"range": "12000-15000", "volatility": "high"},
+        "简易布置（气球/少量鲜花为主）": {"range": "4000-5000", "volatility": "high"},
+        "高端精致布置": {"range": "4万-5万+", "volatility": "high"},
+        "基础套餐(多为仿真花+少量真花)": {"range": "5000-10000", "volatility": "high"},
+        "单项参考（历史价，仅作量级参考）": {"range": "花门1000-3000、路引80-200/个、套花380-680、主桌花80-200、客桌花60-200", "note": "2010年报价已过时", "volatility": "high", "stale": true}
+      },
+      "suppliers": [
+        {"name": "艾恩婚礼花艺团队", "positioning": "常年为希尔顿/康莱德/四季/君悦等酒店及Chanel/Fendi/Chloe提供花艺", "source": "cityhui.com", "source_status": "unverified", "confidence": "low"},
+        {"name": "婚庆公司自带花艺部门", "positioning": "摩卡/汇爱等大牌均有花艺团队或欧洲直采供应链", "source": "cnblogs评测 / 163.com 2026", "source_status": "unverified", "confidence": "low"}
+      ],
+      "evidence_gaps": ["北京独立花艺师/花艺工作室的名单化公开报价极少，价格多为婚庆全案内嵌，建议走'独立花艺师+婚庆布置'拆单询价", "旺季(5/10月)鲜花价格上浮明显"]
+    },
+    {
+      "category": "甜品台",
+      "tier_price_ranges": {
+        "纯色/基础套系": {"range": "1399-2000", "note": "婚礼纪蓝白套系1399；接亲网口径纯色1500-2000", "volatility": "high"},
+        "主题/定制套系": {"range": "2000-2500+", "note": "时光印记简易户外1980(原价2280)；主题定制约2500", "volatility": "high"}
+      },
+      "suppliers": [
+        {"name": "心意摩卡烘焙婚礼甜品台", "city": "北京", "price": "蓝白套系1399(原价1500)，含甜品/器皿/饰品纸品，不含背板桌布桌花", "source": "hunliji.com package 229211", "source_status": "verified", "confidence": "medium"},
+        {"name": "时光印记甜品", "city": "北京（高丽营东街）", "price": "简易户外套系1980(原价2280)，5环内免费配送", "reputation": "婚礼纪100%好评", "source": "m.hunliji.com package 746382", "source_status": "verified", "confidence": "medium"}
+      ],
+      "evidence_gaps": ["大品牌甜品台(翻糖定制/进口原料)高价档公开报价少，需按宾客数定制询价"]
+    },
+    {
+      "category": "乐队/现场演出",
+      "tier_price_ranges": {
+        "一般乐队（本地三四线）": {"range": "3000-4000/场", "volatility": "high"},
+        "知名乐队": {"range": "1万+/场", "volatility": "high"},
+        "婚礼纪平台口径": {"range": "乐队3000-10000/场（按规模知名度）；舞蹈演员2000-5000；魔术2000-6000", "volatility": "high"},
+        "一线城市高端档": {"range": "10万-几十万/场", "note": "头部艺人/交响配置", "volatility": "high"},
+        "最低门槛": {"range": "千元起步", "volatility": "high"},
+        "经验法则": {"range": "约等于一桌婚宴酒席的钱", "note": "婚礼纪口径", "volatility": "medium"}
+      },
+      "suppliers": [
+        {"name": "智凡活动策划公司", "city": "北京", "positioning": "乐队(流行/摇滚/民乐/管弦/小提琴迎宾队)+歌手+乐器演奏+曲艺一条龙", "source": "beijing.liebiao.com", "source_status": "verified", "confidence": "medium"},
+        {"name": "婚庆公司乐队打包（摩卡/汇爱等）", "positioning": "策划公司常含乐队/演出资源", "source": "婚匠网/婚礼纪", "source_status": "unverified", "confidence": "low"}
+      ],
+      "evidence_gaps": ["北京专业婚礼弦乐团(如弦乐四重奏)的公开价目缺失，建议直接询演奏团体或经策划公司中转", "注意场地音响/挑高条件对乐队形式的限制"]
+    }
+  ],
+
+  "stale_values": [
+    {"field": "花艺单项价（花门/路引/桌花等）", "stale": "2010年榉荣轩报价单（花门1000-3000、路引80-200等）", "reason": "2010年数据，仅作量级参考", "replacement": "全案花艺12000-15000(知乎2021)"},
+    {"field": "乐队价", "stale": "400-800/场(2010)", "replacement": "3000-10000/场(婚礼纪2025口径)"},
+    {"field": "部分策划公司套餐价(乐美/迦南之约/艾尔等)", "stale": "2023年采集", "reason": "套餐价随时改版", "replacement": "以电话实时报价为准"}
+  ],
+
+  "evidence_gaps": [
+    "北京独立花艺师/甜品高端定制/婚礼乐团的公开名单化报价稀缺，为主要缺口",
+    "各品牌2026年实时档期报价均未公开，须电话/到店核实",
+    "排名类内容中 cnblogs/163 来源为软文(低可信)，仅作候选线索，未纳入 verified",
+    "婚纱照品牌价均为'起价'，实际成交受加片/服装分区影响，通常为标价的2-3倍"
+  ],
+
+  "risk_notes": [
+    "司仪/跟妆/跟拍多为个人档期制，热门日(5/10月、520/521)需提前3-6个月预订且价格上浮",
+    "跟拍行业无标准合同，北京晚报(2025-06)报道跳单/套路照频发，务必书面约定时间/点位/底片归属",
+    "婚庆'低价引流高价成交'为最高频投诉，签约前确认服装是否分区、加片单价、化妆品是否收费并写入合同",
+    "北京市官方示范文本：《北京市婚礼服务合同》《北京市婚纱摄影服务合同》可在北京市监局/政府网下载使用"
+  ]
+}

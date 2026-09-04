@@ -1,0 +1,415 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Markdown 渲染对比 Demo v2 — 排版克制版</title>
+<style>
+:root {
+  --bg: #1a1a1a;
+  --bg-panel: #242424;
+  --bg-secondary: #20262f;
+  --bg-hover: #2e2e2e;
+  --bg-selected: #383838;
+  --border: #3a3a3a;
+  --border-strong: #4a4a4a;
+  --text: #e8e8e8;
+  --text-muted: #9ca3af;
+  --text-dim: #6b7280;
+  --accent: #60a5fa;
+  --accent-hover: #93c5fd;
+  --user-bg: #1e293b;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+  --font-sans: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+  --radius-panel: 18px;
+  --radius-control: 12px;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: #121212;
+  color: var(--text);
+  font: 14px/1.6 var(--font-sans);
+  padding: 24px;
+}
+
+.demo-header { max-width: 1400px; margin: 0 auto 20px; }
+.demo-header h1 { font-size: 18px; margin: 0 0 6px; }
+.demo-header p { margin: 0 0 4px; color: var(--text-muted); font-size: 13px; }
+.demo-header code { background: #262b33; padding: 1px 6px; border-radius: 4px; font-size: 12px; }
+
+.compare { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 1400px; margin: 0 auto; }
+@media (max-width: 1000px) { .compare { grid-template-columns: 1fr; } }
+
+.pane { background: var(--bg); border: 1px solid var(--border); border-radius: var(--radius-panel); overflow: hidden; }
+.pane-tag {
+  padding: 8px 16px; font-size: 12px; font-weight: 600; letter-spacing: 0.03em;
+  border-bottom: 1px solid var(--border);
+  display: flex; justify-content: space-between; align-items: center;
+}
+.pane.now .pane-tag { color: #f87171; background: rgba(248,113,113,0.06); }
+.pane.new .pane-tag { color: #a3a3a3; background: rgba(255,255,255,0.03); }
+.pane-tag .hint { color: var(--text-dim); font-weight: 400; }
+.pane-scroll { padding: 16px; }
+
+.msg.user {
+  background: var(--user-bg); border: 1px solid var(--border);
+  border-radius: 14px 14px 4px 14px; padding: 10px 14px; margin: 0 0 10px;
+}
+.msg.assistant { background: var(--bg-panel); border: 1px solid var(--border); border-radius: 14px 14px 14px 4px; padding: 14px 16px; }
+.msg-role { font-size: 11px; color: var(--text-dim); margin-bottom: 6px; font-weight: 600; letter-spacing: 0.05em; }
+
+/* ================================================================
+   左栏：现状（还原当前 globals.css）
+   ================================================================ */
+.now .markdown-body { font-size: 13.5px; line-height: 1.6; color: var(--text); word-break: break-word; overflow-wrap: break-word; }
+.now .markdown-body p { margin: 0 0 5px; }
+.now .markdown-body p:last-child { margin-bottom: 0; }
+.now .markdown-body h1, .now .markdown-body h2, .now .markdown-body h3,
+.now .markdown-body h4, .now .markdown-body h5, .now .markdown-body h6 { font-weight: 700; margin: 9px 0 4px; color: var(--text); line-height: 1.3; }
+.now .markdown-body h1 { font-size: 1.3em; }
+.now .markdown-body h2 { font-size: 1.15em; }
+.now .markdown-body h3 { font-size: 1.02em; }
+.now .markdown-body ul, .now .markdown-body ol { padding-left: 22px; margin: 3px 0 6px; }
+.now .markdown-body li { margin: 1px 0; }
+.now .markdown-body ul > li { list-style-type: disc; }
+.now .markdown-body ol > li { list-style-type: decimal; }
+.now .markdown-body li > p { margin: 0; }
+.now .markdown-body a { color: var(--accent); text-decoration: underline; }
+.now .markdown-body blockquote { border-left: 3px solid var(--border-strong); margin: 4px 0; padding: 2px 12px; color: var(--text-muted); }
+.now .markdown-body table { border-collapse: collapse; width: 100%; margin: 8px 0; font-size: 13px; }
+.now .markdown-body th, .now .markdown-body td { border: 1px solid var(--border); padding: 5px 10px; text-align: left; }
+.now .markdown-body th { background: var(--bg-panel); font-weight: 600; }
+.now .markdown-body hr { border: none; border-top: 1px solid var(--border); margin: 10px 0; }
+.now .markdown-body pre { border: 1px solid var(--border); border-radius: var(--radius-control); background: #101418; margin: 6px 0; padding: 10px 12px; font-family: var(--font-mono); font-size: 12.5px; overflow-x: auto; }
+.now .markdown-body code { background: #262b33; font-family: var(--font-mono); font-size: 12px; padding: 1px 4px; border-radius: 3px; }
+.now .markdown-body pre code { background: none; padding: 0; }
+.now .markdown-body details { border: 1px solid var(--border); border-radius: 8px; padding: 6px 10px; margin: 6px 0; }
+
+/* ================================================================
+   右栏：v2 排版克制版
+   原则：灰阶层级（字号/字重/间距/深浅），零彩色装饰。
+   节奏：标题上方留白大、下方小（标题贴住引导的段落）；段落间距拉开（分组可辨）。
+   ================================================================ */
+.new .markdown-body {
+  font-size: 13px;
+  line-height: 1.75;
+  color: var(--text);
+  word-break: break-word;
+  overflow-wrap: break-word;
+  letter-spacing: 0.005em;
+}
+
+/* 正文：段间距拉开，段落分组可辨 */
+.new .markdown-body p { margin: 0 0 12px; }
+.new .markdown-body p:last-child { margin-bottom: 0; }
+
+/* 标题：字号阶梯拉开 + 上方留白 >> 下方留白 */
+.new .markdown-body h1 {
+  font-size: 19px;
+  font-weight: 700;
+  line-height: 1.3;
+  margin: 4px 0 14px;
+  color: var(--text);
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border);
+  letter-spacing: -0.01em;
+}
+.new .markdown-body h2 {
+  font-size: 16px;
+  font-weight: 650;
+  line-height: 1.35;
+  margin: 26px 0 8px;
+  color: var(--text);
+}
+.new .markdown-body h3 {
+  font-size: 14.5px;
+  font-weight: 600;
+  line-height: 1.4;
+  margin: 18px 0 6px;
+  color: var(--text);
+}
+.new .markdown-body h4 {
+  font-size: 13px;
+  font-weight: 600;
+  margin: 14px 0 4px;
+  color: var(--text-muted);
+}
+
+/* 列表：marker 降灰，间距跟随 */
+.new .markdown-body ul, .new .markdown-body ol { padding-left: 22px; margin: 4px 0 12px; }
+.new .markdown-body li { margin: 3px 0; line-height: 1.65; }
+.new .markdown-body ul > li { list-style-type: disc; }
+.new .markdown-body ul > li::marker { color: var(--text-dim); }
+.new .markdown-body ol > li { list-style-type: decimal; }
+.new .markdown-body ol > li::marker { color: var(--text-muted); font-weight: 600; }
+.new .markdown-body li > p { margin: 0; }
+
+/* 链接：accent 是功能色（可识别性），保留 */
+.new .markdown-body a { color: var(--accent); text-decoration: none; }
+.new .markdown-body a:hover { text-decoration: underline; text-decoration-color: var(--accent-hover); }
+
+/* 引用：无框无彩标题，左线 + 淡灰底 + 标题行仅加粗 */
+.new .markdown-body blockquote {
+  margin: 12px 0 14px;
+  padding: 1px 14px;
+  border-left: 2px solid var(--border-strong);
+  color: var(--text-muted);
+}
+.new .markdown-body blockquote p { margin: 4px 0; }
+.new .markdown-body blockquote .callout-title { display: block; font-weight: 700; margin-bottom: 3px; font-size: 13px; color: var(--text); }
+
+/* hr：轮次分隔 = 大间距 + 细线，不装饰 */
+.new .markdown-body hr {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 24px 0;
+}
+
+/* 表格：圆角 + 间隔色（用户认可）保留；去掉全部竖线，只留表头底线与行间细线 */
+.new .markdown-body table {
+  border-collapse: separate;
+  border-spacing: 0;
+  width: 100%;
+  margin: 8px 0 14px;
+  font-size: 13px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+.new .markdown-body th, .new .markdown-body td {
+  padding: 7px 12px;
+  text-align: left;
+  border-bottom: 1px solid var(--border);
+}
+.new .markdown-body th { background: var(--bg-selected); font-weight: 600; }
+.new .markdown-body tr:last-child td { border-bottom: none; }
+.new .markdown-body tbody tr:nth-child(even) { background: rgba(255,255,255,0.03); }
+.new .markdown-body tbody tr:hover { background: rgba(255,255,255,0.06); }
+.new .markdown-body td:first-child { color: var(--text-muted); white-space: nowrap; }
+
+/* 行内 code：淡化（无边框无彩色） */
+.new .markdown-body code {
+  background: #2a2a2f;
+  padding: 1px 5px;
+  border-radius: 4px;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: #d7d7d7;
+}
+.new .markdown-body pre {
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #101418;
+  margin: 8px 0 14px;
+  padding: 12px 14px;
+  font-family: var(--font-mono);
+  font-size: 12.5px;
+  line-height: 1.6;
+  overflow-x: auto;
+}
+.new .markdown-body pre code { background: none; padding: 0; color: var(--text); }
+
+/* 折叠：无框，chevron 降灰 */
+.new .markdown-body details { margin: 10px 0 14px; }
+.new .markdown-body summary {
+  cursor: pointer;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--text-muted);
+  list-style: none;
+  user-select: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+.new .markdown-body summary::-webkit-details-marker { display: none; }
+.new .markdown-body summary::before { content: "▸"; font-size: 11px; color: var(--text-dim); transition: transform 0.15s; }
+.new .markdown-body details[open] summary::before { content: "▾"; }
+.new .markdown-body summary:hover { color: var(--text); }
+.new .markdown-body details .details-body { margin-top: 6px; padding: 8px 12px; background: rgba(255,255,255,0.02); border-radius: 8px; color: var(--text-muted); font-size: 13px; }
+
+/* 强调：正文亮色即可，不加装饰 */
+.new .markdown-body strong { font-weight: 700; color: #ffffff; }
+.new .markdown-body em { font-style: italic; }
+
+/* 结论：不加框不加彩。前置小图标 + 加粗正文，靠空行呼吸 */
+.new .markdown-body .conclusion { margin: 14px 0 4px; }
+.new .markdown-body .conclusion p { margin: 0; }
+
+/* 来源：小号灰字，上虚线分隔 */
+.new .source-ref {
+  font-size: 12px;
+  color: var(--text-dim);
+  margin-top: 16px;
+  border-top: 1px dashed var(--border);
+  padding-top: 8px;
+  line-height: 1.7;
+}
+.new .source-ref a { color: var(--text-dim); }
+.new .source-ref a:hover { color: var(--text-muted); }
+</style>
+</head>
+<body>
+
+<div class="demo-header">
+  <h1>Markdown 消息流渲染 — v2 排版克制版</h1>
+  <p>同一段内容。左=现状，右=v2。v2 原则：<strong>灰阶层级，零彩色装饰</strong>——层级全靠字号阶梯 / 字重 / 间距节奏 / 深浅，不靠框和色条。</p>
+  <p>间距逻辑（Notion 排版思路）：标题上方留白大、下方小（标题"贴住"它引导的段落）；段落间距 12px 拉开分组；hr 用大间距制造轮次分隔。</p>
+</div>
+
+<div class="compare">
+
+<!-- ==================== 左栏：现状 ==================== -->
+<div class="pane now">
+  <div class="pane-tag">现状渲染 <span class="hint">globals.css 当前</span></div>
+  <div class="pane-scroll">
+    <div class="msg user">
+      <div class="msg-role">YOU</div>
+      评估一下解压玩具类目（fidget）要不要进 TikTok 美区，给结论。
+    </div>
+    <div class="msg assistant">
+      <div class="msg-role">ASSISTANT · research 引擎输出</div>
+      <div class="markdown-body">
+        <h1>解压玩具类目调研总结（TikTok 美区）</h1>
+        <h2>一、类目规模判定</h2>
+        <p>TikTok 美区 <code>#fidget</code> 话题播放量高位，低价冲动类目（$5–20）流量仍大，但竞争已进入红海。</p>
+        <blockquote>
+          <p>结论：类目成立但竞争已红海，入场窗口取决于差异化，而非流量红利。</p>
+        </blockquote>
+        <h3>1.1 需求端</h3>
+        <ul>
+          <li><code>#fidget</code> 标签播放量 <strong>128B+</strong>、<code>#squishy</code> 42B+（截至 2026-07）</li>
+          <li>用户画像：18–34 女性为主，解压属性叠加"桌面装饰"心智</li>
+          <li>短视频爆量率：近 90 天头部视频 &gt;500 万播放占比上升</li>
+        </ul>
+        <h3>1.2 供给侧</h3>
+        <table>
+          <thead><tr><th>指标</th><th>数据</th><th>备注</th></tr></thead>
+          <tbody>
+            <tr><td>1688 价格带</td><td>¥3–8</td><td>不含空运头程</td></tr>
+            <tr><td>头部达人佣金</td><td>15–25%</td><td>美区联盟标准</td></tr>
+            <tr><td>在售 SKU 密度</td><td>高（同质化严重）</td><td>多为爆款仿款</td></tr>
+          </tbody>
+        </table>
+        <h2>二、毛利核算（$ 计）</h2>
+        <p>客单价 $9.99，1688 ¥5，摊薄后毛利 ≈ <strong>47%</strong>：</p>
+        <table>
+          <thead><tr><th>项目</th><th>金额</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td>售价</td><td>$9.99</td><td>冲动价位</td></tr>
+            <tr><td>商品成本</td><td>$0.70</td><td>¥5 按 7.2 汇率</td></tr>
+            <tr><td>物流（海小包）</td><td>$2.10</td><td>深圳→美西</td></tr>
+            <tr><td>平台佣金</td><td>$1.80</td><td>18%</td></tr>
+            <tr><td>CPA</td><td>$3.00</td><td>素材导向，摊薄</td></tr>
+          </tbody>
+        </table>
+        <blockquote>
+          <p>口径冲突：上表 CPA 按爆量摊薄计；首单 CPA 实测 $5–8，回本周期 2–3 单。</p>
+        </blockquote>
+        <hr>
+        <h2>Round 2 · 反证检查</h2>
+        <ul>
+          <li>反证 1：冲动购买退货率高，塑料件破损客诉集中</li>
+          <li>反证 2：达人报价 6 月起上涨约 30%</li>
+          <li>反证 3：1688 同款搜到 40+ 家同价竞争</li>
+        </ul>
+        <details>
+          <summary>证据明细（点击展开）</summary>
+          <p>标签播放量来源：FastMoss 2026-07 抓取；退货率来自 3 个同类卖家访谈；达人报价来自 5 份 2026-06 后报价单。</p>
+        </details>
+        <h2>三、结论与下一步</h2>
+        <ol>
+          <li>条件式入场：先测 3 款差异化 SKU（光效/组合装）</li>
+          <li>若 2 周 CPA &gt; $6 → 止损退出</li>
+          <li>用 skill 沉淀本次判断，后续同类任务直接复用</li>
+        </ol>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ==================== 右栏：v2 ==================== -->
+<div class="pane new">
+  <div class="pane-tag">v2 排版克制版 <span class="hint">灰阶 · 间距节奏 · 无装饰</span></div>
+  <div class="pane-scroll">
+    <div class="msg user">
+      <div class="msg-role">YOU</div>
+      评估一下解压玩具类目（fidget）要不要进 TikTok 美区，给结论。
+    </div>
+    <div class="msg assistant">
+      <div class="msg-role">ASSISTANT · research 引擎输出</div>
+      <div class="markdown-body">
+        <h1>解压玩具类目调研总结（TikTok 美区）</h1>
+
+        <h2>一、类目规模判定</h2>
+        <p>TikTok 美区 <code>#fidget</code> 话题播放量高位，低价冲动类目（$5–20）流量仍大，但竞争已进入红海。</p>
+        <p><strong>结论：</strong>类目成立但竞争已红海，入场窗口取决于差异化，而非流量红利。</p>
+
+        <h3>1.1 需求端</h3>
+        <ul>
+          <li><code>#fidget</code> 标签播放量 <strong>128B+</strong>、<code>#squishy</code> 42B+（截至 2026-07）</li>
+          <li>用户画像：18–34 女性为主，解压属性叠加"桌面装饰"心智</li>
+          <li>短视频爆量率：近 90 天头部视频 &gt;500 万播放占比上升</li>
+        </ul>
+
+        <h3>1.2 供给侧</h3>
+        <table>
+          <thead><tr><th>指标</th><th>数据</th><th>备注</th></tr></thead>
+          <tbody>
+            <tr><td>1688 价格带</td><td>¥3–8</td><td>不含空运头程</td></tr>
+            <tr><td>头部达人佣金</td><td>15–25%</td><td>美区联盟标准</td></tr>
+            <tr><td>在售 SKU 密度</td><td>高（同质化严重）</td><td>多为爆款仿款</td></tr>
+          </tbody>
+        </table>
+
+        <h2>二、毛利核算（$ 计）</h2>
+        <p>客单价 $9.99，1688 ¥5，摊薄后毛利 ≈ <strong>47%</strong>：</p>
+        <table>
+          <thead><tr><th>项目</th><th>金额</th><th>说明</th></tr></thead>
+          <tbody>
+            <tr><td>售价</td><td>$9.99</td><td>冲动价位</td></tr>
+            <tr><td>商品成本</td><td>$0.70</td><td>¥5 按 7.2 汇率</td></tr>
+            <tr><td>物流（海小包）</td><td>$2.10</td><td>深圳→美西</td></tr>
+            <tr><td>平台佣金</td><td>$1.80</td><td>18%</td></tr>
+            <tr><td>CPA</td><td>$3.00</td><td>素材导向，摊薄</td></tr>
+          </tbody>
+        </table>
+        <p><strong>口径冲突：</strong>上表 CPA 按爆量摊薄计；首单 CPA 实测 $5–8，回本周期 2–3 单。</p>
+
+        <hr>
+
+        <h2>Round 2 · 反证检查</h2>
+        <ul>
+          <li>反证 1：冲动购买退货率高，塑料件破损客诉集中</li>
+          <li>反证 2：达人报价 6 月起上涨约 30%</li>
+          <li>反证 3：1688 同款搜到 40+ 家同价竞争</li>
+        </ul>
+
+        <details>
+          <summary>证据明细（点击展开）</summary>
+          <div class="details-body">
+            标签播放量来源：FastMoss 2026-07 抓取；退货率来自 3 个同类卖家访谈；达人报价来自 5 份 2026-06 后报价单。
+          </div>
+        </details>
+
+        <h2>三、结论与下一步</h2>
+        <ol>
+          <li>条件式入场：先测 3 款差异化 SKU（光效/组合装）</li>
+          <li>若 2 周 CPA &gt; $6 → 止损退出</li>
+          <li>用 skill 沉淀本次判断，后续同类任务直接复用</li>
+        </ol>
+
+        <p class="conclusion"><strong>最终判断：</strong>条件式进入。类目流量真实但毛利被 CPA 侵蚀，先小批量测差异化 SKU，跑通再放量。</p>
+
+        <div class="source-ref">
+          来源：<a href="#">FastMoss 标签数据</a> · <a href="#">卖家访谈 ×3</a> · <a href="#">达人报价单 ×5</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+</div>
+</body>
+</html>

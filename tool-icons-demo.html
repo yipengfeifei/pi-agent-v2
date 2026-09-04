@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8"/>
+<title>工具图标一览</title>
+<style>
+  body { background: #1a1a1a; color: #e5e7eb; font: 14px -apple-system, "PingFang SC", sans-serif; padding: 32px; }
+  h1 { font-size: 17px; margin-bottom: 4px; }
+  .sub { color: #6b7280; font-size: 12.5px; margin-bottom: 24px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 12px; max-width: 1000px; }
+  .card { background: #242424; border: 1px solid #3a3a3a; border-radius: 10px; padding: 14px 12px; text-align: center; }
+  .card.new { border-color: #60a5fa; background: #20262f; }
+  .card .tag { font-size: 9px; color: #60a5fa; background: rgba(96,165,250,.12); border-radius: 4px; padding: 1px 6px; margin-bottom: 6px; display: inline-block; }
+  .card svg { margin: 6px auto 8px; display: block; }
+  .name { font-size: 12px; color: #e5e7eb; }
+  .lucide-name { font-size: 10px; color: #6b7280; margin-top: 2px; }
+  .note { margin-top: 24px; max-width: 1000px; padding: 12px 14px; border: 1px dashed #3a3a3a; border-radius: 8px; font-size: 12px; color: #9ca3af; }
+  .note b { color: #e5e7eb; }
+</style>
+</head>
+<body>
+<h1>工具图标一览</h1>
+<div class="sub">新增（research/取证员/浏览器/搜索/脚本）带蓝色高亮；其余为原有。全部 lucide 风格（stroke 2px, 24×24）。</div>
+<div class="grid" id="g"></div>
+<div class="note"><b>说明：</b>bash 是万能壳——命令内容会被前端识别为虚拟类型（ego-browser→browser 网页图标、anysearch→search、curl→http、python3→python、node→terminal），图标+文字一起换。真正的 browser 工具（后端封装中）也会用网页图标。</div>
+<script>
+const ICONS = {
+  "read（读文件）": ['<path d="M12 5v16"/><path d="M20.001 19A2 2 0 0 0 22 17V5a2 2 0 0 0-1.999-2L16 3.002A5 5 0 0 0 12 5a5 5 0 0 0-4-2H4a2 2 0 0 0-2 2v12a2 2 0 0 0 1.999 2H8a5 5 0 0 1 4 2 5 5 0 0 1 4-2z"/>', false],
+  "write（写文件）": ['<path d="M12 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.375 2.625a1 1 0 0 1 3 3l-9.013 9.014a2 2 0 0 1-.853.505l-2.873.84a.5.5 0 0 1-.62-.62l.84-2.873a2 2 0 0 1 .506-.852z"/>', false],
+  "bash（命令）": ['<path d="M12 19h8"/><path d="m4 17 6-6-6-6"/>', false],
+  "browser（浏览器操作）": ['<path d="M12.034 12.681a.498.498 0 0 1 .647-.647l9 3.5a.5.5 0 0 1-.033.943l-3.444 1.068a1 1 0 0 0-.66.66l-1.067 3.443a.5.5 0 0 1-.943.033z"/><path d="M5 3a2 2 0 0 0-2 2"/><path d="M19 3a2 2 0 0 1 2 2"/><path d="M5 21a2 2 0 0 1-2-2"/><path d="M9 3h1"/><path d="M9 21h2"/><path d="M14 3h1"/><path d="M3 9v1"/><path d="M21 9v2"/><path d="M3 14v1"/>', true, "square-dashed-mouse-pointer"],
+  "search（搜索）": ['<circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/>', true, "search"],
+  "python（运行脚本）": ['<polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/>', true, "code"],
+  "terminal（node）": ['<polyline points="4 17 10 11 4 5"/><line x1="12" x2="20" y1="19" y2="19"/>', true, "terminal"],
+  "http_request（HTTP）": ['<circle cx="12" cy="12" r="10"/><path d="M12 2a14.5 14.5 0 0 0 0 20 14.5 14.5 0 0 0 0-20"/><path d="M2 12h20"/>', false, "globe"],
+  "research（专家研究）": ['<path d="M6 18h8"/><path d="M3 22h18"/><path d="M14 22a7 7 0 1 0 0-14h-1"/><path d="M9 14h2"/><path d="M9 12a2 2 0 0 1-2-2V6h6v4a2 2 0 0 1-2 2Z"/><path d="M12 6V3a1 1 0 0 0-1-1H9a1 1 0 0 0-1 1v3"/>', true, "microscope"],
+  "subagent（取证员）": ['<circle cx="10" cy="7" r="4"/><path d="M10.3 15H7a4 4 0 0 0-4 4v2"/><circle cx="17" cy="17" r="3"/><path d="m21 21-1.9-1.9"/>', true, "user-search"],
+  "plan（拆解任务）": ['<path d="M13 5h8"/><path d="M13 12h8"/><path d="M13 19h8"/><path d="m3 17 2 2 4-4"/><rect x="3" y="4" width="6" height="6" rx="1"/>', false],
+  "worker（节点执行）": ['<path d="M12 8V4H8"/><rect width="16" height="12" x="4" y="8" rx="2"/><path d="M2 14h2"/><path d="M20 14h2"/><path d="M15 13v2"/><path d="M9 13v2"/>', false],
+  "node（节点）": ['<rect x="16" y="16" width="6" height="6" rx="1"/><rect x="2" y="16" width="6" height="6" rx="1"/><rect x="9" y="2" width="6" height="6" rx="1"/><path d="M5 16v-3a1 1 0 0 1 1-1h12a1 1 0 0 1 1 1v3"/><path d="M12 12V8"/>', false],
+  "grep（搜索文件）": ['<path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/><path d="m16 16-1.9-1.9"/>', false],
+  "find（查找文件）": ['<path d="M10.7 20H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H20a2 2 0 0 1 2 2v4.1"/><path d="m21 21-1.9-1.9"/><circle cx="17" cy="17" r="3"/>', false],
+  "ls（列出目录）": ['<path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/>', false],
+  "artifact（产物）": ['<path d="M13.659 22H18a2 2 0 0 0 2-2V8a2.4 2.4 0 0 0-.706-1.706l-3.588-3.588A2.4 2.4 0 0 0 14 2H6a2 2 0 0 0-2 2v11.5"/><path d="M14 2v5a1 1 0 0 0 1 1h5"/><path d="M8 12v-1"/><path d="M8 18v-2"/><path d="M8 7V6"/><circle cx="8" cy="20" r="2"/>', false],
+};
+const g = document.getElementById('g');
+for (const [name, [path, isNew, lucideName]] of Object.entries(ICONS)) {
+  const card = document.createElement('div');
+  card.className = 'card' + (isNew ? ' new' : '');
+  card.innerHTML = (isNew ? '<span class="tag">新</span>' : '') +
+    `<svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#9ca3af" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">${path}</svg>` +
+    `<div class="name">${name}</div>` +
+    (lucideName ? `<div class="lucide-name">lucide: ${lucideName}</div>` : '');
+  g.appendChild(card);
+}
+</script>
+</body>
+</html>
