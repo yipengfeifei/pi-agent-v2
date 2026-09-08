@@ -14,3 +14,6 @@ electron/dist/
 !.env.example
 frontend/.next-app/
 *.tsbuildinfo
+
+# 构建产物：backend 唯一源在根 backend/，electron/backend 由 build-app.mjs 生成
+electron/backend/

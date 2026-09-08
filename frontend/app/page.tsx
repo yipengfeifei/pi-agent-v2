@@ -18,7 +18,7 @@ import { BorderGlow } from "@/components/BorderGlow";
 import { ArtifactPreview, type ArtifactPreviewData } from "@/components/ArtifactPreview";
 
 export default function ChatPage() {
-  const { ready, reconnecting, sessionId, sessionCwd, busy, currentTurnId, endedTurns, entries, error, graph, artifacts, skills, models, templates, sidebar, mode, prompt, steer, abort, newSession, toggleSkill, switchSession, renameSession, deleteSession, createProject, nodeStreams, researchRounds, searchSources, setApiKey, setCustomProvider, saveTemplate, loadTemplate, readArtifact, branch, runCommand } =
+  const { ready, reconnecting, sessionId, sessionCwd, busy, currentTurnId, endedTurns, entries, error, graph, artifacts, sessionFiles, skills, models, templates, sidebar, mode, prompt, steer, abort, newSession, toggleSkill, switchSession, renameSession, deleteSession, deleteProject, createProject, nodeStreams, researchRounds, searchSources, setApiKey, setCustomProvider, saveTemplate, loadTemplate, readArtifact, branch, runCommand } =
     usePiSession();
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -187,6 +187,7 @@ export default function ChatPage() {
           activeSessionId={null}
           onSwitch={() => {}}
           onDelete={() => {}}
+          onDeleteProject={deleteProject}
           onRename={() => {}}
           onNewSession={() => {}}
           onNewProject={createProject}
@@ -223,6 +224,7 @@ export default function ChatPage() {
         projectName={sessionCwd.split("/").pop() || sessionCwd}
         onSwitch={switchSession}
         onDelete={deleteSession}
+        onDeleteProject={deleteProject}
         onRename={renameSession}
         onNewSession={(cwd) => newSession(undefined, cwd ?? sessionCwd ?? undefined)}
         onNewProject={createProject}
@@ -243,16 +245,16 @@ export default function ChatPage() {
         onMouseLeave={() => setTopOpen(false)}
       >
         <span style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", justifyContent: "flex-end" }}>
-          {/* Artifact 会话级入口：始终显示，不依赖画布/产物数量（产物数据源缺口见上方注释） */}
+          {/* 会话文件入口：始终显示；列出本次会话写过的所有文件（技能/交付物/中间文件都算） */}
           <button
             onClick={() => setArtifactsOpen((v) => !v)}
-            title="Artifacts"
+            title="会话文件：本次会话写入/登记的所有文件"
             style={{
               fontSize: 12, padding: "5px 10px", background: "transparent", border: "none", borderRadius: 8,
               ...(artifactsOpen ? { background: "linear-gradient(90deg, rgba(255,255,255,0.28), rgba(255,255,255,0.08) 70%, transparent)", color: "#fff" } : {}),
             }}
           >
-            Artifacts{artifacts.length > 0 ? ` (${artifacts.length})` : ""}
+            文件{sessionFiles.length > 0 ? ` (${sessionFiles.length})` : ""}
           </button>
           {graph.graph && (
             <div ref={canvasRef} style={{ position: "relative" }}>
@@ -326,11 +328,11 @@ export default function ChatPage() {
 
       <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0, position: "relative", paddingLeft: sideOpen ? 240 : 16, paddingTop: topOpen ? 50 : 16, overflow: "hidden", transition: "padding-left 0.28s ease, padding-top 0.28s ease" }}>
 
-        {/* Artifact 条（顶部产物栏）：绝对定位在顶栏条下方（top 48 > 顶栏展开高度 47），永不遮挡、不挤正文 */}
+        {/* 会话文件条：写过的文件都可见；交付物（白名单）带徽标，技能/过程文件只显示文件名 */}
         {artifactsOpen && (
           <div style={{ position: "absolute", top: 48, left: 20, right: 20, zIndex: 15, display: "flex", gap: 10, flexWrap: "wrap" }}>
-            {artifacts.length > 0 ? (
-              artifacts.map((a) => (
+            {sessionFiles.length > 0 ? (
+              sessionFiles.map((a) => (
                 <button
                   key={a}
                   onClick={() => openFile(a)}
@@ -343,11 +345,12 @@ export default function ChatPage() {
                   }}
                   title={a}
                 >
-                  📄 {a.split("/").pop()}
+                  {artifacts.includes(a) ? "📦 " : "📄 "}{a.split("/").pop()}
+                  {artifacts.includes(a) && <span style={{ marginLeft: 6, fontSize: 10, opacity: 0.7 }}>交付物</span>}
                 </button>
               ))
             ) : (
-              <p style={{ margin: 0, fontSize: 12, color: "var(--text-muted)" }}>暂无产物文件</p>
+              <p style={{ margin: 0, fontSize: 12, color: "var(--text-muted)" }}>暂无会话文件</p>
             )}
           </div>
         )}
@@ -480,7 +483,7 @@ export default function ChatPage() {
       {panels}
 
       {/* 产物预览弹层（会话级 Artifact 条与画布节点详情共用） */}
-      <ArtifactPreview preview={preview} error={previewErr} onClose={() => setPreview(null)} />
+      <ArtifactPreview preview={preview} error={previewErr} onClose={() => { setPreview(null); setPreviewErr(""); }} />
 
     </div>
   );

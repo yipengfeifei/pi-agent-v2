@@ -359,3 +359,55 @@ page from public records; happy to share a sample report format if useful.
 
 **处理四步**：① 不点不填 ② 消息内 Report（Phishing/Scam）③ 忽略不回复 ④ 真订单只认站内 Orders 页。
 **红线**：Fiverr 全流程站内完成；站外链接=诈骗，无例外。
+
+---
+
+## H. X 与 YouTube 回复弹药包（复制即发 · 半自动：你粘贴发送）
+
+> X 与 YouTube 评论区在自动化环境不稳定，Reddit 已全自动 20 条；这里给 20+20 条可复制文案。X 每条 ≤280 字；YouTube 无字符限制。
+> 怎么快速找目标：X 用 hashtag 搜索 `#AmazonFBA / #dropshipping / #supplychain / #sourcing` 下的求助帖（发帖人不是同行服务商的优先）；YouTube 去近两周的 "How to source from China / Amazon FBA tutorial / dropshipping 2026" 视频评论区回提问。
+
+### H1. X 回复（20 条 · 每条≤280 字）
+1. Finding suppliers: normalize every quote to one table (unit, MOQ, incoterms) before comparing. Cheap prices hide test fees and freight. (dm open)
+2. Before wiring money: registration, operating years, address match, disputes. One-page check, public records.
+3. "Cheapest" quotes on Alibaba often aren't. Ask for unit weight + per-carton freight. I've seen 40% gaps.
+4. Suppliers that ghost you on follow-ups? Red flag. Demand written mom quote / turnaround in the PO.
+5. Pre-production sample ≠ bulk. Put specs + inspection step in writing.
+6. New to sourcing? Start with ONE product, 3 normalized quotes, one desk-checked factory.
+7. 1688 pricing beats Alibaba for China-internal categories - if you can navigate it.
+8. Port of entry matters: FOB vs EXW vs DDP changes your landed cost by a lot. Normalize first.
+9. Most "supplier gone silent" stories trace back to skipped verification. 5 minutes of checks.
+10. MOQ is a trap if you don't compare it to per-carton cost. Same product, different reality.
+11. AI product images: keep hero angle + lighting consistent or gallery looks like 5 products.
+12. Messy listings die on image before copy. White-bg hero + 2 scenes beats 10 random photos.
+13. You don't need 6 creatives to test. One structured ad (hook-pain-CTA) tests cleaner.
+14. $1200 to test creatives? One well-built AI UGC ad starts way below that. Test once, scale what works.
+15. Chat in Chinese with suppliers? Translate + highlight key terms (price, freight, MOQ) before asking.
+16. A "bilingual agent" that just translates ≠ one that negotiates. Ask for prior confirmed price sheets.
+17. Background check before deposit: do it desk-side, no need to pay for on-site first.
+18. Sample policy in writing - real factories say yes to small negotiable samples.
+19. Sourcing at scale starts with averaging 3 factories per SKU, not 1 "winner".
+20. Landed cost calculator > supplier price. Duty + freight + test fees decide the winner. Happy to share the sheet.
+（每条后可配 DM 钩子，勿写在公开推上；有人回复再做 DM。）
+
+### H2. YouTube 评论文案（20 条 · 长短皆可 · 改一句贴合视频）
+1. Sorting supplier quotes is the biggest time sink in this business - normalize them (unit, MOQ, incoterms) into one table and decisions get 10x easier.
+2. The real factory rarely shows up on page one of Alibaba. Vet by registration + follow-through, not by ad placement.
+3. Cheap quotes hide test fees and freight. Ask every supplier for unit weight and per-carton cost.
+4. Before a penny moves: registration check, operating years, address match. 10 minutes, public records.
+5. A perfect pre-production sample is a good sign, not a guarantee - write the specs into the PO.
+6. If a supplier ghosts follow-ups, that tells you everything about the next 6 months.
+7. For small sellers the play is: one product, three quotes, one verified factory. Skip the catalog.
+8. Moq comparisons only make sense per-carton, not unit price.
+9. FOB vs EXW vs DDP can swing your margin 30%. Always ask landed cost, not sticker price.
+10. AI product photos need consistency: same angle, same lighting, or the store looks untrustworthy.
+11. Listing CTR is mostly decided by the first image. Phone shots lose sales before copy is read.
+12. People over-invest in store design and under-invest in product photos and supplier reliability.
+13. Testing 6 ad creatives costs thousands; one structured test (hook-pain-CTA) gets you actionable data for less.
+14. AI UGC ads are fine for testing, but keep the product claim honest and the hook specific.
+15. Translation alone isn't negotiation - highlight price, freight, MOQ changes and watch the suffix.
+16. A background check before deposit is the cheapest insurance in importing.
+17. Sample policies tell you who's real: real factories accept small negotiable sample orders.
+18. For consistency across scenes, lock the environment: same desk, same light, same device.
+19. Most supplier "disappearances" start months earlier with skipped checks. Do the early homework.
+20. Building a brand? Landed cost + QC beats the lowest quote, every time.

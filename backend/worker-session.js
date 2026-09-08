@@ -4,6 +4,7 @@
 import { AuthStorage, ModelRegistry, SessionManager, createAgentSession } from "@earendil-works/pi-coding-agent";
 import { httpRequestTool, appSnapshotTool } from "./tools/runtime-tools.js";
 import { searchTool } from "./tools/search.js";
+import { factreachTool } from "./tools/factreach.js";
 import { browserTool } from "./tools/browser.js";
 import { siteMemoryTool } from "./tools/site-memory.js";
 import { isArtifact } from "./artifacts.js";
@@ -13,62 +14,52 @@ import { isArtifact } from "./artifacts.js";
 const workerSessions = new Map(); // key(父 sessionId) -> worker session
 const queues = new Map(); // key -> 串行队列（防同父会话节点互相踩上下文）
 
-// 弱模型优先级（便宜 + 支持工具调用）；环境变量 WORKER_MODEL="provider/id" 可覆盖
-const WORKER_MODEL_PREFERENCE = [
-  "opencode-go/deepseek-v4-flash",
-  "openai/gpt-5.4-nano",
-  "openai/gpt-5-nano",
-  "openai/gpt-4.1-nano",
-];
-
-async function pickWorkerModel(mr) {
+// worker 模型选择：默认跟随主会话模型（调用方传入 model）；用户可用环境变量 WORKER_MODEL="provider/id" 显式覆盖；
+// 都不指定时交给 SDK 连接默认模型。
+// ponytail: 曾用固定候选列表+回退，踩过 gpt-5.x-nano 空输出坑，跟随主会话是最简正确默认。
+function pickWorkerModel(mr, model) {
   const explicit = process.env.WORKER_MODEL;
   if (explicit) {
     const [provider, id] = explicit.split("/");
     const m = mr.find(provider, id);
     if (m) return m;
+    console.warn(`[worker] WORKER_MODEL=${explicit} 未找到，回退默认`);
   }
-  const avail = await mr.getAvailable();
-  for (const key of WORKER_MODEL_PREFERENCE) {
-    const [provider, id] = key.split("/");
-    const found = avail.find((m) => m.provider === provider && m.id === id);
-    if (found) return mr.find(found.provider, found.id);
-  }
-  return null; // 回退默认模型
+  return model ?? null; // null = SDK 连接默认模型
 }
 
-export async function getWorkerSession({ cwd, key }) {
+export async function getWorkerSession({ cwd, key, model }) {
   const k = key ?? cwd;
   if (workerSessions.has(k)) return workerSessions.get(k);
   const auth = AuthStorage.create();
   const mr = ModelRegistry.create(auth);
-  const model = await pickWorkerModel(mr);
+  const m = pickWorkerModel(mr, model);
   const { session } = await createAgentSession({
     cwd,
-    model,
+    model: m,
     sessionManager: SessionManager.inMemory(),
     authStorage: auth,
     modelRegistry: mr,
-    tools: ["read", "bash", "write", "grep", "find", "ls", "http_request", "execution_app_snapshot", "search", "site_memory", "browser"],
-    customTools: [httpRequestTool, appSnapshotTool, searchTool, siteMemoryTool, browserTool],
+    tools: ["read", "bash", "write", "grep", "find", "ls", "http_request", "execution_app_snapshot", "search", "factreach", "site_memory", "browser"],
+    customTools: [httpRequestTool, appSnapshotTool, searchTool, factreachTool, siteMemoryTool, browserTool],
   });
   workerSessions.set(k, session);
   return session;
 }
 
 // 一次性隔离会话：subagent 并发用（每个任务独立会话，不撞互斥锁）
-export async function createIsolatedSession({ cwd, systemBlock, materialsBlock }) {
+export async function createIsolatedSession({ cwd, systemBlock, materialsBlock, model }) {
   const auth = AuthStorage.create();
   const mr = ModelRegistry.create(auth);
-  const model = await pickWorkerModel(mr);
+  const m = pickWorkerModel(mr, model);
   const { session } = await createAgentSession({
     cwd,
-    model,
+    model: m,
     sessionManager: SessionManager.inMemory(),
     authStorage: auth,
     modelRegistry: mr,
-    tools: ["read", "bash", "write", "grep", "find", "ls", "http_request", "execution_app_snapshot", "search", "site_memory", "browser"],
-    customTools: [httpRequestTool, appSnapshotTool, searchTool, siteMemoryTool, browserTool],
+    tools: ["read", "bash", "write", "grep", "find", "ls", "http_request", "execution_app_snapshot", "search", "factreach", "site_memory", "browser"],
+    customTools: [httpRequestTool, appSnapshotTool, searchTool, factreachTool, siteMemoryTool, browserTool],
   });
   try {
     session.agent.state.messages = [
@@ -92,10 +83,10 @@ export async function createIsolatedSession({ cwd, systemBlock, materialsBlock }
   }
 }
 
-export async function runNode({ cwd, systemBlock, materialsBlock, onProgress, nodeType, key }) {
+export async function runNode({ cwd, systemBlock, materialsBlock, onProgress, nodeType, key, model }) {
   const k = key ?? cwd;
   const task = (queues.get(k) ?? Promise.resolve()).then(async () => {
-    const session = await getWorkerSession({ cwd, key: k });
+    const session = await getWorkerSession({ cwd, key: k, model });
     // 干净上下文 = 替换，不是追加
     session.agent.state.messages = [
       { role: "user", content: [{ type: "text", text: systemBlock }] },

@@ -121,6 +121,7 @@ export function createWorkerTool({ getSession, cwd }) {
       const { text: resultText, artifacts } = await runNode({
         cwd,
         key: session.sessionId, // 按父会话隔离 worker 常驻会话（多会话并行不串）
+        model: session.model, // 跟随主会话模型（WORKER_MODEL 环境变量可覆盖）
         systemBlock,
         materialsBlock,
         nodeType: node.type, // Artifact 判定：只收产出型节点写出的交付物

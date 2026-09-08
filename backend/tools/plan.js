@@ -153,7 +153,7 @@ export function createPlanTool({ cwd, getSession }) {
       const historyBlock = params.history ? `\n\n## 已收集信息（来自与用户的对话）\n${params.history}` : "";
       const materialsBlock = `## 用户目标\n${params.goal}${historyBlock}${priorPlanContext(session)}`;
       const attempt = await runPlanWithRetry(
-        (block) => runNode({ cwd, systemBlock: STAGE_PROMPT, materialsBlock: block }),
+        (block) => runNode({ cwd, systemBlock: STAGE_PROMPT, materialsBlock: block, model: session?.model }),
         materialsBlock
       );
       if (!attempt.ok) {

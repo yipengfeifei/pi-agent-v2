@@ -30,6 +30,8 @@
 
 ## 4. V2 骨架
 
+> **单一事实源（必读，防漂移）**：`backend/`（根目录）是唯一可维护的后端源码；`electron/backend/` 与 `electron/dist/` 是 `npm run build:app` 生成的构建产物，**禁止手工修改**。改 backend 后运行 `cd electron && npm run build:app` 重新生成产物；文档与代码脱节时改文档对齐代码，不追加“已知偏差”说明。
+
 ```
 backend/  server.js（~110 行 WS 事件桥 + pi SDK） 端口 4700
   ├─ 命令：prompt / steer / followUp / abort / new_session

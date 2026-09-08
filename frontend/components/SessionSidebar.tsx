@@ -103,7 +103,7 @@ function SessionRow({
         <button
           onClick={(e) => {
             e.stopPropagation();
-            if (confirm(`删除会话 ${s.firstMessage?.slice(0, 20) || ""}？`)) onDelete(s.path);
+            onDelete(s.path);
           }}
           title="删除会话（双击名称可改名）"
           style={{
@@ -166,6 +166,7 @@ export function SessionSidebar({
   projectName,
   onSwitch,
   onDelete,
+  onDeleteProject,
   onRename,
   onNewSession,
   onNewProject,
@@ -179,6 +180,7 @@ export function SessionSidebar({
   projectName?: string;
   onSwitch: (path: string) => void;
   onDelete: (path: string) => void;
+  onDeleteProject: (cwd: string) => void;
   onRename: (id: string, name: string) => void;
   onNewSession: (cwd?: string) => void;
   onNewProject: (cwd: string, name: string) => void;
@@ -330,13 +332,11 @@ export function SessionSidebar({
                           }}
                           onMouseEnter={(e) => {
                             if (!activeInProj) e.currentTarget.style.background = GRAD_HOVER;
-                            const n = e.currentTarget.querySelector("button");
-                            if (n) n.style.opacity = "1";
+                            e.currentTarget.querySelectorAll("button").forEach((b) => (b.style.opacity = "1"));
                           }}
                           onMouseLeave={(e) => {
                             if (!activeInProj) e.currentTarget.style.background = "transparent";
-                            const n = e.currentTarget.querySelector("button");
-                            if (n) n.style.opacity = "0";
+                            e.currentTarget.querySelectorAll("button").forEach((b) => (b.style.opacity = "0"));
                           }}
                         >
                           <span style={{ flexShrink: 0, fontSize: 10, color: "#8a8a96", width: 10 }}>{exp ? "▼" : "▶"}</span>
@@ -358,6 +358,21 @@ export function SessionSidebar({
                             }}
                           >
                             ＋
+                          </button>
+                          <button
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              onDeleteProject(p.cwd);
+                            }}
+                            title="删除项目（仅移出列表，会话移回最近聊天，不删磁盘文件）"
+                            style={{
+                              opacity: 0, flexShrink: 0, width: 22, height: 22,
+                              display: "flex", alignItems: "center", justifyContent: "center",
+                              background: "none", border: "none", padding: 0,
+                              color: "#8a8a96", fontSize: 15, cursor: "pointer", transition: "opacity 0.12s",
+                            }}
+                          >
+                            ✕
                           </button>
                           </div>
                         </GlareHover>

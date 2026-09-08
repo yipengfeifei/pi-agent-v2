@@ -2,7 +2,7 @@
 import { readFileSync, writeFileSync } from "node:fs";
 import crypto from "node:crypto";
 
-const key = "sk-wTEiZQwpqUsQtolYoSw3y68IFeQiNbPRTYcRDqqfEI0yTuHmqK4nzaVhudiqNkFg";
+const key = "sk-769u9G7CMWtixq0ro9RWLBoSZugAYCM1uwqp1m2iZy4EuZhKbqYXHoowrtGbmZbJ";
 const task = "我最近一直在尝试做一款游戏。这款游戏呢，我一开始是想做成从细胞到奇点那样子的游戏。但是做着做着我觉得发现我缺少很多3D的资源，我没有办法做到像从细胞到奇点那样的视觉丰富度、可玩性。所以呢，我想了一个替代方案，就是因为我做的东西不是从细胞到奇点这种演化路径，我做的是各种学科、各种文明的演化路径。所以呢，我觉得我可以在做一个游戏，然后这个游戏端口呢，可以有一些角色进行互动。比如说我是一个领主，然后这个领地里面有一些5个人，然后这5个人分别是药剂师，然后铁匠之类的。然后呢，我是带领这些领地里的人民。从石器时代的文明程度一路发展，然后一直扩大自己的领地，提高居民的幸福度为主线。然后呢，我去以此为推动力，让玩家在这个科技和文明两条支线里面不停的去加点解锁内容。因为加点解锁内容之后呢，就可以去解决在游戏端口各种领地里面的人民，他们口里抱怨的事情就可以被解决。现在我需要你去进行一些了解，了解完之后呢。给我完整的策划方案，以及你觉得我需要去做哪一些事情。";
 
 const body = {

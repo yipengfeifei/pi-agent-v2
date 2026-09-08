@@ -136,8 +136,9 @@ export type PiTemplate = {
 type Incoming =
   | { type: "ready"; sessionId: string; sessionFile: string; mode?: string; cwd?: string; modelFallbackMessage?: string }
   | { type: "error"; message: string }
-  | { type: "artifacts"; artifacts: string[] }
+  | { type: "artifacts"; artifacts: string[]; sessionFiles?: string[] }
   | { type: "artifact_added"; path: string }
+  | { type: "session_file_added"; path: string }
   | { type: "artifact_content"; path: string; kind: string; data: string; ext: string }
   | { type: "graph"; graph: { nodes?: PiNode[] } | null; outputs: Array<{ nodeId?: string; output?: string; artifacts?: string[] }> }
   | { type: "skills"; skills: PiSkill[] }
@@ -151,6 +152,7 @@ type Incoming =
   | { type: "session_renamed"; sessionId: string; name: string }
   | { type: "session_moved"; sessionFile: string; cwd: string; targetFile: string }
   | { type: "session_deleted"; sessionFile: string }
+  | { type: "project_deleted"; cwd: string }
   | { type: "history"; messages: Array<{ id: string; role: string; text: string; thinking?: string; toolName?: string; args?: unknown; status?: "running" | "done" | "error"; time: number; entryId?: string }> }
   | { type: "node_progress"; runId?: string; nodeId?: string; delta?: string; at?: number }
   | { type: "bash_progress"; toolCallId?: string; delta?: string }
@@ -188,6 +190,8 @@ export function usePiSession(wsUrl = `ws://127.0.0.1:${process.env.NEXT_PUBLIC_W
   const [graph, setGraph] = useState<PiGraph>({ graph: null, outputs: [], runningNodeId: null, blockedNodeIds: [] });
   // Artifact（会话级）：主会话 write 写出的文件 + 节点产出文件（get_artifacts / artifact_added 推送）
   const [artifacts, setArtifacts] = useState<string[]>([]);
+  // 会话文件：所有登记过的写入文件（含 .pi/技能/非白名单路径），前端「文件」面板数据源
+  const [sessionFiles, setSessionFiles] = useState<string[]>([]);
   // applyEvent 闭包用：最新图（事件回调不能依赖 state 闭包）
   const graphRef = useRef(graph);
   useEffect(() => {
@@ -278,10 +282,16 @@ export function usePiSession(wsUrl = `ws://127.0.0.1:${process.env.NEXT_PUBLIC_W
       }
       if (msg.type === "artifacts") {
         setArtifacts(msg.artifacts);
+        setSessionFiles(msg.sessionFiles ?? msg.artifacts);
         return;
       }
       if (msg.type === "artifact_added") {
         setArtifacts((prev) => (prev.includes(msg.path) ? prev : [...prev, msg.path]));
+        setSessionFiles((prev) => (prev.includes(msg.path) ? prev : [...prev, msg.path]));
+        return;
+      }
+      if (msg.type === "session_file_added") {
+        setSessionFiles((prev) => (prev.includes(msg.path) ? prev : [...prev, msg.path]));
         return;
       }
       if (msg.type === "skills") {
@@ -305,6 +315,10 @@ export function usePiSession(wsUrl = `ws://127.0.0.1:${process.env.NEXT_PUBLIC_W
           projects: prev.projects.map((p) => ({ ...p, sessions: p.sessions.filter((s) => s.path !== msg.sessionFile), sessionCount: Math.max(0, p.sessionCount - 1) })),
           recent: prev.recent.filter((s) => s.path !== msg.sessionFile),
         }));
+        return;
+      }
+      if (msg.type === "project_deleted") {
+        refreshSidebar(); // 项目移除后重拉（其下会话已移回最近聊天）
         return;
       }
       if (msg.type === "node_progress") {
@@ -520,6 +534,7 @@ export function usePiSession(wsUrl = `ws://127.0.0.1:${process.env.NEXT_PUBLIC_W
         setBusy(false);
         // 模型自然结束：显式标记当前回合已结束（前端直接监听，不靠 busy/currentTurnId 推断）
         setEndedTurns((prev) => new Set(prev).add(turnIdRef.current));
+        refreshSidebar(); // 首条回复落盘后刷新侧栏：新建项目会话名/计数实时更新
         break;
       case "message_update":
       case "message_end":
@@ -670,6 +685,11 @@ export function usePiSession(wsUrl = `ws://127.0.0.1:${process.env.NEXT_PUBLIC_W
       refreshSidebar();
     }
   }, [refreshSidebar]);
+  // 删除项目（侧边栏）：移除登记 + 会话移回最近聊天（后端完成后 project_deleted 事件触发重拉）
+  const deleteProject = useCallback((cwd: string) => {
+    const ws = wsRef.current;
+    if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "delete_project", cwd }));
+  }, []);
   // API/模型配置面板：拉 provider/模型目录 + 设 API key
   const refreshModels = useCallback(() => {
     const ws = wsRef.current;
@@ -707,6 +727,7 @@ export function usePiSession(wsUrl = `ws://127.0.0.1:${process.env.NEXT_PUBLIC_W
       nodeStreamsRef.current = {};
       setNodeStreams({});
       setArtifacts([]);
+      setSessionFiles([]);
       const ws = wsRef.current;
       if (ws?.readyState === WebSocket.OPEN) {
         ws.send(JSON.stringify({ type: "switch_session", sessionFile, mode: modeRef.current }));
@@ -761,6 +782,7 @@ export function usePiSession(wsUrl = `ws://127.0.0.1:${process.env.NEXT_PUBLIC_W
     nodeStreamsRef.current = {};
     setNodeStreams({});
     setArtifacts([]);
+    setSessionFiles([]);
     const ws = wsRef.current;
     if (ws?.readyState === WebSocket.OPEN) {
       ws.send(JSON.stringify({ type: "branch", entryId }));
@@ -835,5 +857,5 @@ export function usePiSession(wsUrl = `ws://127.0.0.1:${process.env.NEXT_PUBLIC_W
     [entries],
   );
 
-  return { connected, reconnecting, ready, sessionId, sessionCwd, busy, currentTurnId, endedTurns, entries: sorted, error, graph, artifacts, skills, models, templates, sidebar, mode, prompt, steer, abort, newSession, toggleSkill, switchSession, renameSession, deleteSession, createProject, nodeStreams, researchRounds, searchSources, setApiKey, setCustomProvider, saveTemplate, loadTemplate, readArtifact, setModel, compactSession, setQueue, branch, runCommand };
+  return { connected, reconnecting, ready, sessionId, sessionCwd, busy, currentTurnId, endedTurns, entries: sorted, error, graph, artifacts, sessionFiles, skills, models, templates, sidebar, mode, prompt, steer, abort, newSession, toggleSkill, switchSession, renameSession, deleteSession, deleteProject, createProject, nodeStreams, researchRounds, searchSources, setApiKey, setCustomProvider, saveTemplate, loadTemplate, readArtifact, setModel, compactSession, setQueue, branch, runCommand };
 }

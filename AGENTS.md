@@ -37,5 +37,6 @@
 - 一旦开工且意图信息充分，后续不要反复确认；用户发现方向不对会主动插入纠正。
 
 ## 约束
-- 简单任务禁止为了"显得专业"而调用 update_plan/plan/worker/research——重流程只给真正复杂的任务。
+- 简单任务禁止为了“显得专业”而调用 update_plan/plan/worker/research——重流程只给真正复杂的任务。
 - 研究型任务**禁止**用 plan 拆图执行（研究走 research，构建才走 plan）。
+- **单一事实源**：backend 唯一源在根 `backend/`；`electron/backend`、`electron/dist` 是 `npm run build:app`（在 `electron/` 下）生成的构建产物，禁止手工修改/打补丁。改完根 backend 后必须重新构建，产物才作数。
