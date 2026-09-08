@@ -24,6 +24,10 @@ import { createWorkerTool, nodeProgressEmitter } from "./tools/worker.js";
 import { createWaitTool } from "./tools/wait.js";
 import { searchTool } from "./tools/search.js";
 import { searchResultsEmitter } from "./tools/search.js";
+import { tavilySearchTool } from "./tools/tavily-search.js";
+import { factreachTool } from "./tools/factreach.js";
+import { readPageTool } from "./tools/read-page.js";
+import { inspectFileTool } from "./tools/inspect-file.js";
 import { browserTool } from "./tools/browser.js";
 import { siteMemoryTool } from "./tools/site-memory.js";
 import { createResearchTool } from "./tools/research.js";
@@ -56,6 +60,22 @@ const readSessionHeader = (filePath) => {
   } catch {
     return null;
   }
+};
+// 把一个会话文件移到目标 cwd 的归档目录（改写 header.cwd 为权威归属）
+const moveSessionFile = (sessionFile, targetCwd) => {
+  if (!existsSync(sessionFile)) throw new Error("会话文件不存在");
+  const target = path.resolve(targetCwd);
+  const targetDir = path.join(SESSIONS_ROOT(), encodeCwd(target));
+  mkdirSync(targetDir, { recursive: true });
+  const targetFile = path.join(targetDir, path.basename(sessionFile));
+  const raw = readFileSync(sessionFile, "utf8");
+  const nl = raw.indexOf("\n");
+  const header = JSON.parse(raw.slice(0, nl));
+  if (header?.type !== "session") throw new Error("非法会话文件");
+  header.cwd = target;
+  writeFileSync(targetFile, JSON.stringify(header) + raw.slice(nl));
+  unlinkSync(sessionFile);
+  return { targetFile, sessionId: header.id };
 };
 // 会话模式注册表：会话级 mode 持久化（{sessionId: "simple"}）。simple 会话重连/切换后仍按 simple 打开，
 // 不被前端当前模式带偏（前端刷新默认 normal，会把 simple 会话打开成 normal 全工具 + flash）
@@ -117,17 +137,14 @@ const setArtifactTarget = (handle) => {
 function registerArtifact(p, opts = {}) {
   const t = artifactTarget;
   if (!t) return;
-  if (!isArtifact(p, { cwd: t.cwd, ...opts })) return;
-  const origins = loadArtifactOrigins();
-  if (origins[p] && origins[p] !== t.sessionId) return; // 归属其他会话，不抢
-  if (!origins[p]) {
-    origins[p] = t.sessionId;
-    try {
-      saveArtifactOrigins(origins);
-    } catch {
-      // 注册表写失败不阻塞写入流程
-    }
+  // 会话文件：无论隐藏目录/扩展名白名单都登记（成熟做法：写过的文件都可见，交付物再加徽标）
+  try {
+    t.session.sessionManager.appendCustomEntry("session_file", { path: p, at: Date.now() });
+  } catch {
+    // sessionManager 未就绪时跳过持久化（推送照常）
   }
+  artifactSend?.({ type: "session_file_added", path: p });
+  if (!isArtifact(p, { cwd: t.cwd, ...opts })) return;
   try {
     t.session.sessionManager.appendCustomEntry("session_artifact", { path: p, at: Date.now() });
   } catch {
@@ -267,13 +284,14 @@ function classifyTask(text) {
 const PERSONA_SIMPLE =
   "You are a helpful software engineer assistant. User messages may be in Chinese; always reason and plan in English.\n"
   + "Never begin any reasoning block with \"let me\" or \"I will\". Begin every reasoning block with \"We need to\" or \"We should\" and keep planning in first-person plural (we). Reply to users in Chinese when they write in Chinese.\n"
-  + "Workflow: before making code/file changes, send a plan including how you will verify correctness (command/method; if not machine-verifiable, note the manual check). After finishing, report what you actually ran and the result. For pure Q&A / chat / greetings, skip this and answer directly.";
+  + "Workflow: before making code/file changes, send a plan including how you will verify correctness (command/method; if not machine-verifiable, note the manual check). After finishing, report what you actually ran and the result. For pure Q&A / chat / greetings, skip this and answer directly."
+  + "Build rule: backend source lives ONLY in repo-root backend/; electron/backend and electron/dist are generated artifacts of `npm run build:app` — never edit artifacts, always edit root backend then rebuild.";
 // 工具面按带收敛（仅影响解锁后的工具面，不影响首轮无工具锚定的 We 起手）：
 // react=write-first, spec=read-first, weak=read/edit/grep（防发散）
-// update_plan 纯记录零发散全档给；search 轻量检索全档给；research 多轮循环只给 read-first 的 spec
-const CORE_REACT = ["read", "write", "edit", "grep", "update_plan", "search"];
-const CORE_SPEC = ["read", "edit", "grep", "glob", "update_plan", "search", "research"];
-const CORE_WEAK = ["read", "edit", "grep", "update_plan", "search"];
+// update_plan 纯记录零发散全档给；取数类（search/tavily/factreach/research）按用户要求全档给
+const CORE_REACT = ["read", "write", "edit", "grep", "update_plan", "search", "tavily_search", "read_page", "inspect_file", "factreach", "research", "register_artifact"];
+const CORE_SPEC = ["read", "edit", "grep", "glob", "update_plan", "search", "tavily_search", "read_page", "inspect_file", "factreach", "research", "register_artifact"];
+const CORE_WEAK = ["read", "edit", "grep", "update_plan", "search", "tavily_search", "read_page", "inspect_file", "factreach", "research", "register_artifact"];
 function coreForBand(band) {
   switch (band) {
     case "react": return CORE_REACT;
@@ -385,7 +403,7 @@ wss.on("connection", async (ws) => {
     //           不用 spec 句（P11: spec-sentence weak persona 在 Flash 上反路由），
     //           不强制 We 定式（Flash 阈值式，进 spec 带即可；强定式加剧 greenfield 反路由）
     const simpleModel = mode === "simple-flash" ? "flash" : "pro"; // 旧 "simple" 视为 pro（历史行为）
-    const FULL_TOOLS = ["read", "bash", "edit", "write", "grep", "find", "ls", "plan", "update_plan", "worker", "wait_for", "subagent", "run_status", "search", "site_memory", "research", "browser"];
+    const FULL_TOOLS = ["read", "bash", "edit", "write", "grep", "find", "ls", "plan", "update_plan", "worker", "wait_for", "subagent", "run_status", "register_artifact", "search", "tavily_search", "read_page", "inspect_file", "factreach", "site_memory", "research", "browser"];
     let simpleLoader;
     if (isSimple) {
       simpleLoader = new DefaultResourceLoader({
@@ -413,6 +431,10 @@ wss.on("connection", async (ws) => {
       createWaitTool({ scheduleWakeup: (m, n) => scheduleWakeup(m, n, handle) }),
       createRunStatusTool({ getSession: () => handle.session }),
       searchTool,
+      tavilySearchTool,
+      factreachTool,
+      readPageTool,
+      inspectFileTool,
       siteMemoryTool,
       createResearchTool({ cwd: effCwd, getSession: () => handle.session }),
       browserTool,
@@ -576,6 +598,13 @@ wss.on("connection", async (ws) => {
   // 并发执行会互相覆盖 activeId（竞态：旧 open 晚完成把视图切回旧会话）
   let openChain = Promise.resolve();
   const open = (opts) => { const r = openChain.then(() => openHandle(opts)); openChain = r.catch(() => {}); return r; };
+  // 会话被移动后：作废旧句柄并从新位置重开（旧句柄继续写已删文件会双写/丢数据）
+  const reopenAfterMove = (moved, targetFile) => {
+    try { clearWakeups(moved); disposeWorkerSession(moved.session.sessionId); moved.unsubscribe?.(); moved.session.dispose(); } catch {}
+    handles.delete(moved.session.sessionId);
+    if (activeId === moved.session.sessionId) activeId = null;
+    open({ sessionFile: targetFile, mode: moved.mode }).then(activate).catch((err) => send({ type: "error", message: String(err?.message ?? err) }));
+  };
 
   // 连接建立：续最近会话（原行为保留；此后切换/新建都是加句柄，不杀旧会话）
   await open({}).then(activate).catch((err) => send({ type: "error", message: String(err?.message ?? err) }));
@@ -624,6 +653,16 @@ wss.on("connection", async (ws) => {
         activeId = null; // 先静音：旧会话尾部事件不再转发，避免污染新会话视图
         open({ fresh: true, mode: ["simple", "simple-pro", "simple-flash"].includes(msg.mode) ? msg.mode : "normal", cwd: msg.cwd }).then(async (h) => {
           saveSessionMode(h.session.sessionId, h.mode); // 会话级 mode 落盘，重连/切换后仍按会话自己的模式打开
+          if (msg.cwd) {
+            // 项目新会话立即写盘：否则 get_sidebar 在 ready 后看不到它，侧栏项目下永远是 0
+            // ponytail: 调私有 _rewriteFile（与 branch 同款），SDK 升级后若自动写盘可删。
+            // 必须同步置 flushed=true：否则首个 assistant 回复走 wx 创建分支会撞已存在文件（EEXIST）
+            try {
+              const sm = h.session.sessionManager;
+              sm._rewriteFile();
+              sm.flushed = true;
+            } catch {}
+          }
           await activate(h);
         }).catch((err) => send({ type: "error", message: String(err?.message ?? err) }));
         break;
@@ -636,6 +675,29 @@ wss.on("connection", async (ws) => {
         }
         registerProject(cwd, String(msg.name || "").trim() || undefined);
         send({ type: "project_created" });
+        break;
+      }
+      case "delete_project": {
+        // 项目删除：从注册表移除；其下会话移回「最近聊天」（不删磁盘文件），避免历史会话从侧边栏消失
+        try {
+          const cwd = path.resolve(String(msg.cwd || ""));
+          const defaultCwd = path.resolve(CWD);
+          const projects = loadProjects();
+          if (!projects.some((p) => path.resolve(p.cwd) === cwd)) throw new Error("项目不存在");
+          for (const s of await SessionManager.list(cwd)) {
+            try {
+              const { targetFile, sessionId } = moveSessionFile(s.path, defaultCwd);
+              const moved = [...handles.values()].find((h) => h.session.sessionId === sessionId);
+              if (moved) reopenAfterMove(moved, targetFile);
+            } catch (err) {
+              console.warn(`[delete_project] 会话未移动，跳过 ${s.path}: ${err?.message ?? err}`);
+            }
+          }
+          saveProjects(projects.filter((p) => path.resolve(p.cwd) !== cwd));
+          send({ type: "project_deleted", cwd });
+        } catch (err) {
+          send({ type: "error", message: String(err?.message ?? err) });
+        }
         break;
       }
       case "switch_session": {
@@ -709,30 +771,15 @@ wss.on("connection", async (ws) => {
         try {
           const sessionFile = String(msg.sessionFile || "");
           const targetCwd = String(msg.cwd || "");
-          if (!existsSync(sessionFile)) throw new Error("会话文件不存在");
           const target = path.resolve(targetCwd);
           // 目标：已注册项目，或默认 CWD（拖回「最近聊天」= 取消归属）
           const ok = target === path.resolve(CWD) || loadProjects().some((p) => path.resolve(p.cwd) === target);
           if (!ok) throw new Error("目标不是已注册项目");
-          const raw = readFileSync(sessionFile, "utf8");
-          const nl = raw.indexOf("\n");
-          const header = JSON.parse(raw.slice(0, nl));
-          if (header?.type !== "session") throw new Error("非法会话文件");
-          const targetDir = path.join(SESSIONS_ROOT(), encodeCwd(targetCwd));
-          mkdirSync(targetDir, { recursive: true });
-          const targetFile = path.join(targetDir, path.basename(sessionFile));
-          header.cwd = targetCwd;
-          writeFileSync(targetFile, JSON.stringify(header) + raw.slice(nl));
-          unlinkSync(sessionFile);
+          const { targetFile, sessionId } = moveSessionFile(sessionFile, target);
           send({ type: "session_moved", sessionFile, cwd: targetCwd, targetFile });
           // 移动的是某活句柄的会话：从新位置重开（旧句柄作废），否则后续追加写到已删文件
-          const moved = [...handles.values()].find((h) => h.session.sessionFile === sessionFile);
-          if (moved) {
-            try { clearWakeups(moved); disposeWorkerSession(moved.session.sessionId); moved.unsubscribe?.(); moved.session.dispose(); } catch {}
-            handles.delete(moved.session.sessionId);
-            activeId = null;
-            open({ sessionFile: targetFile, mode: moved.mode }).then(activate).catch((err) => send({ type: "error", message: String(err?.message ?? err) }));
-          }
+          const moved = [...handles.values()].find((h) => h.session.sessionId === sessionId);
+          if (moved) reopenAfterMove(moved, targetFile);
         } catch (err) {
           send({ type: "error", message: String(err?.message ?? err) });
         }
@@ -793,13 +840,35 @@ wss.on("connection", async (ws) => {
         break;
       }
       case "read_artifact": {
-        // 文件预览（artifactPreview：document/image/audio）：只允许当前会话 cwd 内文件，按扩展名分类返回
+        // 文件预览（artifactPreview：document/image/audio）：cwd 内文件 + 本会话登记过的文件都放行
+        // （会话文件面板现在会显示 cwd 外的写入，如 .pi 技能/跨 workspace 路径——预览必须跟着放行）
         try {
           const raw = String(msg.path ?? "");
           const base = activeHandle()?.cwd ?? CWD;
-          // artifacts 里可能是绝对路径（worker write 工具的原样记录）或相对路径，解析后统一校验在 cwd 内
+          const entries = activeHandle()?.session?.sessionManager?.getEntries?.() || [];
+          // 本会话登记过的所有文件路径（与 get_artifacts 同口径），预览只对它们+cwd 开放，防任意路径探读
+          const registered = new Set();
+          for (const e of entries) {
+            if (e.type === "custom" && (e.customType === "session_file" || e.customType === "session_artifact") && e.data?.path) {
+              registered.add(String(e.data.path));
+            }
+            if (e.type === "custom" && e.customType === "node_output" && Array.isArray(e.data?.artifacts)) {
+              for (const a of e.data.artifacts) registered.add(String(a));
+            }
+            if (e.type === "message" && Array.isArray(e.message?.content)) {
+              for (const p of e.message.content) {
+                if (p?.type === "toolCall" && p.name === "write" && p.arguments?.path) registered.add(String(p.arguments.path));
+              }
+            }
+          }
+          // 路径可能是绝对路径（worker write 原样记录）或相对路径，解析后统一校验
           const abs = path.isAbsolute(raw) ? path.resolve(raw) : path.resolve(base, raw);
-          if (abs !== path.resolve(base) && !abs.startsWith(path.resolve(base) + path.sep)) {
+          const inCwd = abs === path.resolve(base) || abs.startsWith(path.resolve(base) + path.sep);
+          const isRegistered = [...registered].some((p) => {
+            const ap = path.isAbsolute(p) ? path.resolve(p) : path.resolve(base, p);
+            return ap === abs;
+          });
+          if (!inCwd && !isRegistered) {
             send({ type: "error", message: "路径越界" });
             break;
           }
@@ -948,7 +1017,11 @@ wss.on("connection", async (ws) => {
           // SDK 契约：分支文件含 assistant 消息才立即写盘（否则 defer 到首次回复）。
           // 分支点及之前全是 user 消息时文件未落盘 → open 读不到；ponytail: 调私有 _rewriteFile 强制写盘，
           // 升级 SDK 时若 createBranchedSession 已自动写盘，此行可删（existsSync 短路）
-          if (!existsSync(file)) h.session.sessionManager._rewriteFile();
+          const sm0 = h.session.sessionManager;
+          if (!existsSync(file)) {
+            sm0._rewriteFile();
+            sm0.flushed = true; // 同 new_session：强制写盘后必须标记已落盘，否则首条 assistant 回复 EEXIST
+          }
           activeId = null; // 分支 = 新句柄 + 激活；原会话继续后台跑
           await open({ sessionFile: file, mode: h.mode }).then(async (h2) => {
             // 分支继承原会话 mode（simple 分支仍是 simple）
@@ -993,31 +1066,32 @@ wss.on("connection", async (ws) => {
         break;
       }
       case "get_artifacts": {
-        // Artifact（会话级）：主会话 write 写出的文件 + 节点产出文件，合并去重
+        // 会话文件 + 交付物子集：写过的文件都可见（不被隐藏目录/扩展名白名单藏起来）
         try {
           const h = activeHandle();
           const entries = h?.session?.sessionManager?.getEntries?.() || [];
           const base = h?.cwd ?? CWD;
+          const sessionFiles = new Set();
           const artifacts = new Set();
           // 旧条目 node_output 无 nodeType 时，从 node_graph 按 runId:nodeId 反查节点类型（判定保持不降级）
           const typeByNode = new Map();
           for (const g of entries.filter((e) => e.type === "custom" && e.customType === "node_graph").map((e) => e.data)) {
             for (const n of g?.nodes ?? []) typeByNode.set(`${g.runId}:${n.id}`, n.type);
           }
-          // 归属过滤：产物只出现在首次登记它的会话（后续会话重写同一文件不算新产物）
-          const origins = backfillArtifactOrigins();
-          const currentId = h?.session?.sessionId;
-          const ownsArtifact = (p) => {
-            const o = origins[p];
-            return !o || o === currentId; // 注册表无记录（历史数据）放行；有记录则必须归属当前会话
-          };
+          // 归属过滤移除：产物按会话各自 entries 显示，不跨会话锁（幽灵 origin 曾锁死旧会话产物）
+          const ownsArtifact = () => true;
           for (const e of entries) {
+            // 全部登记过的会话文件（含非白名单/隐藏路径，如 .pi/skills 与显式 register_artifact）
+            if (e.type === "custom" && (e.customType === "session_file" || e.customType === "session_artifact") && e.data?.path) {
+              sessionFiles.add(String(e.data.path));
+            }
             // 兜底重滤：旧会话可能存过未过滤的条目（判定函数升级前），统一按当前规则过滤
             if (e.type === "custom" && e.customType === "session_artifact" && e.data?.path && isArtifact(String(e.data.path), { cwd: base, allowOutsideCwd: true }) && ownsArtifact(String(e.data.path))) {
               artifacts.add(String(e.data.path));
             }
             if (e.type === "custom" && e.customType === "node_output" && Array.isArray(e.data?.artifacts)) {
               for (const a of e.data.artifacts) {
+                sessionFiles.add(String(a));
                 const nodeType = e.data?.nodeType ?? typeByNode.get(`${e.data?.runId}:${e.data?.nodeId}`);
                 if (isArtifact(String(a), { cwd: base, nodeType }) && ownsArtifact(String(a))) artifacts.add(String(a));
               }
@@ -1027,12 +1101,13 @@ wss.on("connection", async (ws) => {
               for (const p of e.message.content) {
                 if (p?.type === "toolCall" && p.name === "write" && p.arguments?.path) {
                   const wp = String(p.arguments.path);
+                  sessionFiles.add(wp);
                   if (isArtifact(wp, { cwd: base, allowOutsideCwd: true }) && ownsArtifact(wp)) artifacts.add(wp);
                 }
               }
             }
           }
-          send({ type: "artifacts", artifacts: [...artifacts] });
+          send({ type: "artifacts", artifacts: [...artifacts], sessionFiles: [...sessionFiles] });
         } catch (err) {
           send({ type: "error", message: String(err?.message ?? err) });
         }
