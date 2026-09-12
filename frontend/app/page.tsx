@@ -16,9 +16,10 @@ import { ProjectCreateModal } from "@/components/ProjectCreateModal";
 import { ThinkingBlock, BRAIN_PATHS } from "@/components/ThinkingBlock";
 import { BorderGlow } from "@/components/BorderGlow";
 import { ArtifactPreview, type ArtifactPreviewData } from "@/components/ArtifactPreview";
+import { QuickPicker } from "@/components/QuickPicker";
 
 export default function ChatPage() {
-  const { ready, reconnecting, sessionId, sessionCwd, busy, currentTurnId, endedTurns, entries, error, graph, artifacts, sessionFiles, skills, models, templates, sidebar, mode, prompt, steer, abort, newSession, toggleSkill, switchSession, renameSession, deleteSession, deleteProject, createProject, nodeStreams, researchRounds, searchSources, setApiKey, setCustomProvider, saveTemplate, loadTemplate, readArtifact, branch, runCommand } =
+  const { ready, reconnecting, sessionId, sessionCwd, busy, currentTurnId, endedTurns, entries, error, graph, artifacts, sessionFiles, skills, models, currentModel, templates, sidebar, prompt, steer, abort, newSession, toggleSkill, switchSession, renameSession, deleteSession, deleteProject, createProject, nodeStreams, researchRounds, searchSources, setApiKey, setCustomProvider, saveTemplate, loadTemplate, readArtifact, setModel, branch, runCommand, picker, setPicker } =
     usePiSession();
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -166,6 +167,51 @@ export default function ChatPage() {
           }}
         />
       )}
+      {picker === "model" && (
+        <QuickPicker
+          title="选择模型"
+          hint="点击即切换当前会话的模型。标注「未配 Key」的 provider 需先在「模型与 API」面板配置。"
+          placeholder="搜索模型名或 provider…"
+          items={models.flatMap((p) =>
+            p.models.map((m) => ({
+              key: `${p.provider}::${m.id}`,
+              label: m.name,
+              sub: p.provider,
+              group: p.provider,
+              badge: !p.hasAuth ? "未配 Key" : undefined,
+              active: currentModel?.id === m.id && currentModel?.provider === p.provider,
+              dim: !p.hasAuth,
+            })),
+          )}
+          onSelect={(key) => setModel(key.split("::")[1] ?? key)}
+          onClose={() => setPicker(null)}
+        />
+      )}
+      {picker === "resume" && (
+        <QuickPicker
+          title="历史会话"
+          hint="选择要切换到的会话，当前会话会保留在侧边栏。"
+          placeholder="搜索会话内容…"
+          items={[
+            ...sidebar.projects.flatMap((p) =>
+              p.sessions.map((s) => ({
+                key: s.path,
+                label: (s.firstMessage || s.id).slice(0, 60),
+                sub: `${s.messageCount} 条`,
+                group: p.name,
+              })),
+            ),
+            ...sidebar.recent.map((s) => ({
+              key: s.path,
+              label: (s.firstMessage || s.id).slice(0, 60),
+              sub: `${s.messageCount} 条`,
+              group: "最近聊天",
+            })),
+          ]}
+          onSelect={(key) => switchSession(key)}
+          onClose={() => setPicker(null)}
+        />
+      )}
     </>
   );
 
@@ -196,7 +242,7 @@ export default function ChatPage() {
           onOpenApi={() => setApiOpen(true)}
           onOpenChange={setSideOpen}
         />
-        <ProjectPicker onSelect={(cwd) => newSession("normal", cwd)} />
+        <ProjectPicker onSelect={(cwd) => newSession(cwd)} />
         {panels}
       </div>
     );
@@ -226,7 +272,7 @@ export default function ChatPage() {
         onDelete={deleteSession}
         onDeleteProject={deleteProject}
         onRename={renameSession}
-        onNewSession={(cwd) => newSession(undefined, cwd ?? sessionCwd ?? undefined)}
+        onNewSession={(cwd) => newSession(cwd ?? sessionCwd ?? undefined)}
         onNewProject={createProject}
         onOpenCreateProject={() => setCreateProjectOpen(true)}
         onOpenSkills={() => setSkillsOpen(true)}
@@ -293,36 +339,6 @@ export default function ChatPage() {
           >
             模板
           </button>
-          <button
-            onClick={() => newSession(mode !== "normal" ? "normal" : "simple-pro")}
-            title="正常模式（全量注入 AGENTS/skills/ponytail）"
-            style={{
-              fontSize: 12, padding: "5px 10px", background: "transparent", border: "none", borderRadius: 8,
-              ...(mode === "normal" ? { background: "linear-gradient(90deg, rgba(255,255,255,0.28), rgba(255,255,255,0.08) 70%, transparent)", color: "#fff" } : {}),
-            }}
-          >
-            正常
-          </button>
-          <button
-            onClick={() => newSession("simple-pro")}
-            title="简单模式 · V4 Pro（RL 句 + We need 定式 + 首轮工具锚定）"
-            style={{
-              fontSize: 12, padding: "5px 10px", background: "transparent", border: "none", borderRadius: 8,
-              ...((mode === "simple-pro" || mode === "simple") ? { background: "linear-gradient(90deg, rgba(255,255,255,0.28), rgba(255,255,255,0.08) 70%, transparent)", color: "#fff" } : {}),
-            }}
-          >
-            简单·Pro
-          </button>
-          <button
-            onClick={() => newSession("simple-flash")}
-            title="简单模式 · V4 Flash（neutral + 任务分类 + 防 rumination 锚 + 首轮工具锚定）"
-            style={{
-              fontSize: 12, padding: "5px 10px", background: "transparent", border: "none", borderRadius: 8,
-              ...(mode === "simple-flash" ? { background: "linear-gradient(90deg, rgba(255,255,255,0.28), rgba(255,255,255,0.08) 70%, transparent)", color: "#fff" } : {}),
-            }}
-          >
-            简单·Flash
-          </button>
         </span>
       </div>
 
@@ -356,7 +372,6 @@ export default function ChatPage() {
         )}
 
         <main style={{ flex: 1, overflowY: "auto", padding: "28px 0 108px", background: "transparent" }}>
-          {latestPlanEntry && <PlanChecklist entry={latestPlanEntry} />}
           {entries.length === 0 && (
             <div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", color: "#fff" }}>
               <div style={{ fontSize: 40, fontWeight: 800, letterSpacing: "-0.02em" }}>
@@ -386,7 +401,9 @@ export default function ChatPage() {
           {error && (
             <p style={{ color: "var(--status-danger)", margin: "0 0 8px", fontSize: 12 }}>错误：{error}</p>
           )}
-          <div style={{ display: "flex", gap: 10, maxWidth: 780, margin: "0 auto", alignItems: "flex-end" }}>
+          {/* 计划浮窗的定位锚：绝对定位子元素不参与 flex，输入框布局不受影响 */}
+          <div style={{ display: "flex", gap: 10, maxWidth: 780, margin: "0 auto", alignItems: "flex-end", position: "relative" }}>
+            {latestPlanEntry && <PlanDock entry={latestPlanEntry} />}
             <BorderGlow
               className="border-glow-input"
               edgeSensitivity={20}
@@ -658,24 +675,81 @@ function renderTurns(entries: PiEntry[], endedTurns: ReadonlySet<number>, busy: 
   return out;
 }
 
-// 轻量计划面板：Codex 式清单（□/▶/✔），固定在会话上方；只读活动条目的工具 args，与 DAG 完全独立
-function PlanChecklist({ entry }: { entry: PiEntry }) {
+// 轻量计划浮窗：收起 = 一行胶囊（一眼知道到哪了），展开 = 完整清单
+// 锚在输入框上方（footer 内绝对定位）→ 浮在消息流之上、不推挤布局；只读活动条目的工具 args，与 DAG 完全独立
+function PlanDock({ entry }: { entry: PiEntry }) {
+  const [open, setOpen] = useState(false);
   const args = (entry.args ?? {}) as { explanation?: string; plan?: Array<{ step: string; status?: string }> };
   const plan = args.plan ?? [];
   if (plan.length === 0) return null;
+
+  const total = plan.length;
+  const done = plan.filter((p) => p.status === "completed").length;
+  const pct = Math.round((done / total) * 100);
+  const allDone = done === total;
+  const running = plan.find((p) => p.status === "in_progress") ?? plan.find((p) => p.status !== "completed");
   const icons: Record<string, string> = { pending: "○", in_progress: "▶", completed: "✔" };
+
   return (
-    <div style={{ maxWidth: 820, margin: "0 auto 14px", padding: "10px 20px", background: "var(--bg-panel)", border: "1px solid var(--border)", borderRadius: "var(--radius-panel)", fontSize: 13 }}>
-      <div style={{ fontSize: 11, color: "var(--text-dim)", marginBottom: 6, display: "flex", gap: 6 }}>
-        <span>计划</span>
-        {args.explanation ? <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>· {args.explanation}</span> : null}
+    <div style={{ position: "absolute", left: 0, right: 0, bottom: "calc(100% + 10px)", display: "flex", flexDirection: "column", alignItems: "flex-start", pointerEvents: "none" }}>
+      <div style={{ pointerEvents: "auto", width: open ? "100%" : "auto" }}>
+        {open ? (
+          <div style={{
+            width: "100%", borderRadius: "var(--radius-panel)", overflow: "hidden", position: "relative",
+            background: "rgba(9,9,11,0.78)", backdropFilter: "blur(22px) saturate(1.35)", WebkitBackdropFilter: "blur(22px) saturate(1.35)",
+            border: "1px solid rgba(255,255,255,0.09)", boxShadow: "0 -10px 40px rgba(0,0,0,0.55), 0 2px 10px rgba(0,0,0,0.45)",
+            animation: "rise 0.18s ease-out",
+          }}>
+            {/* 顶部发丝进度条：不读数字就知道推进了多少 */}
+            <div style={{
+              position: "absolute", top: 0, left: 0, height: 2, width: `${pct}%`,
+              background: allDone ? "linear-gradient(90deg,#16a34a,var(--status-success))" : "linear-gradient(90deg,#3b82f6,var(--accent-hover))",
+              boxShadow: allDone ? "0 0 10px rgba(34,197,94,0.6)" : "0 0 10px rgba(96,165,250,0.75)",
+              transition: "width 0.45s cubic-bezier(.4,0,.2,1)",
+            }} />
+            <div style={{ display: "flex", alignItems: "center", gap: 8, padding: "10px 14px 9px 15px", fontSize: 11, letterSpacing: "0.07em", color: "var(--text-dim)" }}>
+              <span style={{ fontWeight: 600 }}>计划</span>
+              <span style={{ fontVariantNumeric: "tabular-nums" }}>{done}/{total}</span>
+              {args.explanation ? (
+                <span style={{ flex: 1, minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap", letterSpacing: 0, opacity: 0.85 }}>· {args.explanation}</span>
+              ) : <span style={{ flex: 1 }} />}
+              <span onClick={() => setOpen(false)} title="收起" style={{ cursor: "pointer", padding: "2px 4px", borderRadius: 5, fontSize: 9 }}>▼</span>
+            </div>
+            <div style={{ padding: "0 0 9px", maxHeight: "38vh", overflowY: "auto" }}>
+              {plan.map((p, i) => {
+                const st = p.status ?? "pending";
+                return (
+                  <div key={i} style={{ display: "flex", gap: 10, alignItems: "baseline", padding: "4px 15px", fontSize: 13, lineHeight: 1.65, color: st === "completed" ? "var(--text-dim)" : st === "in_progress" ? "var(--text)" : "var(--text-muted)" }}>
+                    <span style={{
+                      flex: "none", width: 13, textAlign: "center", fontSize: 10,
+                      color: st === "in_progress" ? "var(--accent)" : st === "completed" ? "inherit" : "var(--border-strong)",
+                      animation: st === "in_progress" ? "breathe 1.7s ease-in-out infinite" : undefined,
+                    }}>{icons[st] ?? "○"}</span>
+                    <span style={{
+                      minWidth: 0, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap",
+                      ...(st === "completed" ? { textDecoration: "line-through", textDecorationColor: "rgba(107,114,128,0.6)" } : {}),
+                    }}>{p.step}</span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : (
+          <div onClick={() => setOpen(true)} title="展开计划" style={{
+            display: "inline-flex", alignItems: "center", gap: 9, height: 34, padding: "0 13px 0 12px",
+            borderRadius: 17, cursor: "pointer", userSelect: "none", fontSize: 12,
+            background: "rgba(9,9,11,0.78)", backdropFilter: "blur(18px) saturate(1.3)", WebkitBackdropFilter: "blur(18px) saturate(1.3)",
+            border: "1px solid rgba(255,255,255,0.09)", boxShadow: "0 -10px 40px rgba(0,0,0,0.55), 0 2px 10px rgba(0,0,0,0.45)",
+            color: allDone ? "var(--text-dim)" : "var(--text-muted)",
+          }}>
+            <span style={{ fontSize: 10, color: allDone ? "var(--status-success)" : "var(--accent)", animation: allDone ? undefined : "breathe 1.7s ease-in-out infinite" }}>{allDone ? "✔" : "▶"}</span>
+            <span>{allDone ? "计划完成" : "计划"}</span>
+            <span style={{ fontVariantNumeric: "tabular-nums", color: "var(--text-dim)" }}>{done}/{total}</span>
+            {!allDone && running ? <span style={{ color: "var(--text)", maxWidth: 300, overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{running.step}</span> : null}
+            <span style={{ color: "var(--text-dim)", fontSize: 9 }}>▲</span>
+          </div>
+        )}
       </div>
-      {plan.map((p, i) => (
-        <div key={i} style={{ display: "flex", gap: 8, alignItems: "baseline", lineHeight: 1.6, ...(p.status === "completed" ? { color: "var(--text-dim)", textDecoration: "line-through" } : {}) }}>
-          <span style={{ flexShrink: 0, color: p.status === "in_progress" ? "var(--accent)" : "inherit" }}>{icons[p.status ?? "pending"] ?? "○"}</span>
-          <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>{p.step}</span>
-        </div>
-      ))}
     </div>
   );
 }

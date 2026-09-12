@@ -7,7 +7,6 @@ import { Type } from "typebox";
 import { homedir } from "node:os";
 import { join } from "node:path";
 import { existsSync, readFileSync } from "node:fs";
-import { ROUTER_MENU, LOC } from "./routing.js";
 
 let cachedKey;
 function getJinaKey() {
@@ -33,10 +32,7 @@ export const readPageTool = defineTool({
   name: "read_page",
   label: "读取网页（定向提取字段）",
   description:
-    ROUTER_MENU + "\n" +
-    LOC.readPage +
-    "\n\n用法：url 必填；extract=要定向提取的字段（如'价格、月销、卖家数、评价数'），工具按此返回聚焦内容；browser=true 走 JS 渲染（动态页/需交互）；max_chars 控制返回长度（默认 6000）。" +
-    "\n纪律：只有当 search 快照里拿不到目标数据点时才调用；一次一个意图；拿到后就地定向提取，不要整页复述。",
+    "Jina 抓任意网页为 Markdown（JS 渲染可过），补 search 快照之外、页面内的具体数据点。参数取值见参数说明。",
   parameters: Type.Object({
     url: Type.String({ description: "要读取的网页完整 URL（含协议）" }),
     extract: Type.Optional(Type.String({ description: "要定向提取的目标字段（如：价格、月销、卖家数）" })),

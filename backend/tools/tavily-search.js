@@ -7,7 +7,6 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { existsSync } from "node:fs";
 import { execFileSync } from "node:child_process";
-import { ROUTER_MENU, LOC } from "./routing.js";
 
 const TVLY = join(homedir(), ".pi/agent/bin/tvly");
 
@@ -15,9 +14,7 @@ export const tavilySearchTool = defineTool({
   name: "tavily_search",
   label: "Tavily 搜索（时效/域定向/综合答案）",
   description:
-    ROUTER_MENU + "\n" +
-    LOC.tavily +
-    "\n\n用法：query 必填；time_range=day/week/month/year（近期资讯）；include_domains=逗号分隔的白名单（定向可信域）；include_answer=true 时返回 AI 综合结论+来源；depth=basic/advanced。返回来源 JSON（标题/URL/摘要）。",
+    "时效检索 + 域定向 + 可选综合结论（各参数取值见参数说明）。返回来源 JSON：标题 / URL / 摘要。",
   parameters: Type.Object({
     query: Type.String({ description: "搜索查询（英文优先）" }),
     time_range: Type.Optional(Type.Union([Type.Literal("day"), Type.Literal("week"), Type.Literal("month"), Type.Literal("year")], { description: "时效窗口：只返回该时间段内的结果" })),

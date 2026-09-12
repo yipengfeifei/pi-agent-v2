@@ -5,7 +5,6 @@ import { defineTool } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import { execFileSync } from "node:child_process";
 import { existsSync, statSync } from "node:fs";
-import { ROUTER_MENU, LOC } from "./routing.js";
 
 const PY = "/usr/bin/python3";
 
@@ -55,9 +54,7 @@ export const inspectFileTool = defineTool({
   name: "inspect_file",
   label: "查看本地数据文件",
   description:
-    ROUTER_MENU + "\n" +
-    LOC.inspectFile +
-    "\n\n用法：path 必填（xlsx/csv/pdf/html/txt）；sheet=xlsx 指定工作表；max_rows=显示行数或 pdf 页数（默认 50）；extract=要定向提取的字段说明。输出为前 N 行/页文本，取完即定向提取，不全文回显。",
+    "本地数据文件转文本（xlsx/csv/pdf/html/txt），输出前 N 行/页。参数取值见参数说明。",
   parameters: Type.Object({
     path: Type.String({ description: "本地文件路径（相对当前 cwd 或绝对路径）" }),
     sheet: Type.Optional(Type.String({ description: "xlsx 工作表名（默认第一个表）" })),

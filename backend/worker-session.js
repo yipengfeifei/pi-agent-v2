@@ -14,6 +14,10 @@ import { isArtifact } from "./artifacts.js";
 const workerSessions = new Map(); // key(父 sessionId) -> worker session
 const queues = new Map(); // key -> 串行队列（防同父会话节点互相踩上下文）
 
+// 节点执行超时（对齐 research.js 的 ROUND_TIMEOUT_MS）：节点挂死时中止，避免整任务卡住。
+// env NODE_TIMEOUT 可用秒数覆盖（写法对齐 server.js 的 TOOL_TIMEOUT）
+const NODE_TIMEOUT_MS = (Number(process.env.NODE_TIMEOUT) || 300) * 1000;
+
 // worker 模型选择：默认跟随主会话模型（调用方传入 model）；用户可用环境变量 WORKER_MODEL="provider/id" 显式覆盖；
 // 都不指定时交给 SDK 连接默认模型。
 // ponytail: 曾用固定候选列表+回退，踩过 gpt-5.x-nano 空输出坑，跟随主会话是最简正确默认。
@@ -108,8 +112,18 @@ export async function runNode({ cwd, systemBlock, materialsBlock, onProgress, no
         onProgress?.(delta);
       }
     });
+    // 超时保护 + 异常兜底（对齐 research.js:runRound）：失败返回结构化结果，不向上抛异常
     try {
-      await session.prompt("请执行上述任务。完成后给出最终结果；如果材料不足或无法完成，明确说明原因。");
+      const promptTask = session.prompt("请执行上述任务。完成后给出最终结果；如果材料不足或无法完成，明确说明原因。");
+      const timeout = new Promise((_, reject) =>
+        setTimeout(() => reject(new Error(`节点执行超时（>${NODE_TIMEOUT_MS / 60000} 分钟），已中止`)), NODE_TIMEOUT_MS)
+      );
+      await Promise.race([promptTask, timeout]);
+    } catch (err) {
+      const msg = String(err?.message ?? err);
+      console.error(`[worker] 节点执行异常/超时：${msg}`);
+      // 已产出的部分文本一并带回便于排查；带 error 标记，让调用方区分「空产出」与「执行失败」
+      return { text: text.trim(), artifacts: [...artifacts], error: msg };
     } finally {
       unsub();
     }

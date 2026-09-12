@@ -1,6 +1,7 @@
 ---
 name: node-summary-visualization-toolkit
 description: "node-summary-visualization-toolkit 节点的执行规范（触发条件/能力选择/输出要求/禁止）。"
+disable-model-invocation: true
 ---
 
 # 总结节点可视化技能

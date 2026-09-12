@@ -7,7 +7,6 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { existsSync } from "node:fs";
 import { execFileSync } from "node:child_process";
-import { ROUTER_MENU, LOC } from "./routing.js";
 
 const FACTREACH = join(homedir(), ".pi", "agent", "bin", "factreach");
 
@@ -26,10 +25,8 @@ export const factreachTool = defineTool({
   name: "factreach",
   label: "FactReach 多平台检索（23 渠道）",
   description:
-    ROUTER_MENU + "\n" +
-    LOC.factreach +
-    "\n\n用法：action=doctor 体检（默认 --json）；transcribe 转写视频/播客音频（target=URL或本地文件，extra_args 可加 -o 输出文件）；web 读任意网页（target=URL）；douyin 解析抖音分享链接（target=分享文本）。" +
-    "\n只暴露只读命令；install/configure（写配置）与上游 CLI（yt-dlp/twitter/bili/gh）调用，按 factreach skill 的 references 用 bash 执行。",
+    "FactReach 23 渠道（transcribe 转写 / web 读页 / douyin 解析 / doctor 体检；各动作语意见参数说明与 factreach skill）。" +
+    "只暴露只读命令；install/configure（写配置）与上游 CLI（yt-dlp/twitter/bili/gh）按 skill 的 references 用 bash 执行。",
   parameters: Type.Object({
     action: Type.String({ description: "命令：doctor | check-update | watch | version | transcribe | web | douyin" }),
     target: Type.Optional(Type.String({ description: "transcribe=音频/视频 URL 或本地文件；web=网页 URL；douyin=分享文本/短链" })),

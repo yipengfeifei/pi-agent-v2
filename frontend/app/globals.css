@@ -218,3 +218,13 @@ input, textarea {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+/* 计划浮窗：进行中步骤呼吸 / 展开入场 */
+@keyframes breathe {
+  0%, 100% { opacity: 0.5; text-shadow: none; }
+  50% { opacity: 1; text-shadow: 0 0 8px rgba(96, 165, 250, 0.9); }
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(6px); }
+  to { opacity: 1; transform: none; }
+}

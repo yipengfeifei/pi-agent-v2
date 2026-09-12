@@ -1,0 +1,393 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>计划浮窗 · 视觉稿</title>
+<style>
+  /* ============ 设计令牌（抄自 frontend/app/globals.css，未改值） ============ */
+  :root {
+    --bg: #1a1a1a;
+    --bg-panel: #242424;
+    --border: #3a3a3a;
+    --border-strong: #4a4a4a;
+    --text: #e8e8e8;
+    --text-muted: #9ca3af;
+    --text-dim: #6b7280;
+    --accent: #60a5fa;
+    --accent-hover: #93c5fd;
+    --status-success: #22c55e;
+    --radius-panel: 18px;
+    --radius-control: 12px;
+    --font-mono: ui-monospace, SFMono-Regular, Menlo, monospace;
+    --font-sans: system-ui, -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
+    /* 浮窗玻璃层（新增，非现有令牌） */
+    --pop-bg: rgba(9, 9, 11, 0.78);
+    --pop-border: rgba(255, 255, 255, 0.09);
+    --pop-shadow: 0 -10px 40px rgba(0, 0, 0, 0.55), 0 2px 10px rgba(0, 0, 0, 0.45);
+  }
+
+  * { box-sizing: border-box; }
+  html, body { margin: 0; height: 100%; }
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font: 14px/1.55 var(--font-sans);
+    letter-spacing: -0.01em;
+    overflow: hidden;
+  }
+
+  /* ============ 星空（真实项目是 StarChart.tsx：519 颗真星 + 88 星座，idle 只亮 20 颗最亮星）
+       这里是观感替身：稀疏亮星 + 呼吸微闪，供判断浮窗与背景的关系 ============ */
+  #sky { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+
+  /* ============ 消息流（演示用，只为证明浮窗不会滚没） ============ */
+  .stream {
+    position: relative; z-index: 1;
+    height: 100vh; overflow-y: auto;
+    padding: 40px 0 260px;
+    scrollbar-width: thin; scrollbar-color: rgba(255,255,255,.15) transparent;
+  }
+  .stream::-webkit-scrollbar { width: 6px; }
+  .stream::-webkit-scrollbar-thumb { background: rgba(255,255,255,.13); border-radius: 3px; }
+  .turn { max-width: 820px; margin: 0 auto; padding: 0 20px; }
+  .turn + .turn { margin-top: 26px; }
+  .turn::before { content: ""; display: block; height: 1px; background: var(--border); margin: 0 0 24px; opacity: .6; }
+  .turn:first-child::before { display: none; }
+  .role { font-size: 11px; color: var(--text-dim); letter-spacing: .06em; margin-bottom: 7px; }
+  .bubble { font-size: 13px; line-height: 1.75; color: var(--text); }
+  .bubble p { margin: 0 0 12px; }
+  .bubble p:last-child { margin-bottom: 0; }
+  .bubble code { background: #2a2a2f; padding: 1px 5px; border-radius: 4px; font-family: var(--font-mono); font-size: 12px; color: #d7d7d7; }
+  .user-bubble { background: #1e293b; border-radius: 14px; padding: 9px 14px; display: inline-block; font-size: 13px; }
+
+  /* ============ 底部输入区（真实项目是 fixed footer + BorderGlow 圆角 34 的纯黑药丸） ============ */
+  footer {
+    position: fixed; left: 0; right: 0; bottom: 0; z-index: 10;
+    padding: 0 20px 14px; background: transparent;
+  }
+  .footer-inner { max-width: 780px; margin: 0 auto; position: relative; }
+
+  /* —— 计划浮窗：锚在输入框上方 10px，绝对定位，不推挤消息流 —— */
+  .plan-dock {
+    position: absolute; left: 0; right: 0; bottom: calc(100% + 10px);
+    display: flex; flex-direction: column; align-items: flex-start;
+    pointer-events: none; /* 收起态只有 chip 可点 */
+  }
+  .plan-dock > * { pointer-events: auto; }
+
+  /* ---------- 收起态：一枚小胶囊，一眼看"到哪了" ---------- */
+  .chip {
+    position: relative; overflow: hidden;
+    display: inline-flex; align-items: center; gap: 9px;
+    height: 34px; padding: 0 13px 0 12px;
+    border-radius: 17px;
+    background: var(--pop-bg);
+    -webkit-backdrop-filter: blur(18px) saturate(1.3);
+    backdrop-filter: blur(18px) saturate(1.3);
+    border: 1px solid var(--pop-border);
+    box-shadow: var(--pop-shadow);
+    font-size: 12px; color: var(--text-muted);
+    cursor: pointer; user-select: none;
+    transition: border-color .18s, transform .18s, color .18s;
+  }
+  .chip:hover { border-color: rgba(255,255,255,.18); transform: translateY(-1px); }
+  .chip .ico { color: var(--accent); font-size: 10px; animation: breathe 1.7s ease-in-out infinite; }
+  .chip .now { color: var(--text); max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chip .n { font-variant-numeric: tabular-nums; color: var(--text-dim); }
+  .chip .caret { color: var(--text-dim); font-size: 9px; }
+  .chip.done .ico { color: var(--status-success); animation: none; }
+  .chip.done { color: var(--text-dim); }
+
+  /* ---------- 展开态：与输入框同宽的玻璃面板 ---------- */
+  .panel {
+    width: 100%;
+    border-radius: var(--radius-panel);
+    background: var(--pop-bg);
+    -webkit-backdrop-filter: blur(22px) saturate(1.35);
+    backdrop-filter: blur(22px) saturate(1.35);
+    border: 1px solid var(--pop-border);
+    box-shadow: var(--pop-shadow);
+    overflow: hidden;
+    position: relative;
+    animation: rise .18s ease-out;
+  }
+  @keyframes rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+  /* 顶部发丝进度条：不用读数字就知道推进了多少 */
+  .bar { position: absolute; top: 0; left: 0; height: 2px; background: linear-gradient(90deg, #3b82f6, var(--accent-hover)); box-shadow: 0 0 10px rgba(96,165,250,.75); transition: width .45s cubic-bezier(.4,0,.2,1); }
+  .panel.done .bar { background: linear-gradient(90deg, #16a34a, var(--status-success)); box-shadow: 0 0 10px rgba(34,197,94,.6); }
+
+  .head {
+    display: flex; align-items: center; gap: 8px;
+    padding: 10px 14px 9px 15px;
+    font-size: 11px; letter-spacing: .07em; color: var(--text-dim);
+  }
+  .head .title { font-weight: 600; }
+  .head .count { font-variant-numeric: tabular-nums; }
+  .head .why { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; letter-spacing: 0; color: var(--text-dim); opacity: .85; }
+  .head .why::before { content: "·"; margin-right: 6px; }
+  .head .caret { cursor: pointer; padding: 2px 4px; border-radius: 5px; font-size: 9px; }
+  .head .caret:hover { background: rgba(255,255,255,.07); color: var(--text-muted); }
+
+  .rows { padding: 0 0 9px; max-height: 38vh; overflow-y: auto; }
+  .row {
+    display: flex; gap: 10px; align-items: baseline;
+    padding: 4px 15px; font-size: 13px; line-height: 1.65;
+  }
+  .row .ico { flex: none; width: 13px; text-align: center; font-size: 10px; }
+  .row .txt { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .row.done { color: var(--text-dim); }
+  .row.done .txt { text-decoration: line-through; text-decoration-color: rgba(107,114,128,.6); }
+  .row.run { color: var(--text); }
+  .row.run .ico { color: var(--accent); animation: breathe 1.7s ease-in-out infinite; }
+  .row.todo { color: var(--text-muted); }
+  .row.todo .ico { color: var(--border-strong); }
+
+  @keyframes breathe {
+    0%, 100% { opacity: .5; text-shadow: none; }
+    50% { opacity: 1; text-shadow: 0 0 8px rgba(96,165,250,.9); }
+  }
+
+  /* ============ 纯黑药丸输入框（BorderGlow 的静态替身：光标角度驱动的彩边） ============ */
+  .glow-input {
+    position: relative; border-radius: 34px; background: #000;
+    box-shadow: 0 2px 8px rgba(0,0,0,.35), 0 8px 24px rgba(0,0,0,.25);
+  }
+  .glow-input::before {
+    content: ""; position: absolute; inset: -2px; border-radius: 36px; padding: 2px;
+    background: conic-gradient(from var(--a, 45deg) at 50% 190%,
+      transparent 0deg,
+      rgba(88,191,236,.95) 45deg,
+      rgba(243,130,189,.95) 115deg,
+      rgba(181,252,132,.95) 190deg,
+      rgba(255,214,120,.95) 265deg,
+      transparent 345deg);
+    -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+    -webkit-mask-composite: xor; mask-composite: exclude;
+    opacity: var(--glow, 0); transition: opacity .4s ease-out; pointer-events: none;
+  }
+  .glow-input .inrow { display: flex; align-items: center; }
+  .glow-input textarea {
+    flex: 1; background: transparent; color: var(--text); border: none; outline: none; resize: none;
+    font: 15px/1.5 var(--font-sans); padding: 14px 8px 14px 22px; min-height: 52px; max-height: 200px;
+  }
+  .glow-input textarea::placeholder { color: var(--text-dim); }
+  .glow-input .send { padding: 0 20px 0 6px; font-size: 13px; font-weight: 650; color: var(--text-dim); cursor: default; }
+
+  /* ============ DEMO 控制条（纯演示脚手架，不是产品 UI） ============ */
+  .democtl {
+    position: fixed; top: 14px; right: 14px; z-index: 99;
+    display: flex; align-items: center; gap: 7px;
+    padding: 7px 10px; border-radius: 10px;
+    border: 1px dashed rgba(255,255,255,.22); background: rgba(0,0,0,.55);
+    -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+    font-size: 11px; color: var(--text-dim);
+  }
+  .democtl .tag { letter-spacing: .1em; color: #f0b232; font-weight: 700; }
+  .democtl button {
+    font: 11px var(--font-sans); color: var(--text-muted); cursor: pointer;
+    background: rgba(255,255,255,.06); border: 1px solid rgba(255,255,255,.12);
+    border-radius: 7px; padding: 3px 9px;
+  }
+  .democtl button:hover { background: rgba(255,255,255,.13); color: var(--text); }
+</style>
+</head>
+<body>
+
+<canvas id="sky"></canvas>
+
+<div class="stream" id="stream">
+  <div class="turn">
+    <div class="role">你</div>
+    <div class="user-bubble">任务清单别跟着消息滚走，做成输入框上方的小窗</div>
+  </div>
+  <div class="turn">
+    <div class="role">Pi Agent</div>
+    <div class="bubble">
+      <p>明白。面板挪到输入框上方、常驻可见，历史里滚过去的对话不再影响它。</p>
+      <p>先确认三件事：<code>update_plan</code> 的数据源不用动（还是最新一条 activity 的 <code>args.plan</code>），只改渲染位置；收起态给一行摘要，展开态给完整清单；<code>position: absolute</code> 挂在 footer 里，浮在消息流之上、不推挤布局。</p>
+      <p>这样和 DAG 画布依然零耦合。</p>
+    </div>
+  </div>
+  <div class="turn">
+    <div class="role">Pi Agent</div>
+    <div class="bubble">
+      <p>补齐一个细节：清单超过 8 行会顶到屏幕中段，所以展开态给 <code>max-height: 38vh</code> 内滚，超出的部分自己滚，不挤输入框。</p>
+      <p>全部完成后面板收成一颗绿胶囊，不再抢注意力。</p>
+    </div>
+  </div>
+  <div class="turn">
+    <div class="role">你</div>
+    <div class="user-bubble">继续</div>
+  </div>
+  <div class="turn">
+    <div class="role">Pi Agent</div>
+    <div class="bubble">
+      <p>（往下滚，看清单还在不在——这是这个设计唯一要证明的事。）</p>
+    </div>
+  </div>
+</div>
+
+<footer>
+  <div class="footer-inner">
+    <div class="plan-dock" id="dock"></div>
+
+    <div class="glow-input" id="glowInput">
+      <div class="inrow">
+        <textarea rows="1" placeholder="输入消息，Enter 发送（/help 查看命令）"></textarea>
+        <span class="send">发送</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<div class="democtl">
+  <span class="tag">DEMO</span>
+  <button id="btnNext">推进一步</button>
+  <button id="btnAll">全部完成</button>
+  <button id="btnReset">重置</button>
+</div>
+
+<script>
+/* ================= 星空：稀疏亮星 + 呼吸微闪（替身） ================= */
+(function () {
+  var cv = document.getElementById('sky'), ctx = cv.getContext('2d');
+  var seed = 20260912;
+  function rnd() { seed = (seed * 1664525 + 1013904223) % 4294967296; return seed / 4294967296; }
+  var PAL = ['255,235,194', '180,197,255', '227,232,245', '255,221,150', '203,216,255'];
+  var stars = [], dpr = window.devicePixelRatio || 1;
+
+  function layout() {
+    cv.width = innerWidth * dpr; cv.height = innerHeight * dpr;
+    cv.style.width = innerWidth + 'px'; cv.style.height = innerHeight + 'px';
+    seed = 20260912; stars = [];
+    for (var i = 0; i < 60; i++) {
+      var big = i < 14;
+      stars.push({
+        x: rnd() * innerWidth,
+        y: rnd() * innerHeight,
+        r: big ? 0.9 + rnd() * 1.3 : 0.35 + rnd() * 0.5,
+        c: PAL[(rnd() * PAL.length) | 0],
+        a: big ? 0.55 + rnd() * 0.4 : 0.18 + rnd() * 0.3,
+        ph: rnd() * 6.28,
+        sp: 0.35 + rnd() * 0.9
+      });
+    }
+  }
+  function draw(t) {
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, innerWidth, innerHeight);
+    for (var i = 0; i < stars.length; i++) {
+      var s = stars[i], tw = 0.78 + 0.22 * Math.sin(t * s.sp + s.ph);
+      var a = s.a * tw;
+      if (s.r > 0.9) {
+        var g = ctx.createRadialGradient(s.x, s.y, 0, s.x, s.y, s.r * 7);
+        g.addColorStop(0, 'rgba(' + s.c + ',' + (a * 0.5) + ')');
+        g.addColorStop(1, 'rgba(' + s.c + ',0)');
+        ctx.fillStyle = g;
+        ctx.beginPath(); ctx.arc(s.x, s.y, s.r * 7, 0, 6.283); ctx.fill();
+      }
+      ctx.beginPath(); ctx.arc(s.x, s.y, s.r, 0, 6.283);
+      ctx.fillStyle = 'rgba(' + s.c + ',' + a + ')'; ctx.fill();
+    }
+    requestAnimationFrame(draw);
+  }
+  layout(); window.addEventListener('resize', layout);
+  requestAnimationFrame(draw);
+})();
+
+/* ================= 输入框彩边跟着光标转 ================= */
+(function () {
+  var el = document.getElementById('glowInput');
+  function update(e) {
+    var r = el.getBoundingClientRect();
+    var cx = r.left + r.width / 2, cy = r.top + r.height * 1.9;
+    var ang = Math.atan2(e.clientY - cy, e.clientX - cx) * 180 / Math.PI + 90;
+    var dx = Math.abs(e.clientX - cx) / (r.width / 2);
+    var dy = Math.abs(e.clientY - (r.top + r.height / 2)) / (r.height / 2);
+    var prox = Math.max(0, Math.min(1, 1 - Math.max(dx, dy) * 0.35));
+    el.style.setProperty('--a', ang.toFixed(1) + 'deg');
+    el.style.setProperty('--glow', prox.toFixed(2));
+  }
+  window.addEventListener('mousemove', update);
+  el.addEventListener('mouseleave', function () { el.style.setProperty('--glow', 0); });
+})();
+
+/* ================= 计划数据 + 渲染 ================= */
+var STEPS = [
+  '读取 globals.css 抽取设计令牌',
+  '定位输入框 footer 与 BorderGlow 结构',
+  '设计浮窗布局与 z 层级',
+  '实现 PlanPopover 组件',
+  '接入 update_plan 事件流',
+  '验证滚动穿透与暗色对比度',
+  '走查无障碍（aria-live / 键盘可达）'
+];
+var WHY = {
+  3: '拆出 z 层级与滚动穿透两个验证步骤',
+  6: '对比度实测不足，补一条走查'
+};
+
+var state = { done: 3, open: false };
+
+function statusOf(i) {
+  if (i < state.done) return 'done';
+  if (i === state.done && state.done < STEPS.length) return 'run';
+  return 'todo';
+}
+var MARK = { done: '✔', run: '▶', todo: '○' };
+
+function render() {
+  var dock = document.getElementById('dock');
+  var total = STEPS.length;
+  var pct = Math.round(state.done / total * 100);
+  var idx = state.done < total ? state.done : total - 1;
+  var allDone = state.done >= total;
+  var why = WHY[state.done];
+
+  if (state.open) {
+    var rows = STEPS.map(function (s, i) {
+      var st = statusOf(i);
+      return '<div class="row ' + st + '"><span class="ico">' + MARK[st] + '</span><span class="txt">' + s + '</span></div>';
+    }).join('');
+    dock.innerHTML =
+      '<div class="panel' + (allDone ? ' done' : '') + '">' +
+        '<div class="bar" style="width:' + pct + '%"></div>' +
+        '<div class="head">' +
+          '<span class="title">计划</span>' +
+          '<span class="count">' + state.done + '/' + total + '</span>' +
+          (why ? '<span class="why">' + why + '</span>' : '<span class="why" style="opacity:.35">与 DAG 画布零耦合</span>') +
+          '<span class="caret" id="caret">▼</span>' +
+        '</div>' +
+        '<div class="rows">' + rows + '</div>' +
+      '</div>';
+    document.getElementById('caret').onclick = function () { state.open = false; render(); };
+  } else {
+    dock.innerHTML =
+      '<div class="chip' + (allDone ? ' done' : '') + '" id="chip">' +
+        '<span class="ico">' + (allDone ? '✔' : '▶') + '</span>' +
+        '<span>' + (allDone ? '计划完成' : '计划') + '</span>' +
+        '<span class="n">' + state.done + '/' + total + '</span>' +
+        '<span class="now">' + (allDone ? '' : STEPS[idx]) + '</span>' +
+        '<span class="caret">▲</span>' +
+      '</div>';
+    document.getElementById('chip').onclick = function () { state.open = true; render(); };
+  }
+}
+
+document.getElementById('btnNext').onclick = function () {
+  if (state.done < STEPS.length) { state.done++; render(); }
+};
+document.getElementById('btnAll').onclick = function () { state.done = STEPS.length; render(); };
+document.getElementById('btnReset').onclick = function () { state.done = 3; state.open = false; render(); };
+
+// 直达某种状态：...#open / #done（方便截图与评审时来回看）
+if (location.hash === '#open') state.open = true;
+if (location.hash === '#done') { state.done = STEPS.length; }
+if (location.hash === '#doneopen') { state.done = STEPS.length; state.open = true; }
+
+render();
+</script>
+</body>
+</html>

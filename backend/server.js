@@ -12,7 +12,6 @@ import os from "node:os";
 import { WebSocketServer } from "ws";
 import {
   AuthStorage,
-  DefaultResourceLoader,
   ModelRegistry,
   SessionManager,
   createAgentSession,
@@ -33,6 +32,8 @@ import { siteMemoryTool } from "./tools/site-memory.js";
 import { createResearchTool } from "./tools/research.js";
 import { researchProgressEmitter } from "./tools/research.js";
 import { createRunStatusTool } from "./tools/run-status.js";
+import { createSessionRecallTool } from "./tools/session-recall.js";
+import { createToolkitLoader, TOOLKIT_CORE } from "./tools/toolkit-loader.js";
 import { disposeWorkerSession } from "./worker-session.js";
 import { isArtifact, EXT_WHITELIST } from "./artifacts.js";
 
@@ -76,25 +77,6 @@ const moveSessionFile = (sessionFile, targetCwd) => {
   writeFileSync(targetFile, JSON.stringify(header) + raw.slice(nl));
   unlinkSync(sessionFile);
   return { targetFile, sessionId: header.id };
-};
-// 会话模式注册表：会话级 mode 持久化（{sessionId: "simple"}）。simple 会话重连/切换后仍按 simple 打开，
-// 不被前端当前模式带偏（前端刷新默认 normal，会把 simple 会话打开成 normal 全工具 + flash）
-const SESSION_MODES_FILE = path.join(getAgentDir(), "v2-session-modes.json");
-const loadSessionModes = () => {
-  try {
-    const d = JSON.parse(readFileSync(SESSION_MODES_FILE, "utf8"));
-    return typeof d === "object" && d ? d : {};
-  } catch {
-    return {};
-  }
-};
-const saveSessionMode = (sessionId, mode) => {
-  try {
-    const d = loadSessionModes();
-    if (mode === "normal") delete d[sessionId];
-    else d[sessionId] = mode;
-    writeFileSync(SESSION_MODES_FILE, JSON.stringify(d));
-  } catch {}
 };
 // 会话显示名覆盖：用户改名后优先于 firstMessage 展示（v2-session-names.json: {sessionId: 名字}）
 const SESSION_NAMES_FILE = path.join(getAgentDir(), "v2-session-names.json");
@@ -250,7 +232,7 @@ const registerProject = (cwd, name) => {
 const authStorage = AuthStorage.create();
 const modelRegistry = ModelRegistry.create(authStorage);
 
-// 主 agent 模型：默认 deepseek-v4-flash（强弱统一，够用且便宜）；MAIN_MODEL="provider/id" 可覆盖；set_custom_provider 后切到新端点
+// 主 agent 模型：默认 deepseek-v4.1-flash（强弱统一，够用且便宜）；MAIN_MODEL="provider/id" 可覆盖；set_custom_provider 后切到新端点
 let mainModel = (() => {
   const explicit = process.env.MAIN_MODEL;
   if (explicit) {
@@ -258,51 +240,13 @@ let mainModel = (() => {
     const m = modelRegistry.find(p, id);
     if (m) return m;
   }
-  return modelRegistry.find("opencode-go", "deepseek-v4-flash") ?? undefined;
+  return modelRegistry.find("opencode-go", "deepseek-v4.1-flash") ?? undefined;
 })();
 
-// ═══ dsh-router-standard 复刻：classifyTask 只用于工具面收敛 ═══
-// persona/GUIDE/工作约定统一放 system prompt（见 simpleLoader），不再在 prompt/agent_end 注入
-// user 消息（之前把系统指令拼进 user → 反刍提示词/自问自答/停不下来）。classify 仅决定解锁哪套工具面。
-const REACT_RE = /(开发|创建|写一个|生成|从零|做一个|游戏|网页|网站|构建|新项目|搭建|实现|做出|上线|落地|脚本|工具|应用|build|create|develop|generate|implement|make a|new project)/gi;
-const SPEC_RE = /(修复|修一下|调试|重构|维护|排查|报错|出错|崩溃|优化|审查|review|fix|debug|refactor|maintain|repair|broken|break|为什么|异常|故障|迁移|升级|兼容)/gi;
-const countHits = (re, t) => [...String(t || "").matchAll(re)].length;
-// 返回 'react' | 'spec' | 'weak'（与 dsh classifyTask 一致；ambiguity → weak）
-function classifyTask(text) {
-  const react = countHits(REACT_RE, text);
-  const spec = countHits(SPEC_RE, text);
-  if (react > spec) return "react";
-  if (spec > react) return "spec";
-  return "weak";
-}
-// ═══ simple 模式 persona：模型无关的 minimal + We 定式 ═══
-// 实测结论（跨多轮）：Flash 的 We 起手稳定形态 = minimal persona（RL 句 + 显式
-// "Never begin with let me / Begin every block with We need"）压出来的，与 Pro 同源。
-// w7(neutral)/react persona 会把 Flash 推回 Let 原生态（We=0）——那不是目标。
-// "三态混合"是 Pro 的相变带特性，不是 Flash（Flash 是二元：minimal→We，否则→The/ambiguous）。
-// → simple-flash 与 simple-pro 共用这一套 minimal+We 定式。classify 只用于工具面收敛。
-const PERSONA_SIMPLE =
-  "You are a helpful software engineer assistant. User messages may be in Chinese; always reason and plan in English.\n"
-  + "Never begin any reasoning block with \"let me\" or \"I will\". Begin every reasoning block with \"We need to\" or \"We should\" and keep planning in first-person plural (we). Reply to users in Chinese when they write in Chinese.\n"
-  + "Workflow: before making code/file changes, send a plan including how you will verify correctness (command/method; if not machine-verifiable, note the manual check). After finishing, report what you actually ran and the result. For pure Q&A / chat / greetings, skip this and answer directly."
-  + "Build rule: backend source lives ONLY in repo-root backend/; electron/backend and electron/dist are generated artifacts of `npm run build:app` — never edit artifacts, always edit root backend then rebuild.";
-// 工具面按带收敛（仅影响解锁后的工具面，不影响首轮无工具锚定的 We 起手）：
-// react=write-first, spec=read-first, weak=read/edit/grep（防发散）
-// update_plan 纯记录零发散全档给；取数类（search/tavily/factreach/research）按用户要求全档给
-const CORE_REACT = ["read", "write", "edit", "grep", "update_plan", "search", "tavily_search", "read_page", "inspect_file", "factreach", "research", "register_artifact"];
-const CORE_SPEC = ["read", "edit", "grep", "glob", "update_plan", "search", "tavily_search", "read_page", "inspect_file", "factreach", "research", "register_artifact"];
-const CORE_WEAK = ["read", "edit", "grep", "update_plan", "search", "tavily_search", "read_page", "inspect_file", "factreach", "research", "register_artifact"];
-function coreForBand(band) {
-  switch (band) {
-    case "react": return CORE_REACT;
-    case "spec": return CORE_SPEC;
-    default: return CORE_WEAK;
-  }
-}
-// persona 统一 minimal+We，模型无关
-function personaForBand() {
-  return PERSONA_SIMPLE;
-}
+// ═══ System Prompt：不再手写 persona ═══
+// 2026-09-13：手写 persona（曾经的 minimal+We 定式）对 DeepSeek V4.1 已失效，且
+// persona 本就不该顶替 System Prompt。现改为直接用 SDK 默认模板（即「正常模式」的
+// System Prompt：工具清单 + Guidelines + Pi 文档指针），见 openHandle 里不传 resourceLoader。
 
 // 懒清理：subagent 子进程临时会话（private/tmp cwd）超 1 天直接删，防会话目录无限堆积
 // ponytail: 只清已知临时前缀 + 超期，不动任何人工会话；配额/TTL 体系等真出问题再加
@@ -380,7 +324,7 @@ wss.on("connection", async (ws) => {
   };
 
   // 打开一个会话句柄（不激活）：新建/续最近/指定文件共用。工具按句柄实例化，多会话各跑各的
-  const openHandle = async ({ fresh = false, mode = "normal", sessionFile = null, cwd = null } = {}) => {
+  const openHandle = async ({ fresh = false, sessionFile = null, cwd = null } = {}) => {
     // 切到某会话时，agent 工作目录 = 该会话 header 的 cwd（项目上下文继承）；
     // 否则默认 CWD。这是项目模型的关键：会话归档在哪，agent 就在哪干活
     const effCwd =
@@ -393,37 +337,12 @@ wss.on("connection", async (ws) => {
     // 续最近会话时其文件模型才是真相：重连/刷新后 connModel 默认 flash，
     // 直接用会把手里的 Pro 会话续成 flash（且不写 model_change，事后难排查）
     const effSessionFile = sessionFile || (!fresh && sessionManager.sessionFile ? sessionManager.sessionFile : null);
-    // simple* 模式 = dsh-router-standard 复刻：首轮最小 system prompt + bash/read 两工具锚定，
-    // 首次工具调用后 setActiveToolsByName 解锁全量（路径承诺：扩展目录不翻转思维模式）。
-    // 普通模式完全不动（不传 resourceLoader，AGENTS/skills/ponytail 原样注入）。
-    const isSimple = mode === "simple" || mode === "simple-pro" || mode === "simple-flash";
-    // 简单模式按模型分流（dsh-router-standard 实测）：
-    //   Pro   → RL 句 + 英文思考 + We need 定式（w6c 强化版，P24: 24/24 路由）
-    //   Flash → neutral 身份 + classify + recall/anti-runaway 锚（w7 形态，P11/P23）：
-    //           不用 spec 句（P11: spec-sentence weak persona 在 Flash 上反路由），
-    //           不强制 We 定式（Flash 阈值式，进 spec 带即可；强定式加剧 greenfield 反路由）
-    const simpleModel = mode === "simple-flash" ? "flash" : "pro"; // 旧 "simple" 视为 pro（历史行为）
-    const FULL_TOOLS = ["read", "bash", "edit", "write", "grep", "find", "ls", "plan", "update_plan", "worker", "wait_for", "subagent", "run_status", "register_artifact", "search", "tavily_search", "read_page", "inspect_file", "factreach", "site_memory", "research", "browser"];
-    let simpleLoader;
-    if (isSimple) {
-      simpleLoader = new DefaultResourceLoader({
-        cwd: effCwd,
-        agentDir: getAgentDir(),
-        // ═══ simple 模式系统指令（全量放 system 层，user 消息保持纯净）═══
-        // 之前误把 persona/GUIDE/工作约定拼进 user 消息 → 模型把系统设定当用户任务，
-        // 引发“反刍提示词/自问自答/停不下来”。根修：系统指令只进 system prompt。
-        // classify 仅影响工具面解锁（见 prompt handler），不影响 persona 内容（flash/pro 统一 minimal+We）。
-        systemPrompt: personaForBand(), // 完整 persona + 一份工作约定（personaForBand 内已含，避免重复）
-        noContextFiles: true, // 干净上下文：无 AGENTS/skills/ponytail 注入
-        noSkills: true,
-        noPromptTemplates: true,
-        appendSystemPromptOverride: () => [],
-      });
-      await simpleLoader.reload();
-      // debug：确凿验证 simple 模式 system prompt 是否干净（不含 ponytail/多余注入）
-      const _sp = String(simpleLoader.getSystemPrompt?.() ?? "");
-      console.log(`[simple] mode=${mode} sysPromptLen=${_sp.length} hasPonytail=${/onytail/i.test(_sp)} hasMinimal=${/You are a helpful software engineer/.test(_sp)}`);
-    }
+    // 注意：此数组是「可激活白名单」——不在其中的名字，setActiveToolsByName 会静默忽略
+    // （实测：load_toolkit 未列入时无法被激活）。所以新增工具必须同时进这里。
+    const FULL_TOOLS = ["read", "bash", "edit", "write", "grep", "find", "ls", "plan", "update_plan", "worker", "wait_for", "subagent", "run_status", "register_artifact", "search", "tavily_search", "read_page", "inspect_file", "factreach", "site_memory", "research", "browser", "recall", "load_toolkit"];
+    // 工具面：窄起手 + 按场景解锁。核心集与分组定义全在 tools/toolkit-loader.js。
+    // 所有模式统一给核心集起手（不再区分 normal/simple 的起手工具）。
+    const activeToolNames = new Set(TOOLKIT_CORE);
     const customTools = [
       createPlanTool({ cwd: effCwd, getSession: () => handle.session }),
       createUpdatePlanTool({ getSession: () => handle.session }),
@@ -437,14 +356,23 @@ wss.on("connection", async (ws) => {
       inspectFileTool,
       siteMemoryTool,
       createResearchTool({ cwd: effCwd, getSession: () => handle.session }),
+      createSessionRecallTool({ cwd: effCwd }),
       browserTool,
+      createToolkitLoader({
+        getActive: () => Array.from(activeToolNames),
+        setActive: (names) => {
+          for (const n of names) activeToolNames.add(n);
+          try {
+            handle.session.setActiveToolsByName(Array.from(activeToolNames));
+          } catch {}
+        },
+      }),
     ];
     const result = await createAgentSession({
       cwd: effCwd,
-      // 打开已有会话：用会话文件里记的模型（SDK 自动恢复，每会话独立）；
-      // simple 新建按按钮所选模型强制（simple-flash→V4 Flash，其余→V4 Pro）；其余新会话用连接默认模型
-      model: effSessionFile ? undefined : (isSimple && fresh ? (simpleModel === "flash" ? (modelRegistry.find("opencode-go", "deepseek-v4-flash") ?? connModel) : (modelRegistry.find("opencode-go", "deepseek-v4-pro") ?? connModel)) : connModel),
-      resourceLoader: isSimple ? simpleLoader : undefined, // normal：默认 loader（AGENTS/skills 全量照旧）
+      // 打开已有会话：用会话文件里记的模型（SDK 自动恢复，每会话独立）；新会话用连接默认模型
+      model: effSessionFile ? undefined : connModel,
+      // 不传 resourceLoader → SDK 默认 loader：默认 System Prompt + AGENTS.md + skills 清单（按需 read 取正文）
       sessionManager,
       authStorage,
       modelRegistry,
@@ -454,41 +382,19 @@ wss.on("connection", async (ws) => {
     const handle = {
       session: result.session,
       cwd: effCwd,
-      mode,
-      simpleBand: null, // simple 模式：prompt 时 classifyTask 定带，解锁时按带收敛工具面
       running: false,
       modelFallbackMessage: result.modelFallbackMessage,
       wakeups: new Set(),
       unsubscribe: null,
     };
     setArtifactTarget(handle);
-    // 简单模式首轮锚定：注册全量后立即缩小到 bash+read（模型首轮只见两工具，先想后动），
-    // 首次工具调用后按 classify 出的带解锁到对应 core 工具面（dsh：路径承诺 + 窄工具面防发散）
-    if (isSimple) {
-      try { handle.session.setActiveToolsByName([]); } catch {}
-      // 实测：无工具 + persona → Flash 对任意消息都稳定 We 起手（文章里 we-probe 3/3）。
-      // 首轮无工具先纯 persona 输出；agent_end 后解锁到带专属 core 工具面（见 unlock 逻辑）。
-      if (mode === "simple-flash") {
-        try { handle.session.setThinkingLevel("xhigh"); } catch {}
-      }
-    }
-    let toolsUnlocked = false;
+    // 工具面起手：所有模式统一给核心集（13 个，含 load_toolkit）。
+    // 历史遗留的「simple 首轮无工具锚定 + band 解锁」已移除 —— 它服务于已失效的 We 起手实验；
+    // 窄工具面用 TOOLKIT_CORE 起手即可，其余由 load_toolkit 按需解锁。
+    try { handle.session.setActiveToolsByName(TOOLKIT_CORE); } catch {}
     handle.unsubscribe = handle.session.subscribe((event) => {
-      // 简单模式解锁：首轮无工具纯 persona 回复（agent_end 到）即解锁到带专属 core 工具面。
-      // 同时保留 tool_execution_start 兜底（万一模型发起工具调用则立即解锁）。normal 保持全量。
-      if (!toolsUnlocked && (event?.type === "tool_execution_start" || event?.type === "agent_end")) {
-        toolsUnlocked = true;
-        try {
-          if (isSimple) {
-            const band = handle.simpleBand || "weak"; // prompt 未到则先用 weak 基础
-            const core = coreForBand(band).slice();
-            if (!core.includes("bash")) core.push("bash"); // 干活必需 shell（跑生成/验证）
-            handle.session.setActiveToolsByName(core);
-          } else {
-            handle.session.setActiveToolsByName(FULL_TOOLS);
-          }
-        } catch {}
-      }
+      // 所有模式统一保持核心集起手（TOOLKIT_CORE），不做「首次调用后全量放开」。
+      // 需要更多工具时由模型判断后调 load_toolkit 解锁对应组（tools/toolkit-loader.js）。
       // bash 超时 watchdog：长跑命令挂死（子进程不退出，stdout 不关）自动中止，避免前端永久卡在运行中
       // 只盯 bash：worker/research 单次调用可能跑很久（多轮/节点任务），误杀不值得
       if (event?.type === "tool_execution_start" && event.toolName === "bash") {
@@ -545,7 +451,6 @@ wss.on("connection", async (ws) => {
       type: "ready",
       sessionId: handle.session.sessionId,
       sessionFile: handle.session.sessionFile,
-      mode: handle.mode,
       cwd: handle.cwd,
       modelFallbackMessage: handle.modelFallbackMessage,
     });
@@ -603,11 +508,24 @@ wss.on("connection", async (ws) => {
     try { clearWakeups(moved); disposeWorkerSession(moved.session.sessionId); moved.unsubscribe?.(); moved.session.dispose(); } catch {}
     handles.delete(moved.session.sessionId);
     if (activeId === moved.session.sessionId) activeId = null;
-    open({ sessionFile: targetFile, mode: moved.mode }).then(activate).catch((err) => send({ type: "error", message: String(err?.message ?? err) }));
+    open({ sessionFile: targetFile }).then(activate).catch((err) => send({ type: "error", message: String(err?.message ?? err) }));
   };
 
   // 连接建立：续最近会话（原行为保留；此后切换/新建都是加句柄，不杀旧会话）
-  await open({}).then(activate).catch((err) => send({ type: "error", message: String(err?.message ?? err) }));
+  // 加固：续会话失败（会话文件被移动/删除等）时降级为新建，避免卡在「无活跃会话」——
+  // 否则前端看起来已就绪，但任何操作（含 /model、简单模式按钮）都静默失效。
+  await open({})
+    .then(activate)
+    .catch(async (err) => {
+      const why = String(err?.message ?? err);
+      console.warn("[open] 续最近会话失败，降级为新建会话：", why);
+      send({ type: "error", message: `续最近会话失败（${why}），已自动新建会话` });
+      try {
+        await open({ fresh: true }).then(activate);
+      } catch (err2) {
+        send({ type: "error", message: `新建会话也失败：${String(err2?.message ?? err2)}` });
+      }
+    });
 
   ws.on("message", async (raw) => {
     ensureSubagent(); // 扩展已随会话创建加载，此时订阅取证员心跳
@@ -620,12 +538,8 @@ wss.on("connection", async (ws) => {
     switch (msg.type) {
       case "prompt": {
         const h = activeHandle(); if (!h) break;
-        // simple 模式：persona/GUIDE/工作约定已在 system prompt（loader）里，user 消息保持纯净，
-        // 不再拼接任何系统指令（之前拼进 user 导致反刍提示词/自问自答）。classify 仅决定工具面收敛。
-        let text = msg.text;
-        if (h.mode === "simple-flash" || h.mode === "simple" || h.mode === "simple-pro") {
-          h.simpleBand = classifyTask(text); // 供首次工具调用解锁时按带收敛工具面
-        }
+        // user 消息保持纯净：系统指令只走 system prompt（曾拼进 user → 反刍提示词/自问自答）
+        const text = msg.text;
         // 不 await：让 abort/steer 在流式期间仍能进来
         h.session
           .prompt(text, { streamingBehavior: "steer" })
@@ -651,8 +565,7 @@ wss.on("connection", async (ws) => {
         // 旧会话不 dispose：后台继续跑（多会话并行）；worker/wakeup 归属各自句柄，无需清理
         if (msg.cwd) registerProject(msg.cwd); // 选文件夹开项目会话 → 登记为项目
         activeId = null; // 先静音：旧会话尾部事件不再转发，避免污染新会话视图
-        open({ fresh: true, mode: ["simple", "simple-pro", "simple-flash"].includes(msg.mode) ? msg.mode : "normal", cwd: msg.cwd }).then(async (h) => {
-          saveSessionMode(h.session.sessionId, h.mode); // 会话级 mode 落盘，重连/切换后仍按会话自己的模式打开
+        open({ fresh: true, cwd: msg.cwd }).then(async (h) => {
           if (msg.cwd) {
             // 项目新会话立即写盘：否则 get_sidebar 在 ready 后看不到它，侧栏项目下永远是 0
             // ponytail: 调私有 _rewriteFile（与 branch 同款），SDK 升级后若自动写盘可删。
@@ -708,11 +621,8 @@ wss.on("connection", async (ws) => {
           activate(liveHandle).catch((err) => send({ type: "error", message: String(err?.message ?? err) }));
           break;
         }
-        // 会话级 mode（sidecar）优先：simple 会话永远按 simple 打开，不被前端刷新后的 normal 带偏
         const targetFile = String(msg.sessionFile || "");
-        const targetSessionId = readSessionHeader(targetFile)?.id;
-        const recordedMode = targetSessionId && loadSessionModes()[targetSessionId];
-        open({ sessionFile: targetFile, mode: recordedMode ? String(recordedMode) : (["simple", "simple-pro", "simple-flash"].includes(msg.mode) ? msg.mode : "normal") }).then(activate).catch((err) => send({ type: "error", message: String(err?.message ?? err) }));
+        open({ sessionFile: targetFile }).then(activate).catch((err) => send({ type: "error", message: String(err?.message ?? err) }));
         break;
       }
       case "rename_session": {
@@ -1023,26 +933,8 @@ wss.on("connection", async (ws) => {
             sm0.flushed = true; // 同 new_session：强制写盘后必须标记已落盘，否则首条 assistant 回复 EEXIST
           }
           activeId = null; // 分支 = 新句柄 + 激活；原会话继续后台跑
-          await open({ sessionFile: file, mode: h.mode }).then(async (h2) => {
-            // 分支继承原会话 mode（simple 分支仍是 simple）
-            saveSessionMode(h2.session.sessionId, h.mode);
-            // 先切模型再 ready：若先 activate，前端收到 ready 后立刻发消息会用恢复的旧模型（flash）
-            // 仅 simple 模式会话的分支按会话自身模型强制（simple-flash→flash，其余→pro）；normal 分支继承原模型不动
-            if (h.mode === "simple" || h.mode === "simple-pro" || h.mode === "simple-flash") {
-              const bm = h.mode === "simple-flash" ? "deepseek-v4-flash" : "deepseek-v4-pro";
-              try { await h2.session.setModel(modelRegistry.find("opencode-go", bm) ?? connModel); } catch {}
-            }
-            await activate(h2); // ready + history 自动推前端
-            // setModel 副作用会改 settings.json 全局默认模型；恢复回 flash，避免下次重启后新会话全漂 Pro
-            try {
-              const st = JSON.parse(readFileSync(path.join(getAgentDir(), "settings.json"), "utf8"));
-              if (st.defaultModel !== "deepseek-v4-flash" || st.defaultProvider !== "opencode-go") {
-                st.defaultModel = "deepseek-v4-flash";
-                st.defaultProvider = "opencode-go";
-                writeFileSync(path.join(getAgentDir(), "settings.json"), JSON.stringify(st, null, 2));
-              }
-            } catch {}
-          });
+          // 分支继承原会话模型（SDK 随会话文件自带，无需再切）
+          await open({ sessionFile: file }).then(activate);
         } catch (err) {
           send({ type: "error", message: String(err?.message ?? err) });
         }

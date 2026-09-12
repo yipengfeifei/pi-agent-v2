@@ -1,6 +1,7 @@
 ---
 name: node-transform-produce-toolkit
 description: "node-transform-produce-toolkit 节点的执行规范（触发条件/能力选择/输出要求/禁止）。"
+disable-model-invocation: true
 ---
 
 # Node Toolkit: Transform/Produce

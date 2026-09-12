@@ -1,6 +1,7 @@
 ---
 name: node-standardize-toolkit
 description: "node-standardize-toolkit 节点的执行规范（触发条件/能力选择/输出要求/禁止）。"
+disable-model-invocation: true
 ---
 
 # Node Toolkit: Standardize

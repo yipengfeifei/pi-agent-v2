@@ -118,7 +118,7 @@ export function createWorkerTool({ getSession, cwd }) {
       ].filter(Boolean).join("\n");
 
       // 4. 干净上下文执行。onProgress 实时心跳 → 广播前端（展开区显示模型正在写的文字）
-      const { text: resultText, artifacts } = await runNode({
+      const { text: resultText, artifacts, error: runError } = await runNode({
         cwd,
         key: session.sessionId, // 按父会话隔离 worker 常驻会话（多会话并行不串）
         model: session.model, // 跟随主会话模型（WORKER_MODEL 环境变量可覆盖）
@@ -131,14 +131,26 @@ export function createWorkerTool({ getSession, cwd }) {
         },
       });
 
-      // 5. 产出写回主会话（custom entry，不参与主 agent 上下文），带 runId 作用域 + 产物文件
+      // 5. 失败兜底（对齐 research.js 的失败语义）：空产出 / 执行异常 → 不写 node_output。
+      //    关键：node_output 是下游依赖校验（produced.has）的依据——写入空产出会让下游
+      //    误判上游已完成，空物料沿图往下传，依赖链被污染。失败必须往前传，不能往下沉。
+      if (runError || !resultText) {
+        const reason = runError ? `执行失败：${runError}` : "模型未产出任何内容";
+        nodeProgressEmitter.emit({ runId, nodeId: node.id, status: "failed", note: reason, at: Date.now() });
+        return {
+          content: [{ type: "text", text: `节点 ${node.id}(${node.name}) 未完成 —— ${reason}。\n该节点未标记产出，下游节点不会读到它。可重跑本节点，或调整节点指令/物料后重试。` }],
+          details: { nodeId: node.id, isError: true },
+        };
+      }
+
+      // 6. 产出写回主会话（custom entry，不参与主 agent 上下文），带 runId 作用域 + 产物文件
       try {
         session.sessionManager.appendCustomEntry("node_output", { runId, nodeId: node.id, output: resultText, artifacts, nodeType: node.type });
       } catch (err) {
         return { content: [{ type: "text", text: `ERROR: 写回产出失败：${err.message}` }], details: {} };
       }
 
-      // 6. 返回摘要（进主 agent 上下文）
+      // 7. 返回摘要（进主 agent 上下文）
       const summary = resultText.length > 1500 ? `${resultText.slice(0, 1500)}\n…（已截断，完整产出存会话事件）` : resultText;
       return {
         content: [{ type: "text", text: `节点 ${node.id}(${node.name}) 执行完成，产出已写入会话。\n\n${summary}` }],

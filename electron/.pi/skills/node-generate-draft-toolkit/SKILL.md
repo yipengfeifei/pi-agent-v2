@@ -1,6 +1,7 @@
 ---
 name: node-generate-draft-toolkit
 description: "node-generate-draft-toolkit 节点的执行规范（触发条件/能力选择/输出要求/禁止）。"
+disable-model-invocation: true
 ---
 
 # Node Toolkit: Generate/Draft

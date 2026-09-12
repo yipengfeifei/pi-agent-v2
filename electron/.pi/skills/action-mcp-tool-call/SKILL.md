@@ -1,6 +1,7 @@
 ---
 name: action-mcp-tool-call
 description: "action-mcp-tool-call 节点的执行规范（触发条件/能力选择/输出要求/禁止）。"
+disable-model-invocation: true
 ---
 
 # Action Profile: MCP Tool Call

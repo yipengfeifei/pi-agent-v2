@@ -1,18 +1,20 @@
-// 取数工具共用路由菜单：所有取数类工具的 description 顶部都挂同一段（避免漂移）
-// 设计：一级菜单常驻（极短），二级使用说明按需（各自 SKILL.md/description）
-export const ROUTER_MENU = `【取数工具路由（搜索/取数前先读这张表）】
-- 通用搜索（找信息/文章/来源）→ search
-- 时效/近期资讯/特定域名定向/需要综合答案 → tavily_search
-- 平台深度内容（YouTube字幕/播客转写/抖音/B站/RSS/学术/公众号等 23 渠道）→ factreach
+// 取数工具路由表 —— **唯一来源**。
+//
+// 2026-09-13 起两次瘦身：
+//  ① 不再挂进各工具自己的 description（原来 4 个工具各存一份，重复 1,220 字符且极易漂移）
+//  ② 各工具**通用的纪律**从工具描述里提上来，在这里只说一遍
+// 由 load_toolkit 加载 web 组时随返回内容注入 —— 常驻成本 0，改一处即全量生效。
+export const ROUTER_MENU = `【本组工具怎么选】
+- 通用搜索（信息/文章/来源）→ search（已常驻，无需加载）
+- 时效/近期资讯/指定域名定向/需要综合答案 → tavily_search
+- 平台深度内容（YouTube 字幕/播客转写/抖音/B站/RSS/学术/公众号等 23 渠道）→ factreach
 - 页面内具体数据点（评论区/电商销量/商品数/数据站数字）→ read_page
 - 本地数据文件（xlsx/csv/pdf 报价表、榜单、导出）→ inspect_file
-- 多轮深度研究与收敛 → research
-确定用哪个后，再看该工具的 description 与对应 SKILL.md 的使用说明。`;
+- 反爬 / 需登录态 / 要截图（1688、TikTok、FastMoss）→ browser（isolated 空间复用登录态）；
+  只是 JS 渲染、无登录要求时，用 read_page 的 browser=true 即可，别开浏览器
+- 多轮深度研究与收敛 → research（在 research 组）
 
-export const LOC = {
-  search: "[search] 通用搜索（anysearch 封装）：查事实/数据/资料/资讯，返回来源列表。",
-  tavily: "[tavily_search] Tavily：时效过滤(day/week/month)、include-domains 域定向、include-answer 综合结论。",
-  factreach: "[factreach] FactReach：23 渠道体检/视频播客转写/抖音解析/网页读取；渠道路由规则在 SKILL.md。",
-  readPage: "[read_page] Jina 抓任意网页为 Markdown（JS 渲染可过）：抓 search 快照外的页面内数据点。",
-  inspectFile: "[inspect_file] 本地数据文件转文本：xlsx/csv/pdf/html，定向提取字段。",
-};
+【本组通用纪律（各工具描述里不再重复）】
+- 先看 search 快照是否已含目标数据点；能拿到就不要动用本组工具。
+- 一次一个意图；拿到内容就地定向提取，不整页复述、不全文回显。
+- 各参数的取值与语义见该工具的参数说明，这里不重复。`;

@@ -10,7 +10,7 @@ const sm = SessionManager.open(path.join(dir, f));
 const result = await createAgentSession({
   cwd: "/Users/yipengfei/Desktop/pi Agent V2",
   sessionManager: sm,
-  model: { provider: "opencode-go", modelId: "deepseek-v4-flash" },
+  model: { provider: "opencode-go", modelId: "deepseek-v4.1-flash" },
   tools: [],
   customTools: [],
 });

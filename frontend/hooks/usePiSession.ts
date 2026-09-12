@@ -134,7 +134,7 @@ export type PiTemplate = {
 };
 
 type Incoming =
-  | { type: "ready"; sessionId: string; sessionFile: string; mode?: string; cwd?: string; modelFallbackMessage?: string }
+  | { type: "ready"; sessionId: string; sessionFile: string; cwd?: string; modelFallbackMessage?: string }
   | { type: "error"; message: string }
   | { type: "artifacts"; artifacts: string[]; sessionFiles?: string[] }
   | { type: "artifact_added"; path: string }
@@ -147,6 +147,7 @@ type Incoming =
   | { type: "template_saved"; file: string }
   | { type: "template_loaded"; file: string }
   | { type: "api_key_set"; provider: string }
+  | { type: "model_changed"; provider: string; id: string }
   | { type: "skill_toggled"; name: string; disabled: boolean }
   | { type: "sidebar"; sidebar: PiSidebar }
   | { type: "session_renamed"; sessionId: string; name: string }
@@ -170,15 +171,11 @@ export function usePiSession(wsUrl = `ws://127.0.0.1:${process.env.NEXT_PUBLIC_W
   const [currentTurnId, setCurrentTurnId] = useState(0);
   // 模型自然结束的回合号集合（agent_end 事件显式标记）——折叠段边界，不靠 busy 推断
   const [endedTurns, setEndedTurns] = useState<ReadonlySet<number>>(new Set());
-  // 会话模式：normal=全量注入；simple/simple-pro=简单·Pro；simple-flash=简单·Flash（persona 按模型分流，后端实测驱动）
-  type PiMode = "normal" | "simple" | "simple-pro" | "simple-flash";
-  const modeRef = useRef<PiMode>("normal");
   // worker 工具调用：toolCallId → nodeId 映射（end 时判卡住）
   const workerNodeRef = useRef<Map<string, string>>(new Map());
   const [ready, setReady] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [sessionCwd, setSessionCwd] = useState<string | null>(null);
-  const [mode, setMode] = useState<PiMode>("normal");
   const [busy, setBusy] = useState(false);
   const [entries, setEntries] = useState<PiEntry[]>([]);
   const seqRef = useRef(0); // 单调递增序号：事件到达顺序（time 在流式期间反复更新，不能排序）
@@ -224,6 +221,10 @@ export function usePiSession(wsUrl = `ws://127.0.0.1:${process.env.NEXT_PUBLIC_W
   }, []);
   const [skills, setSkills] = useState<PiSkill[]>([]);
   const [models, setModels] = useState<PiModel[]>([]); // API/模型配置面板数据
+  // 当前模型（后端 model_changed 回报）：供 /model 选择器高亮"当前项"
+  const [currentModel, setCurrentModel] = useState<{ provider: string; id: string } | null>(null);
+  // 快选弹窗请求：runCommand 里 /model（无参）/resume 触发，page 层据此开 QuickPicker（弹窗须挂在页面级）
+  const [picker, setPicker] = useState<"model" | "resume" | null>(null);
   const [templates, setTemplates] = useState<PiTemplate[]>([]); // 模板库列表
   // Skill 列表（保留清单：Session 的 Skill 面板）
   // 会话列表（侧边栏）：项目分组 + 最近聊天
@@ -265,9 +266,6 @@ export function usePiSession(wsUrl = `ws://127.0.0.1:${process.env.NEXT_PUBLIC_W
         if (msg.cwd) setSessionCwd(msg.cwd);
         setReady(true);
         setError(null);
-        // 模式是会话级的（每会话独立）：切换/新建后必须双向同步，否则从简单会话切回普通会话仍显示简单模式
-        modeRef.current = msg.mode === "simple" || msg.mode === "simple-pro" || msg.mode === "simple-flash" ? (msg.mode as PiMode) : "normal";
-        setMode(modeRef.current);
         refreshGraph();
         refreshArtifacts();
         refreshSkills();
@@ -385,6 +383,10 @@ export function usePiSession(wsUrl = `ws://127.0.0.1:${process.env.NEXT_PUBLIC_W
       }
       if (msg.type === "models") {
         setModels(msg.providers);
+        return;
+      }
+      if (msg.type === "model_changed") {
+        setCurrentModel({ provider: msg.provider, id: msg.id });
         return;
       }
       if (msg.type === "api_key_set") {
@@ -730,7 +732,7 @@ export function usePiSession(wsUrl = `ws://127.0.0.1:${process.env.NEXT_PUBLIC_W
       setSessionFiles([]);
       const ws = wsRef.current;
       if (ws?.readyState === WebSocket.OPEN) {
-        ws.send(JSON.stringify({ type: "switch_session", sessionFile, mode: modeRef.current }));
+        ws.send(JSON.stringify({ type: "switch_session", sessionFile }));
         ws.send(JSON.stringify({ type: "get_graph" })); // 切到旧会话也拉图（否则画布不显示）
         ws.send(JSON.stringify({ type: "get_artifacts" }));
       }
@@ -796,7 +798,30 @@ export function usePiSession(wsUrl = `ws://127.0.0.1:${process.env.NEXT_PUBLIC_W
     setEntries((prev) => [...prev, { id: `local:${Date.now()}:${Math.random().toString(36).slice(2, 8)}`, role: "assistant", text, seq: ++seqRef.current, time: Date.now() }]);
   }, []);
 
+  // 新建会话（必须放在 runCommand 之前：/new 要引用它，放后面会在 deps 求值时撞 TDZ）
+  const newSession = useCallback((cwd?: string) => {
+    // 加固：未连接时不做任何清空（否则界面被清空却没有新会话，看起来像"按钮没反应"）
+    const ws = wsRef.current;
+    if (ws?.readyState !== WebSocket.OPEN) {
+      pushLocal("未连接后端（正在重连），暂不能新建会话，请稍候再试。");
+      return;
+    }
+    setEntries([]);
+    setBusy(false); // 新建会话：同 switchSession，busy 不复位会卡暂停态
+    turnSeqRef.current = 0;
+    turnIdRef.current = 0;
+    setEndedTurns(new Set());
+    activeAssistantRef.current = null;
+    setGraph({ graph: null, outputs: [], runningNodeId: null, blockedNodeIds: [] });
+    nodeStreamsRef.current = {};
+    setNodeStreams({});
+    setArtifacts([]);
+    ws.send(JSON.stringify({ type: "new_session", cwd: cwd ?? undefined }));
+  }, [pushLocal]);
+
   // 斜杠命令分发：SDK prompt() 会把 / 开头当扩展命令/模板展开，必须前端拦截解析
+  // 注：/model（无参）、/resume（无参）由 page 层接管去开选择器（弹窗要挂在页面级）；
+  //     这里保留等价兜底文案，保证任何调用路径都有明确反馈。
   const runCommand = useCallback((text: string) => {
     const [cmd, ...rest] = text.trim().slice(1).split(/\s+/);
     const arg = rest.join(" ").trim();
@@ -806,7 +831,9 @@ export function usePiSession(wsUrl = `ws://127.0.0.1:${process.env.NEXT_PUBLIC_W
           [
             "可用命令：",
             "/help — 本列表",
-            "/model <关键词> — 切换模型（匹配 provider 或模型名子串，如 /model deepseek）",
+            "/model — 打开模型选择器；也可 /model <关键词> 直接匹配切换（如 /model deepseek）",
+            "/resume — 打开历史会话选择器",
+            "/new — 新建会话（沿用当前模式与项目）",
             "/compact [说明] — 手动压缩会话上下文",
             "/queue on|off — 开启/关闭输入排队（多任务同时说，按序处理）",
             "提示：斜杠命令只在本窗口生效，不会发给模型。",
@@ -815,11 +842,17 @@ export function usePiSession(wsUrl = `ws://127.0.0.1:${process.env.NEXT_PUBLIC_W
         break;
       case "model":
         if (!arg) {
-          pushLocal("用法：/model <关键词>，如 /model deepseek。可用模型见「API」面板。");
+          setPicker("model");
         } else {
           setModel(arg);
           pushLocal(`正在切换模型：${arg}…`);
         }
+        break;
+      case "resume":
+        setPicker("resume");
+        break;
+      case "new":
+        newSession();
         break;
       case "compact":
         compactSession(arg || undefined);
@@ -832,30 +865,12 @@ export function usePiSession(wsUrl = `ws://127.0.0.1:${process.env.NEXT_PUBLIC_W
       default:
         pushLocal(`未知命令：/${cmd}（输入 /help 查看可用命令）`);
     }
-  }, [pushLocal, setModel, compactSession, setQueue]);
-
-  const newSession = useCallback((nextMode?: PiMode, cwd?: string) => {
-    const m = nextMode ?? modeRef.current;
-    modeRef.current = m;
-    setMode(m);
-    setEntries([]);
-    setBusy(false); // 新建会话：同 switchSession，busy 不复位会卡暂停态
-    turnSeqRef.current = 0;
-    turnIdRef.current = 0;
-    setEndedTurns(new Set());
-    activeAssistantRef.current = null;
-    setGraph({ graph: null, outputs: [], runningNodeId: null, blockedNodeIds: [] });
-    nodeStreamsRef.current = {};
-    setNodeStreams({});
-    setArtifacts([]);
-    const ws = wsRef.current;
-    if (ws?.readyState === WebSocket.OPEN) ws.send(JSON.stringify({ type: "new_session", mode: m, cwd: cwd ?? undefined }));
-  }, [send]);
+  }, [pushLocal, setModel, compactSession, setQueue, newSession, setPicker]);
 
   const sorted = useMemo(
     () => [...entries].sort((a, b) => (a.seq ?? Number.MAX_SAFE_INTEGER) - (b.seq ?? Number.MAX_SAFE_INTEGER)),
     [entries],
   );
 
-  return { connected, reconnecting, ready, sessionId, sessionCwd, busy, currentTurnId, endedTurns, entries: sorted, error, graph, artifacts, sessionFiles, skills, models, templates, sidebar, mode, prompt, steer, abort, newSession, toggleSkill, switchSession, renameSession, deleteSession, deleteProject, createProject, nodeStreams, researchRounds, searchSources, setApiKey, setCustomProvider, saveTemplate, loadTemplate, readArtifact, setModel, compactSession, setQueue, branch, runCommand };
+  return { connected, reconnecting, ready, sessionId, sessionCwd, busy, currentTurnId, endedTurns, entries: sorted, error, graph, artifacts, sessionFiles, skills, models, currentModel, templates, sidebar, prompt, steer, abort, newSession, toggleSkill, switchSession, renameSession, deleteSession, deleteProject, createProject, nodeStreams, researchRounds, searchSources, setApiKey, setCustomProvider, saveTemplate, loadTemplate, readArtifact, setModel, compactSession, setQueue, branch, runCommand, picker, setPicker };
 }

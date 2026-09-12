@@ -59,9 +59,8 @@ export const browserTool = defineTool({
   name: "browser",
   label: "浏览器操作",
   description:
-    "真实浏览器（ego-browser）：打开网页、等待渲染、提取页面文本。用于访问反爬/JS 渲染/需登录态的站点（1688、TikTok、FastMoss 等），" +
-    "curl 和 search 拿不到的页面用它。参数：url（要打开的地址）、wait（等待渲染秒数，默认 3）、" +
-    "action=open（默认，返回页面正文文本）。注意：验证码/登录墙会移交用户人工处理；页面文本可能含噪音，需自行清洗。",
+    "真实浏览器（ego-browser，隔离空间内复用你的登录态）：打开网页、等渲染、提取正文或截图。参数取值见参数说明。" +
+    "注意：验证码 / 登录墙会移交用户人工处理；页面文本可能含噪音，需自行清洗。",
   parameters: Type.Object({
     url: Type.String({ description: "要打开的完整 URL（含协议）" }),
     action: Type.Optional(Type.String({ description: "open（默认，打开+提取正文）| screenshot" })),

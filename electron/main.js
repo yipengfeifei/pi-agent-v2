@@ -17,6 +17,15 @@ const BACKEND_JS = path.join(APP_DIR, "backend", "server.js");
 const WS_PORT = 4800;
 const SYSTEM_NODE = process.env.FLY_BACKEND_NODE || "/usr/local/bin/node";
 
+// ─── 固定会话工作目录（关键）─────────────────────────────────────────
+// backend/server.js 的 CWD 默认由自身路径推导 → 打包后 = <FLY.app>/Contents/Resources/app。
+// 该路径每次重新打包都会变（dist/mac/FLY.app/... 、Desktop/FLY.app/... 各不相同），
+// 于是会话归档被切分到多个 sessions/--...-- 目录，前端只能看到当前 CWD 那一个，
+// 表现为「历史会话消失」。
+// 这里显式固定 CWD，使其与打包位置无关；可用 FLY_CWD 环境变量覆盖。
+const FLY_WORKSPACE =
+  process.env.FLY_CWD || path.join(app.getPath("home"), "Desktop", "pi Agent V2");
+
 let backendProc = null;
 let quitting = false;
 let restartTimer = null;
@@ -26,7 +35,14 @@ const MAX_RESTART_DELAY = 30000; // 连崩退避上限：最坏每 30s 重试一
 // 活过 30s 视为健康：退避归零（区分"偶发崩"与"持续崩"）
 function startBackend() {
   if (backendProc || quitting) return;
-  const env = { ...process.env, PORT: String(WS_PORT) };
+  // 确保工作目录存在（首次启动时可能尚未创建）
+  try {
+    fs.mkdirSync(FLY_WORKSPACE, { recursive: true });
+  } catch {
+    /* 已存在或无权限，交给后端报错 */
+  }
+  // CWD: 固定会话归档位置，避免打包路径变化导致会话分裂
+  const env = { ...process.env, PORT: String(WS_PORT), CWD: FLY_WORKSPACE };
   const aliveTimer = setTimeout(() => {
     restartDelay = 2000;
   }, 30000);

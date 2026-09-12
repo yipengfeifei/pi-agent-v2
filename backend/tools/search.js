@@ -100,12 +100,11 @@ export const searchTool = defineTool({
   name: "search",
   label: "网络搜索",
   description:
-    "统一搜索工具（替代手写 bash 调 anysearch CLI + grep 管道）。搜索事实/数据/资料/资讯/口碑时用本工具，禁止再用 bash 拼 grep 管道提取。\n" +
-    "语言策略：知识/信息类查询（技术教程、评测对比、资料文档、新闻）用英文搜，英文语料的质量与数量远高于中文——先把查询翻译成英文再搜；仅当目标明确是中文内容（中文新闻、本地服务、中文社区口碑、中文文档）时才保留中文。\n" +
-    "查询要求：一次一个意图，具体名词 + 年份/限定词（如 'Cursor vs Windsurf 2026 pricing comparison'）。\n" +
-    "domain：已知垂直域可显式传（finance/code/academic/legal/health/social_media 等），不确定传 auto。\n" +
-    "引用纪律：正文引用来源时写成 markdown 链接，如 [MindStudio](https://mindstudio.ai/blog/cursor-vs-windsurf)；文末来源表每行也写成 [标题](完整URL)。URL 必须来自搜索结果的来源表，禁止编造；输出中没有的信息禁止凭知识补充。\n" +
-    "结果评估：拿到搜索结果后先评估再使用——1) 相关性：来源标题/域名是否真对题 2) 时效性：数据类信息（价格/榜单/新闻）要用最新的 3) 权威性：区分一手来源与二手转述，厂商自报数据标注打折 4) 多源交叉：关键结论至少 2-3 个独立来源佐证，单一来源视为未验证 5) 矛盾检测：来源间说法冲突时必须指出，不要自行调和。",
+    "统一搜索（替代手写 bash 调 anysearch CLI + grep 管道）：搜事实/数据/资料/资讯/口碑时用它。\n" +
+    "语言：知识/信息类查询翻成英文再搜（英文语料质量高得多）；仅目标明确是中文内容（中文新闻/本地服务/中文社区/中文文档）时才用中文。\n" +
+    "查询：一次一个意图，具体名词 + 年份/限定词（如 'Cursor vs Windsurf 2026 pricing comparison'）。domain 已知垂直域可显式传（finance/code/academic/legal/health/social_media），不确定传 auto。\n" +
+    "引用：来源写成 markdown 链接如 [标题](完整URL)；URL 必须来自结果来源表，禁止编造；结果里没有的信息禁止凭知识补充。\n" +
+    "评估：用前先评估——相关性（对题吗）、时效性（价格/榜单/新闻要用最新）、权威性（区分一手与二手，厂商自报打折）、多源交叉（关键结论至少 2-3 个独立来源，单一来源视为未验证）、矛盾检测（冲突必须指出，不要自行调和）。",
   parameters: Type.Object({
     query: Type.String({ description: "搜索查询（按语言策略决定英文或中文）" }),
     domain: Type.Optional(Type.String({ description: "垂直域：auto/general/finance/code/academic/legal/health/social_media 等，默认 auto（自动启发式判断）" })),
