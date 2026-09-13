@@ -1,6 +1,6 @@
 import {
-  AuthStorage, ModelRegistry, SessionManager,
-  createAgentSession,
+  AuthStorage, DefaultResourceLoader, ModelRegistry, SessionManager,
+  createAgentSession, getAgentDir,
 } from "@earendil-works/pi-coding-agent";
 import { createPlanTool } from "./tools/plan.js";
 import { createUpdatePlanTool } from "./tools/update-plan.js";
@@ -24,7 +24,23 @@ const FULL_TOOLS = ["read", "bash", "edit", "write", "grep", "find", "ls", "plan
 const au = AuthStorage.create();
 const mr = ModelRegistry.create(au);
 const model = mr.find("opencode-go", "deepseek-v4.1-flash");
-// 与 server.js 一致：不传 resourceLoader → SDK 默认 loader（默认 System Prompt + AGENTS.md + skills 清单）
+// 与 server.js 的 PERSONA_SLIM 保持一致（server.js 一 import 就起服务，这里只能手抄一份）
+const PERSONA_SLIM =
+  "You are an agent operating inside pi. You handle whatever the user asks: read/edit files, run commands, search the web, drive a real browser, operate local apps. Be concise; show file paths.\n"
+  + "Tooling: the list below is not exhaustive — `load_toolkit` unlocks more specialized tools (its description lists the groups). Skills live in two places: `./.pi/skills/` (project) and `~/.pi/agent/skills/` (global) — for domain tasks `ls` both, then `read` the matching SKILL.md.\n"
+  + "Editing: on existing files use `edit`, not `write`; `write` only for new files or full rewrites.\n"
+  + "Pi docs: <node_modules/@earendil-works/pi-coding-agent>/{README.md,docs,examples} — only when asked about pi itself.";
+// 与 server.js 一致：统一精简 loader（noContextFiles + noSkills）
+const slimLoader = new DefaultResourceLoader({
+  cwd: CWD,
+  agentDir: getAgentDir(),
+  systemPrompt: PERSONA_SLIM,
+  noContextFiles: false,
+  noSkills: true,
+  noPromptTemplates: true,
+  appendSystemPromptOverride: () => [],
+});
+await slimLoader.reload();
 
 let handle = null;
 const activeToolNames = new Set(TOOLKIT_CORE);
@@ -53,6 +69,7 @@ customTools.push(loaderTool);
 
 const { session } = await createAgentSession({
   cwd: CWD, model, sessionManager: SessionManager.create(CWD),
+  resourceLoader: slimLoader,
   authStorage: au, modelRegistry: mr,
   tools: FULL_TOOLS, customTools,
 });

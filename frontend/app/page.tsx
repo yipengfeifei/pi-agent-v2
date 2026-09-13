@@ -5,6 +5,7 @@ import { usePiSession, type PiEntry, type ResearchRound } from "@/hooks/usePiSes
 import Orb from "@/components/Orb";
 import StarChart from "@/components/StarChart";
 import { MarkdownBody } from "@/components/MarkdownBody";
+import { IconButton } from "@/components/UiIcon";
 import { NodeCanvas } from "@/components/NodeCanvas";
 import { SkillsPanel } from "@/components/SkillsPanel";
 import { CustomEndpointGuide } from "@/components/CustomEndpointGuide";
@@ -58,8 +59,6 @@ export default function ChatPage() {
   const [createProjectOpen, setCreateProjectOpen] = useState(false);
   // 侧边栏展开状态：弹开时正文让位（paddingLeft 同步）
   const [sideOpen, setSideOpen] = useState(false);
-  // 顶栏展开状态：正常收起只露 16px 触发条，悬停弹出（同侧边栏模式）
-  const [topOpen, setTopOpen] = useState(false);
   // 产物预览（会话级 Artifact 条点击 → readArtifact → 共享 ArtifactPreview 弹层）
   const [preview, setPreview] = useState<ArtifactPreviewData | null>(null);
   const [previewErr, setPreviewErr] = useState("");
@@ -280,40 +279,48 @@ export default function ChatPage() {
         onOpenChange={setSideOpen}
       />
 
-      {/* 顶栏按钮组（无横条）：悬停顶部右上角滑出——Artifact/画布/模板/模式 */}
+      {/* 窗口拖拽区：只占最顶上 20px（原生标题栏已隐藏：electron/main.js hiddenInset）。
+          刻意做窄 —— drag 区不只吞点击，hover/选中文字也不转发，所以只让它覆盖没有内容的区域。
+          按钮组盖在它之上且标了 no-drag，会把按钮那一段从拖拽区里挖掉。 */}
       <div
         style={{
-          position: "fixed", top: 0, left: sideOpen ? 240 : 0, right: 0, zIndex: 20,
-          transform: topOpen ? "translateY(0)" : "translateY(calc(-100% + 16px))",
-          transition: "transform 0.28s ease, left 0.28s ease",
+          position: "fixed", top: 0, left: sideOpen ? 240 : 0, right: 0, height: 20, zIndex: 20,
+          transition: "left 0.28s ease",
+          ...DRAG,
         }}
-        onMouseEnter={() => setTopOpen(true)}
-        onMouseLeave={() => setTopOpen(false)}
+      />
+
+      {/* 顶栏按钮组：容器 40px 高 → 图标中心 y=20，与红黄绿三点中心对齐（main.js trafficLightPosition y=14）。
+          容器自身不设 drag（否则那 40px 全变成死区），且 pointerEvents:none 不挡下方任何东西，
+          只有按钮本体 pointerEvents:auto —— 所以图标可以比拖拽区大，两者互不干扰。 */}
+      <div
+        style={{
+          position: "fixed", top: 0, left: sideOpen ? 240 : 0, right: 0, height: 40, zIndex: 21,
+          display: "flex", alignItems: "center", justifyContent: "flex-end",
+          // paddingTop 8（配 alignItems:center）= 图标中心 y=24。
+          // 三点几何中心是 y=22，但图标视觉重心偏上，24 才是光学居中（别按几何值改回去）
+          paddingTop: 8,
+          transition: "left 0.28s ease", pointerEvents: "none",
+        }}
       >
-        <span style={{ marginLeft: "auto", display: "flex", alignItems: "center", gap: 8, padding: "10px 16px", justifyContent: "flex-end" }}>
+        <span style={{ display: "flex", alignItems: "center", gap: 4, paddingRight: 12, pointerEvents: "auto", ...NO_DRAG }}>
           {/* 会话文件入口：始终显示；列出本次会话写过的所有文件（技能/交付物/中间文件都算） */}
-          <button
-            onClick={() => setArtifactsOpen((v) => !v)}
+          <IconButton
+            icon="files"
             title="会话文件：本次会话写入/登记的所有文件"
-            style={{
-              fontSize: 12, padding: "5px 10px", background: "transparent", border: "none", borderRadius: 8,
-              ...(artifactsOpen ? { background: "linear-gradient(90deg, rgba(255,255,255,0.28), rgba(255,255,255,0.08) 70%, transparent)", color: "#fff" } : {}),
-            }}
-          >
-            文件{sessionFiles.length > 0 ? ` (${sessionFiles.length})` : ""}
-          </button>
+            active={artifactsOpen}
+            badge={sessionFiles.length}
+            onClick={() => setArtifactsOpen((v) => !v)}
+          />
           {graph.graph && (
-            <div ref={canvasRef} style={{ position: "relative" }}>
-              <button
-                onClick={() => setCanvasOpen((v) => !v)}
+            <div ref={canvasRef} style={{ position: "relative", ...NO_DRAG }}>
+              <IconButton
+                icon="canvas"
                 title="节点图画布"
-                style={{
-                  fontSize: 12, padding: "5px 10px", background: "transparent", border: "none", borderRadius: 8,
-                  ...(canvasOpen ? { background: "linear-gradient(90deg, rgba(255,255,255,0.28), rgba(255,255,255,0.08) 70%, transparent)", color: "#fff" } : {}),
-                }}
-              >
-                {canvasOpen ? "收起画布" : `画布 (${graph.graph.nodes?.length ?? 0})`}
-              </button>
+                active={canvasOpen}
+                badge={graph.graph.nodes?.length ?? 0}
+                onClick={() => setCanvasOpen((v) => !v)}
+              />
               {canvasOpen && (
                 <div
                   style={{
@@ -329,20 +336,16 @@ export default function ChatPage() {
               )}
             </div>
           )}
-          <button
-            onClick={() => setTemplatesOpen((v) => !v)}
+          <IconButton
+            icon="templates"
             title="模板库：保存/载入已跑通节点图"
-            style={{
-              fontSize: 12, padding: "5px 10px", background: "transparent", border: "none", borderRadius: 8,
-              ...(templatesOpen ? { background: "linear-gradient(90deg, rgba(255,255,255,0.28), rgba(255,255,255,0.08) 70%, transparent)", color: "#fff" } : {}),
-            }}
-          >
-            模板
-          </button>
+            active={templatesOpen}
+            onClick={() => setTemplatesOpen((v) => !v)}
+          />
         </span>
       </div>
 
-      <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0, position: "relative", paddingLeft: sideOpen ? 240 : 16, paddingTop: topOpen ? 50 : 16, overflow: "hidden", transition: "padding-left 0.28s ease, padding-top 0.28s ease" }}>
+      <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0, position: "relative", paddingLeft: sideOpen ? 240 : 16, paddingTop: 20, overflow: "hidden", transition: "padding-left 0.28s ease" }}>
 
         {/* 会话文件条：写过的文件都可见；交付物（白名单）带徽标，技能/过程文件只显示文件名 */}
         {artifactsOpen && (
@@ -780,6 +783,16 @@ function PlanResultBlock({ text }: { text: string }) {
     </div>
   );
 }
+
+// ── 顶栏（常驻区，40px）────────────────────────────────────
+// 原生标题栏已隐藏（electron/main.js: titleBarStyle "hiddenInset"），窗口拖拽由这条接管。
+// 注意：drag 区不只吞点击，hover 也不转发 —— 所以按钮组必须显式 no-drag，且不能让 drag 区
+// 盖在需要 hover/click 的元素之上（上一版把它放 layout 里 z-index 5，盖住了整个页面）。
+// 高度 40 = 图标中心 y=20，对齐红黄绿三点中心（main.js trafficLightPosition y=14，点高 12）。
+const DRAG = { WebkitAppRegion: "drag" } as unknown as React.CSSProperties;
+const NO_DRAG = { WebkitAppRegion: "no-drag" } as unknown as React.CSSProperties;
+
+// 顶栏/侧栏共用的图标与图标按钮在 components/UiIcon.tsx（UI_ICONS + UiIcon + IconButton）
 
 function ToolIcon({ toolName, size = 15, color = "var(--text-dim)" }: { toolName?: string; size?: number; color?: string }) {
   const body = (toolName && TOOL_ICONS[toolName]) || TOOL_ICONS.bash;

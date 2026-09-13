@@ -6,6 +6,7 @@
 import { useState } from "react";
 import type { PiSidebar, PiSessionInfo } from "@/hooks/usePiSession";
 import GlareHover from "./GlareHover";
+import { IconButton } from "./UiIcon";
 
 // 行统一视觉：hover 渐变 / 选中渐变 / 扫光参数（全部行共用）
 const GRAD_HOVER = "linear-gradient(90deg, rgba(255,255,255,0.20), rgba(255,255,255,0.06) 70%, transparent)";
@@ -163,7 +164,6 @@ function SectionHead({
 export function SessionSidebar({
   sidebar,
   activeSessionId,
-  projectName,
   onSwitch,
   onDelete,
   onDeleteProject,
@@ -224,14 +224,18 @@ export function SessionSidebar({
           display: "flex", flexDirection: "column", minHeight: 0, overflow: "hidden",
         }}
       >
+        {/* 顶部工具行（右对齐）：技能库 / API。
+            高度 40 + paddingTop 8 → 图标几何中心 y=24。
+            注：macOS 存的红黄绿三点 frame 显示其中心在 y=22（占 14–30），但实测几何对齐反而偏上——
+            图标字形视觉重心不在视框正中，取 24 做**光学居中**看起来才齐。别按几何值改回去。
+            左侧空出给原生三点（main.js trafficLightPosition x=14）。 */}
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "flex-end", gap: 2, height: 40, paddingTop: 8, paddingRight: 8, flexShrink: 0 }}>
+          <IconButton icon="skills" title="技能库" onClick={onOpenSkills} />
+          <IconButton icon="api" title="API：模型与密钥" onClick={onOpenApi} />
+        </div>
+
         <div style={{ position: "relative", zIndex: 1, display: "flex", flexDirection: "column", minHeight: 0, flex: 1, width: "100%", height: "100%" }}>
-          <div className="sidebar-scroll" style={{ flex: 1, overflowY: "auto", minHeight: 0, padding: "28px 16px 14px 28px", display: "flex", flexDirection: "column", gap: 2 }}>
-            {/* 当前项目名（原顶栏位置移入） */}
-            {projectName && (
-              <div style={{ fontSize: 15, fontWeight: 750, letterSpacing: "-0.02em", color: "#f2f2f6", padding: "2px 8px 10px", whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }} title={projectName}>
-                {projectName}
-              </div>
-            )}
+          <div className="sidebar-scroll" style={{ flex: 1, overflowY: "auto", minHeight: 0, padding: "2px 16px 14px 28px", display: "flex", flexDirection: "column", gap: 2 }}>
             {emptyAll && (
               <p style={{ color: "#8a8a96", fontSize: 14, textAlign: "center", padding: 24 }}>
                 暂无会话
@@ -399,22 +403,6 @@ export function SessionSidebar({
                 )
               )}
             </div>
-          </div>
-
-          {/* 底部：Skills / API 入口（左右排列） */}
-          <div style={{ padding: "10px 16px 18px 28px", display: "flex", flexDirection: "row", gap: 6 }}>
-            <button
-              onClick={onOpenSkills}
-              style={{ flex: 1, textAlign: "center", padding: "9px 10px", fontSize: 14, fontWeight: 500, background: "transparent", border: "none", borderRadius: 8, color: "#e2e2ea", cursor: "pointer" }}
-            >
-              🧩 Skills
-            </button>
-            <button
-              onClick={onOpenApi}
-              style={{ flex: 1, textAlign: "center", padding: "9px 10px", fontSize: 14, fontWeight: 500, background: "transparent", border: "none", borderRadius: 8, color: "#e2e2ea", cursor: "pointer" }}
-            >
-              🔌 API
-            </button>
           </div>
         </div>
       </aside>

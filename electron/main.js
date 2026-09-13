@@ -105,6 +105,19 @@ function startStaticServer() {
   });
 }
 
+// ─── 窗口尺寸记忆 ─────────────────────────────────────────────────
+// 用户拉过的窗口大小下次原样打开（下面那对宽高只是首次启动的初值）。
+// 只存宽高不存位置：位置交给 macOS，避开换显示器后窗口还原到屏幕外的坑。
+const BOUNDS_FILE = path.join(app.getPath("userData"), "window-bounds.json");
+function loadBounds() {
+  try {
+    const b = JSON.parse(fs.readFileSync(BOUNDS_FILE, "utf8"));
+    return Number.isFinite(b?.width) && Number.isFinite(b?.height) ? b : null;
+  } catch {
+    return null; // 首次启动 / 文件损坏 → 用默认值
+  }
+}
+
 app.whenReady().then(async () => {
   startBackend();
 
@@ -112,18 +125,46 @@ app.whenReady().then(async () => {
   await new Promise((r) => server.listen(0, "127.0.0.1", r));
   const pagePort = server.address().port;
 
+  const saved = loadBounds();
   const win = new BrowserWindow({
-    width: 668,
-    height: 595,
+    width: saved?.width ?? 872,
+    height: saved?.height ?? 595,
     minWidth: 480,
     minHeight: 400,
     backgroundColor: "#000000",
     title: "FLY",
     autoHideMenuBar: true,
+    // 去掉原生标题栏（含页面 <title> 显示出的 "Pi Agent V2"），只留左上角红黄绿三点浮在内容之上。
+    // 与 WorkBuddy / Screen Studio / 抖音直播伴侣 同款做法。
+    // 代价：顶部一条不再是系统拖拽区 —— 拖拽由页面里的拖拽条接管（app/page.tsx 的 DRAG + 右侧
+    // no-drag 按钮组）。实测三点占 y 14–30（macOS 保存的 NSTitleBar 按钮 frame），中心 y=22。
+    titleBarStyle: "hiddenInset",
+    trafficLightPosition: { x: 14, y: 14 },
     webPreferences: {
       preload: path.join(APP_DIR, "preload.js"),
     },
   });
+
+  // 记住尺寸：resize 高频触发，debounce 300ms；关窗前再落一次，保证最后一次拖动也算
+  let saveTimer = null;
+  const saveBounds = () => {
+    clearTimeout(saveTimer);
+    saveTimer = setTimeout(() => {
+      try {
+        if (!win.isDestroyed() && !win.isMinimized() && !win.isFullScreen()) {
+          fs.writeFileSync(BOUNDS_FILE, JSON.stringify(win.getBounds()));
+        }
+      } catch { /* 写不了就算了，不影响使用 */ }
+    }, 300);
+  };
+  win.on("resize", saveBounds);
+  win.on("close", () => {
+    clearTimeout(saveTimer);
+    try {
+      if (!win.isMinimized() && !win.isFullScreen()) fs.writeFileSync(BOUNDS_FILE, JSON.stringify(win.getBounds()));
+    } catch { /* 同上 */ }
+  });
+
   await win.loadURL(`http://127.0.0.1:${pagePort}`);
 });
 

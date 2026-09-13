@@ -12,6 +12,7 @@ import os from "node:os";
 import { WebSocketServer } from "ws";
 import {
   AuthStorage,
+  DefaultResourceLoader,
   ModelRegistry,
   SessionManager,
   createAgentSession,
@@ -243,10 +244,18 @@ let mainModel = (() => {
   return modelRegistry.find("opencode-go", "deepseek-v4.1-flash") ?? undefined;
 })();
 
-// ═══ System Prompt：不再手写 persona ═══
-// 2026-09-13：手写 persona（曾经的 minimal+We 定式）对 DeepSeek V4.1 已失效，且
-// persona 本就不该顶替 System Prompt。现改为直接用 SDK 默认模板（即「正常模式」的
-// System Prompt：工具清单 + Guidelines + Pi 文档指针），见 openHandle 里不传 resourceLoader。
+// ═══ 统一 persona（2026-09-13 起，所有会话共用；无 normal/simple 之分）═══
+// 只留三样真正起作用的：
+//   ① 操作型定位（不自称 coding assistant —— 与「以操作为主」的定位不符）
+//   ② 通道指针（load_toolkit 的组目录 + 两处技能库的 ls→read 路径）
+//   ③ 编辑纪律里工具描述没说的那两条（edit 优先于 write；write 只用于新文件/整体重写）
+// 丢掉：工具列表 389（与工具定义重复）、Guidelines 长版、Pi 文档 1,219 全文，
+// 以及为 DeepSeek V4 写的 We 起手定式（4.1 实测已失效 —— 补短板型脚手架，模型换代后应拆）。
+const PERSONA_SLIM =
+  "You are an agent operating inside pi. You handle whatever the user asks: read/edit files, run commands, search the web, drive a real browser, operate local apps. Be concise; show file paths.\n"
+  + "Tooling: the list below is not exhaustive — `load_toolkit` unlocks more specialized tools (its description lists the groups). Skills live in two places: `./.pi/skills/` (project) and `~/.pi/agent/skills/` (global) — for domain tasks `ls` both, then `read` the matching SKILL.md.\n"
+  + "Editing: on existing files use `edit`, not `write`; `write` only for new files or full rewrites.\n"
+  + "Pi docs: <node_modules/@earendil-works/pi-coding-agent>/{README.md,docs,examples} — only when asked about pi itself.";
 
 // 懒清理：subagent 子进程临时会话（private/tmp cwd）超 1 天直接删，防会话目录无限堆积
 // ponytail: 只清已知临时前缀 + 超期，不动任何人工会话；配额/TTL 体系等真出问题再加
@@ -284,6 +293,26 @@ function setDisableModelInvocation(raw, disabled) {
     return disabled ? `---\ndisable-model-invocation: true\n---\n${body.replace(/^\n+/, "")}` : content;
   }
   return `---\n${lines.join("\n")}\n---\n${body.replace(/^\n+/, "")}`;
+}
+
+// 技能库枚举：**不能**用会话自己的 resourceLoader —— 它为了精简 system prompt 设了 noSkills: true
+// （语义 = 只加载显式指定的路径），会把技能集清空，Skill 面板跟着空。
+// 这里单独建一个「只用于枚举」的 loader，按 cwd 缓存；每次 reload 让磁盘改动（启用/禁用）即时可见。
+const skillCatalogCache = new Map(); // cwd -> DefaultResourceLoader
+async function skillCatalog(cwd) {
+  const key = cwd || CWD;
+  let loader = skillCatalogCache.get(key);
+  if (!loader) {
+    loader = new DefaultResourceLoader({
+      cwd: key,
+      agentDir: getAgentDir(),
+      noContextFiles: true,
+      noPromptTemplates: true,
+    });
+    skillCatalogCache.set(key, loader);
+  }
+  await loader.reload();
+  return loader.getSkills?.()?.skills ?? [];
 }
 
 const wss = new WebSocketServer({ server: httpServer });
@@ -368,11 +397,30 @@ wss.on("connection", async (ws) => {
         },
       }),
     ];
+    // ═══ 统一精简 loader（所有会话共用）═══
+    // 替换 SDK 默认模板（persona 169 + 工具列表 389 + Guidelines 701 + Pi 文档 1,219 ≈ 2,577）
+    // 为 PERSONA_SLIM（见文件上方说明）。系统指令只进 system 层 ——
+    // 曾误把设定拼进 user 消息 → 模型把系统约定当用户任务，引发反刍/自问自答。
+    const slimLoader = new DefaultResourceLoader({
+      cwd: effCwd,
+      agentDir: getAgentDir(),
+      systemPrompt: PERSONA_SLIM,
+      // 注入 AGENTS.md（任务路由 / 工具边界 / 提问纪律 / 单一事实源）—— 这几条是防事故的，
+      // 不是防啰嗦的。盘上那份已精简到 ~840 字符（只砍与工具描述重复的部分）。
+      noContextFiles: false,
+      // 技能清单不常驻（省 5,519）：SKILL.md 仍在盘上，按 persona 指针 ls + read 可达。
+      // 注意 noSkills ≠ 关闭技能通道 —— 它表示「只加载显式指定的」，正文仍可 read / 触发。
+      noSkills: true,
+      noPromptTemplates: true,
+      appendSystemPromptOverride: () => [],
+    });
+    await slimLoader.reload();
+
     const result = await createAgentSession({
       cwd: effCwd,
       // 打开已有会话：用会话文件里记的模型（SDK 自动恢复，每会话独立）；新会话用连接默认模型
       model: effSessionFile ? undefined : connModel,
-      // 不传 resourceLoader → SDK 默认 loader：默认 System Prompt + AGENTS.md + skills 清单（按需 read 取正文）
+      resourceLoader: slimLoader,
       sessionManager,
       authStorage,
       modelRegistry,
@@ -714,8 +762,8 @@ wss.on("connection", async (ws) => {
       case "get_skills": {
         // Skill 列表：pi ResourceLoader 原生（name/description/filePath/disableModelInvocation/sourceInfo）
         try {
-          const skillsResult = activeHandle()?.session?.resourceLoader?.getSkills?.();
-          const skills = (skillsResult?.skills ?? []).map((s) => ({
+          const list = await skillCatalog(activeHandle()?.cwd ?? CWD);
+          const skills = list.map((s) => ({
             name: s.name,
             description: s.description,
             filePath: s.filePath,
@@ -735,8 +783,8 @@ wss.on("connection", async (ws) => {
         try {
           const name = String(msg.name || "");
           const disabled = !!msg.disabled;
-          const skillsResult2 = activeHandle()?.session?.resourceLoader?.getSkills?.();
-          const skill = (skillsResult2?.skills ?? []).find((s) => s.name === name);
+          const skillsResult2 = await skillCatalog(activeHandle()?.cwd ?? CWD);
+          const skill = skillsResult2.find((s) => s.name === name);
           if (!skill?.filePath) {
             send({ type: "error", message: `未找到 skill: ${name}` });
             break;
