@@ -1,5 +1,5 @@
 import {
-  AuthStorage, DefaultResourceLoader, ModelRegistry, SessionManager,
+  DefaultResourceLoader, SessionManager,
   createAgentSession, getAgentDir,
 } from "@earendil-works/pi-coding-agent";
 import { createPlanTool } from "./tools/plan.js";
@@ -17,13 +17,12 @@ import { createResearchTool } from "./tools/research.js";
 import { createRunStatusTool } from "./tools/run-status.js";
 import { createSessionRecallTool } from "./tools/session-recall.js";
 import { createToolkitLoader, TOOLKIT_CORE, TOOLKITS } from "./tools/toolkit-loader.js";
+import { modelRuntime } from "./model-runtime.js";
 
 const CWD = "/Users/yipengfei/Desktop/pi Agent V2";
 const FULL_TOOLS = ["read", "bash", "edit", "write", "grep", "find", "ls", "plan", "update_plan", "worker", "wait_for", "subagent", "run_status", "register_artifact", "search", "tavily_search", "read_page", "inspect_file", "factreach", "site_memory", "research", "browser", "recall", "load_toolkit"];
 
-const au = AuthStorage.create();
-const mr = ModelRegistry.create(au);
-const model = mr.find("opencode-go", "deepseek-v4.1-flash");
+const model = modelRuntime.getModel("opencode-go", "deepseek-v4.1-flash");
 // 与 server.js 的 PERSONA_SLIM 保持一致（server.js 一 import 就起服务，这里只能手抄一份）
 const PERSONA_SLIM =
   "You are an agent operating inside pi. You handle whatever the user asks: read/edit files, run commands, search the web, drive a real browser, operate local apps. Be concise; show file paths.\n"
@@ -70,7 +69,7 @@ customTools.push(loaderTool);
 const { session } = await createAgentSession({
   cwd: CWD, model, sessionManager: SessionManager.create(CWD),
   resourceLoader: slimLoader,
-  authStorage: au, modelRegistry: mr,
+  modelRuntime, 
   tools: FULL_TOOLS, customTools,
 });
 handle = { session, cwd: CWD };

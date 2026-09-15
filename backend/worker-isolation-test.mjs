@@ -1,14 +1,13 @@
 // 可行性验证：agent.state.messages 替换能否实现"节点干净上下文"
 // 实验逻辑：先让模型记住一个秘密 → 替换上下文 → 再问秘密 → 答不出=隔离成功
-import { AuthStorage, ModelRegistry, SessionManager, createAgentSession } from "@earendil-works/pi-coding-agent";
+import { SessionManager, createAgentSession } from "@earendil-works/pi-coding-agent";
+import { modelRuntime } from "./model-runtime.js";
 
-const auth = AuthStorage.create();
-const mr = ModelRegistry.create(auth);
 const { session } = await createAgentSession({
   cwd: process.cwd(),
   sessionManager: SessionManager.inMemory(),
-  authStorage: auth,
-  modelRegistry: mr,
+  modelRuntime,
+  
   tools: ["read", "bash"],
 });
 

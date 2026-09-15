@@ -1,8 +1,7 @@
 // 复现：打开 10-56-27 分支会话（simple+pro+high）prompt，看新消息有没有 thinking
-import { AuthStorage, DefaultResourceLoader, ModelRegistry, SessionManager, createAgentSession, getAgentDir } from "@earendil-works/pi-coding-agent";
+import { DefaultResourceLoader, SessionManager, createAgentSession, getAgentDir } from "@earendil-works/pi-coding-agent";
+import { modelRuntime } from "./model-runtime.js";
 
-const auth = AuthStorage.create();
-const reg = ModelRegistry.create(auth);
 const CWD = "/Users/yipengfei/Desktop/pi Agent V2/electron/dist/mac/FLY.app/Contents/Resources/app";
 const simplePrompt = 'You are a helpful software engineer assistant.\nUser messages may be in Chinese. Always reason and plan in English.\nNever begin any reasoning block with "let me" or "I will". Begin every reasoning block with "We need to" or "We should" and keep planning in first-person plural (we).';
 const loader = new DefaultResourceLoader({ cwd: CWD, agentDir: getAgentDir(), systemPrompt: simplePrompt, noContextFiles: true, noSkills: true, noPromptTemplates: true, appendSystemPromptOverride: () => [] });
@@ -10,7 +9,7 @@ await loader.reload();
 
 const file = "/Users/yipengfei/.pi/agent/sessions/--Users-yipengfei-Desktop-pi Agent V2-electron-dist-mac-FLY.app-Contents-Resources-app--/2026-08-17T10-56-27-708Z_01a00f5d-9a3b-7d2d-9523-b7f5813cb046.jsonl";
 const { session } = await createAgentSession({
-  model: undefined, authStorage: auth, modelRegistry: reg,
+  model: undefined, modelRuntime, 
   sessionManager: SessionManager.open(file), resourceLoader: loader,
   tools: ["read", "bash", "edit", "write", "grep", "find", "ls", "plan", "worker", "wait_for", "subagent", "run_status", "search", "site_memory", "research", "browser"],
 });

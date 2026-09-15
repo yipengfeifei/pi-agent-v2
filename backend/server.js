@@ -11,9 +11,7 @@ import path from "node:path";
 import os from "node:os";
 import { WebSocketServer } from "ws";
 import {
-  AuthStorage,
   DefaultResourceLoader,
-  ModelRegistry,
   SessionManager,
   createAgentSession,
   getAgentDir,
@@ -34,6 +32,7 @@ import { createResearchTool } from "./tools/research.js";
 import { researchProgressEmitter } from "./tools/research.js";
 import { createRunStatusTool } from "./tools/run-status.js";
 import { createSessionRecallTool } from "./tools/session-recall.js";
+import { modelRuntime } from "./model-runtime.js";
 import { createToolkitLoader, TOOLKIT_CORE } from "./tools/toolkit-loader.js";
 import { disposeWorkerSession } from "./worker-session.js";
 import { isArtifact, EXT_WHITELIST } from "./artifacts.js";
@@ -230,18 +229,30 @@ const registerProject = (cwd, name) => {
   saveProjects(projects);
 };
 
-const authStorage = AuthStorage.create();
-const modelRegistry = ModelRegistry.create(authStorage);
+// 写 auth.json（provider API key 持久化，跨会话生效）。
+// 0.84.2 起 AuthStorage 不再从包里导出，而 ModelRuntime.setRuntimeApiKey 明确只作用于本次运行、不落盘
+// → 自己读写这个 JSON。凭据形状对齐 pi-ai 的 ApiKeyCredential：{ type: "api_key", key }
+// （旧代码写的 { type: "apiKey", apiKey } 是错形状，一并修正）
+// ponytail: 未加文件锁——只有本 app 在写；若日后要与 pi CLI 并发写同一 auth.json 再补锁
+const AUTH_JSON = () => path.join(getAgentDir(), "auth.json");
+function setStoredApiKey(provider, apiKey) {
+  const file = AUTH_JSON();
+  let data = {};
+  try { data = JSON.parse(readFileSync(file, "utf-8")); } catch {}
+  data[provider] = { type: "api_key", key: apiKey };
+  mkdirSync(path.dirname(file), { recursive: true });
+  writeFileSync(file, JSON.stringify(data, null, 2), { encoding: "utf-8", mode: 0o600 });
+}
 
 // 主 agent 模型：默认 deepseek-v4.1-flash（强弱统一，够用且便宜）；MAIN_MODEL="provider/id" 可覆盖；set_custom_provider 后切到新端点
 let mainModel = (() => {
   const explicit = process.env.MAIN_MODEL;
   if (explicit) {
     const [p, id] = explicit.split("/");
-    const m = modelRegistry.find(p, id);
+    const m = modelRuntime.getModel(p, id);
     if (m) return m;
   }
-  return modelRegistry.find("opencode-go", "deepseek-v4.1-flash") ?? undefined;
+  return modelRuntime.getModel("opencode-go", "deepseek-v4.1-flash") ?? undefined;
 })();
 
 // ═══ 统一 persona（2026-09-13 起，所有会话共用；无 normal/simple 之分）═══
@@ -422,8 +433,7 @@ wss.on("connection", async (ws) => {
       model: effSessionFile ? undefined : connModel,
       resourceLoader: slimLoader,
       sessionManager,
-      authStorage,
-      modelRegistry,
+      modelRuntime,
       tools: FULL_TOOLS, // 注册全量（simple 也注册全量，创建后立刻缩小锚定；subagent 由 pi 扩展注册）
       customTools, // 两边都注册；simple 首轮仅 bash/edit 激活，解锁后才暴露
     });
@@ -827,7 +837,7 @@ wss.on("connection", async (ws) => {
             return ap === abs;
           });
           if (!inCwd && !isRegistered) {
-            send({ type: "error", message: "路径越界" });
+            send({ type: "error", message: "该文件不在当前项目目录内，无法预览", path: String(msg.path ?? "") });
             break;
           }
           const full = abs;
@@ -843,7 +853,27 @@ wss.on("connection", async (ws) => {
             ext,
           });
         } catch (err) {
-          send({ type: "error", message: `读取产物失败：${String(err?.message ?? err)}` });
+          // 带上 path：前端靠它把错误匹配回那次请求，才能立刻报错（否则只能等 8 秒超时）
+          const enoent = err?.code === "ENOENT";
+          send({
+            type: "error",
+            path: String(msg.path ?? ""),
+            message: enoent ? "文件已不存在（可能已被删除或移动）" : `读取产物失败：${String(err?.message ?? err)}`,
+          });
+        }
+        break;
+      }
+      case "dismiss_session_file": {
+        // 从会话文件条里移除一条（文件已删除时的清理动作）：记成会话条目，持久生效
+        try {
+          const h = activeHandle();
+          const p = String(msg.path ?? "");
+          if (p && h?.session?.sessionManager?.appendCustomEntry) {
+            h.session.sessionManager.appendCustomEntry("session_file_dismissed", { path: p, at: Date.now() });
+          }
+          send({ type: "session_file_dismissed", path: p });
+        } catch (err) {
+          send({ type: "error", message: String(err?.message ?? err) });
         }
         break;
       }
@@ -896,14 +926,14 @@ wss.on("connection", async (ws) => {
       case "get_models": {
         // 模型目录（API/模型配置面板数据源）：可用模型 + 各 provider 是否已配认证
         try {
-          const models = modelRegistry.getAvailable().map((m) => ({
+          const models = modelRuntime.getAvailableSnapshot().map((m) => ({
             provider: m.provider,
             id: m.id,
             name: m.name,
             reasoning: !!m.reasoning,
             contextWindow: m.contextWindow,
             maxTokens: m.maxTokens,
-            hasAuth: authStorage.hasAuth(m.provider),
+            hasAuth: modelRuntime.hasConfiguredAuth(m.provider),
           }));
           // 按 provider 分组，返回 provider 列表 + 模型列表
           const byProvider = new Map();
@@ -927,7 +957,7 @@ wss.on("connection", async (ws) => {
             send({ type: "error", message: "用法：/model <关键词>（匹配 provider 或模型名子串）" });
             break;
           }
-          const hit = modelRegistry.getAvailable().find((m) => m.id.toLowerCase().includes(query) || m.provider.toLowerCase().includes(query));
+          const hit = modelRuntime.getAvailableSnapshot().find((m) => m.id.toLowerCase().includes(query) || m.provider.toLowerCase().includes(query));
           if (!hit) {
             send({ type: "error", message: `未找到匹配「${msg.query}」的模型（可用模型见 API 面板）` });
             break;
@@ -989,7 +1019,7 @@ wss.on("connection", async (ws) => {
         break;
       }
       case "set_api_key": {
-        // 设置 provider 的 API key（AuthStorage 持久化，跨会话生效）
+        // 设置 provider 的 API key（写入 ~/.pi/agent/auth.json 持久化，跨会话生效）
         try {
           const provider = String(msg.provider || "");
           const apiKey = String(msg.apiKey || "");
@@ -997,8 +1027,8 @@ wss.on("connection", async (ws) => {
             send({ type: "error", message: "需要 provider 和 apiKey" });
             break;
           }
-          authStorage.set(provider, { type: "apiKey", apiKey });
-          modelRegistry.refresh?.();
+          setStoredApiKey(provider, apiKey);
+          await modelRuntime.refresh();
           send({ type: "api_key_set", provider });
         } catch (err) {
           send({ type: "error", message: String(err?.message ?? err) });
@@ -1047,7 +1077,21 @@ wss.on("connection", async (ws) => {
               }
             }
           }
-          send({ type: "artifacts", artifacts: [...artifacts], sessionFiles: [...sessionFiles] });
+          // 已被用户手动从列表移除的（持久化在会话条目里）：不再显示
+          const dismissed = new Set();
+          for (const e of entries) {
+            if (e.type === "custom" && e.customType === "session_file_dismissed" && e.data?.path) {
+              dismissed.add(String(e.data.path));
+            }
+          }
+          for (const p of dismissed) { sessionFiles.delete(p); artifacts.delete(p); }
+          // 已经不在磁盘上的：预先标出来（前端显示成删除线），而不是等用户点开才发现
+          const missing = [];
+          for (const p of sessionFiles) {
+            const ap = path.isAbsolute(p) ? p : path.resolve(base, p);
+            if (!existsSync(ap)) missing.push(p);
+          }
+          send({ type: "artifacts", artifacts: [...artifacts], sessionFiles: [...sessionFiles], missing });
         } catch (err) {
           send({ type: "error", message: String(err?.message ?? err) });
         }
@@ -1074,10 +1118,10 @@ wss.on("connection", async (ws) => {
             models: [{ id: modelId, name: modelId }],
           };
           writeFileSync(modelsPath, JSON.stringify(existing, null, 2));
-          authStorage.set(provider, { type: "apiKey", apiKey }); // 双写：hasAuth 判定用
-          modelRegistry.refresh?.();
+          setStoredApiKey(provider, apiKey); // 双写：hasAuth 判定用
+          await modelRuntime.refresh();
           if (!process.env.MAIN_MODEL) {
-            const m = modelRegistry.find(provider, modelId);
+            const m = modelRuntime.getModel(provider, modelId);
             if (m) mainModel = m;
           }
           send({ type: "api_key_set", provider });

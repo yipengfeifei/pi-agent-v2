@@ -2,20 +2,19 @@
 // 流程：主会话写 n1 产出 → 执行 n2（input=raw_data）→ 断言结果用了 n1 物料
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { AuthStorage, ModelRegistry, SessionManager, createAgentSession } from "@earendil-works/pi-coding-agent";
+import { SessionManager, createAgentSession } from "@earendil-works/pi-coding-agent";
 import { createWorkerTool } from "./tools/worker.js";
+import { modelRuntime } from "./model-runtime.js";
 
 const CWD = path.join(path.dirname(fileURLToPath(import.meta.url)), "..");
-const auth = AuthStorage.create();
-const mr = ModelRegistry.create(auth);
 
 // 临时目录放主会话，避免污染真实会话目录
 const tmpDir = path.join(CWD, ".tmp-worker-test");
 const { session } = await createAgentSession({
   cwd: CWD,
   sessionManager: SessionManager.create(tmpDir),
-  authStorage: auth,
-  modelRegistry: mr,
+  modelRuntime,
+  
 });
 
 let current = session;

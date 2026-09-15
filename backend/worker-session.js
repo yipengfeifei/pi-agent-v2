@@ -1,7 +1,8 @@
 // worker 常驻会话：in-memory + 上下文替换实现"节点干净上下文"
 // 隔离机制（已实测验证）：每节点执行前替换 agent.state.messages，
 // 模型只见本次注入的物料/skill/prompt，不累积、不见主会话历史
-import { AuthStorage, ModelRegistry, SessionManager, createAgentSession } from "@earendil-works/pi-coding-agent";
+import { SessionManager, createAgentSession } from "@earendil-works/pi-coding-agent";
+import { modelRuntime } from "./model-runtime.js";
 import { httpRequestTool, appSnapshotTool } from "./tools/runtime-tools.js";
 import { searchTool } from "./tools/search.js";
 import { factreachTool } from "./tools/factreach.js";
@@ -21,11 +22,11 @@ const NODE_TIMEOUT_MS = (Number(process.env.NODE_TIMEOUT) || 300) * 1000;
 // worker 模型选择：默认跟随主会话模型（调用方传入 model）；用户可用环境变量 WORKER_MODEL="provider/id" 显式覆盖；
 // 都不指定时交给 SDK 连接默认模型。
 // ponytail: 曾用固定候选列表+回退，踩过 gpt-5.x-nano 空输出坑，跟随主会话是最简正确默认。
-function pickWorkerModel(mr, model) {
+function pickWorkerModel(model) {
   const explicit = process.env.WORKER_MODEL;
   if (explicit) {
     const [provider, id] = explicit.split("/");
-    const m = mr.find(provider, id);
+    const m = modelRuntime.getModel(provider, id);
     if (m) return m;
     console.warn(`[worker] WORKER_MODEL=${explicit} 未找到，回退默认`);
   }
@@ -35,15 +36,12 @@ function pickWorkerModel(mr, model) {
 export async function getWorkerSession({ cwd, key, model }) {
   const k = key ?? cwd;
   if (workerSessions.has(k)) return workerSessions.get(k);
-  const auth = AuthStorage.create();
-  const mr = ModelRegistry.create(auth);
-  const m = pickWorkerModel(mr, model);
+  const m = pickWorkerModel(model);
   const { session } = await createAgentSession({
     cwd,
     model: m,
     sessionManager: SessionManager.inMemory(),
-    authStorage: auth,
-    modelRegistry: mr,
+    modelRuntime,
     tools: ["read", "bash", "write", "grep", "find", "ls", "http_request", "execution_app_snapshot", "search", "factreach", "site_memory", "browser"],
     customTools: [httpRequestTool, appSnapshotTool, searchTool, factreachTool, siteMemoryTool, browserTool],
   });
@@ -53,15 +51,12 @@ export async function getWorkerSession({ cwd, key, model }) {
 
 // 一次性隔离会话：subagent 并发用（每个任务独立会话，不撞互斥锁）
 export async function createIsolatedSession({ cwd, systemBlock, materialsBlock, model }) {
-  const auth = AuthStorage.create();
-  const mr = ModelRegistry.create(auth);
-  const m = pickWorkerModel(mr, model);
+  const m = pickWorkerModel(model);
   const { session } = await createAgentSession({
     cwd,
     model: m,
     sessionManager: SessionManager.inMemory(),
-    authStorage: auth,
-    modelRegistry: mr,
+    modelRuntime,
     tools: ["read", "bash", "write", "grep", "find", "ls", "http_request", "execution_app_snapshot", "search", "factreach", "site_memory", "browser"],
     customTools: [httpRequestTool, appSnapshotTool, searchTool, factreachTool, siteMemoryTool, browserTool],
   });
