@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePiSession, type PiEntry, type ResearchRound } from "@/hooks/usePiSession";
-import Orb from "@/components/Orb";
 import StarChart from "@/components/StarChart";
+import BirdsField from "@/components/BirdsField";
 import { MarkdownBody } from "@/components/MarkdownBody";
 import { IconButton } from "@/components/UiIcon";
 import { NodeCanvas } from "@/components/NodeCanvas";
@@ -218,15 +218,10 @@ export default function ChatPage() {
   if (!sessionCwd) {
     return (
       <div style={{ display: "flex", height: "100vh", position: "relative", zIndex: 1, paddingLeft: sideOpen ? 240 : 16, transition: "padding-left 0.28s ease" }}>
-        {/* 能量球：居中，半尺寸（960×720），忙碌时发力 */}
-        <Orb
-          intensity={busy ? 1 : 0}
-          style={{
-            position: "fixed", left: "50%", top: "50%",
-            width: 960, height: 720, zIndex: 0, pointerEvents: "none",
-            transform: "translate(-50%, -50%)",
-          }}
-        />
+        {/* 背景：和下面主屏用的是同一个组件、同样放在第一个子节点。
+            启动时 sessionCwd 还没到（WS ready 未回），会先渲染这个分支；ready 到了切到主屏时，
+            React 按位置复用同一个 BirdsField 实例 → 画布不重建、鸟群不重开，不会闪出别的效果。 */}
+        <BirdsField zIndex={0} />
         <SessionSidebar
           sidebar={sidebar}
           activeSessionId={null}
@@ -249,16 +244,9 @@ export default function ChatPage() {
 
   return (
     <div style={{ display: "flex", height: "100vh", position: "relative", zIndex: 1 }}>
-      {/* 能量球：发第一条消息前居中显示（与选文件夹页一致），开始对话后消失 */}
+      {/* 空会话背景：鸟群（Birds，原版 Vanta BIRDS 复刻）。发第一条消息后换成星空 */}
       {entries.length === 0 ? (
-        <Orb
-          intensity={busy ? 1 : 0}
-          style={{
-            position: "fixed", left: "50%", top: "50%",
-            width: 960, height: 720, zIndex: 0, pointerEvents: "none",
-            transform: "translate(-50%, -50%)",
-          }}
-        />
+        <BirdsField zIndex={0} />
       ) : (
         /* 正式对话：星空背景（88 真实星座 + 519 星，鼠标靠近点亮） */
         <StarChart zIndex={0} />
