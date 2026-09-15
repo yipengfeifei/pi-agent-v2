@@ -66,7 +66,8 @@ export function IconButton({
         position: "relative", width: boxW, height: boxH, padding: 0,
         display: "flex", alignItems: "center", justifyContent: "center",
         background: "transparent", border: "none", borderRadius: 8, cursor: "pointer",
-        color: active ? "#fff" : "#9a9aa8",
+        // 非激活态颜色：原来是 #9a9aa8（偏灰紫，白度不够），改成接近纯白的冷调
+        color: active ? "#fff" : "#e9e9f0",
         ...(active ? { background: "linear-gradient(90deg, rgba(255,255,255,0.28), rgba(255,255,255,0.08) 70%, transparent)" } : {}),
       }}
     >

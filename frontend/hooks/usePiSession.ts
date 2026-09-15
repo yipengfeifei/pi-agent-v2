@@ -135,10 +135,11 @@ export type PiTemplate = {
 
 type Incoming =
   | { type: "ready"; sessionId: string; sessionFile: string; cwd?: string; modelFallbackMessage?: string }
-  | { type: "error"; message: string }
-  | { type: "artifacts"; artifacts: string[]; sessionFiles?: string[] }
+  | { type: "error"; message: string; path?: string }
+  | { type: "artifacts"; artifacts: string[]; sessionFiles?: string[]; missing?: string[] }
   | { type: "artifact_added"; path: string }
   | { type: "session_file_added"; path: string }
+  | { type: "session_file_dismissed"; path: string }
   | { type: "artifact_content"; path: string; kind: string; data: string; ext: string }
   | { type: "graph"; graph: { nodes?: PiNode[] } | null; outputs: Array<{ nodeId?: string; output?: string; artifacts?: string[] }> }
   | { type: "skills"; skills: PiSkill[] }
@@ -189,6 +190,8 @@ export function usePiSession(wsUrl = `ws://127.0.0.1:${process.env.NEXT_PUBLIC_W
   const [artifacts, setArtifacts] = useState<string[]>([]);
   // 会话文件：所有登记过的写入文件（含 .pi/技能/非白名单路径），前端「文件」面板数据源
   const [sessionFiles, setSessionFiles] = useState<string[]>([]);
+  // 已经在磁盘上找不到的会话文件（后端 get_artifacts 预检）：列表里显示成删除线，不用点开才发现
+  const [missingFiles, setMissingFiles] = useState<string[]>([]);
   // applyEvent 闭包用：最新图（事件回调不能依赖 state 闭包）
   const graphRef = useRef(graph);
   useEffect(() => {
@@ -205,12 +208,12 @@ export function usePiSession(wsUrl = `ws://127.0.0.1:${process.env.NEXT_PUBLIC_W
   // 搜索结果：toolCallId → sources（展开区渲染网页列表，favicon + 标题 · 域名）
   const [searchSources, setSearchSources] = useState<Record<string, Array<{ title: string; url: string }>>>({});
   // 产物文件预览：readArtifact(path) → Promise（等 artifact_content 事件）
-  const artifactPending = useRef(new Map<string, (r: { kind: string; data: string; ext: string }) => void>());
+  const artifactPending = useRef(new Map<string, { resolve: (r: { kind: string; data: string; ext: string }) => void; reject: (e: Error) => void }>());
   const readArtifact = useCallback((path: string) => {
     return new Promise<{ kind: string; data: string; ext: string }>((resolve, reject) => {
-      artifactPending.current.set(path, resolve);
+      artifactPending.current.set(path, { resolve, reject });
       send({ type: "read_artifact", path });
-      // 兜底：后端 error/超时时不挂起（error 事件不带 path，无法精准匹配）
+      // 兜底超时（正常情况后端会带 path 回 error，立刻报错，不用等这里）
       setTimeout(() => {
         if (artifactPending.current.has(path)) {
           artifactPending.current.delete(path);
@@ -218,6 +221,10 @@ export function usePiSession(wsUrl = `ws://127.0.0.1:${process.env.NEXT_PUBLIC_W
         }
       }, 8000);
     });
+  }, []);
+  // 从会话文件条移除一条（文件已找不到时的清理动作）：后端记成会话条目，持久生效
+  const dismissFile = useCallback((path: string) => {
+    send({ type: "dismiss_session_file", path });
   }, []);
   const [skills, setSkills] = useState<PiSkill[]>([]);
   const [models, setModels] = useState<PiModel[]>([]); // API/模型配置面板数据
@@ -281,15 +288,25 @@ export function usePiSession(wsUrl = `ws://127.0.0.1:${process.env.NEXT_PUBLIC_W
       if (msg.type === "artifacts") {
         setArtifacts(msg.artifacts);
         setSessionFiles(msg.sessionFiles ?? msg.artifacts);
+        setMissingFiles(msg.missing ?? []);
         return;
       }
       if (msg.type === "artifact_added") {
         setArtifacts((prev) => (prev.includes(msg.path) ? prev : [...prev, msg.path]));
         setSessionFiles((prev) => (prev.includes(msg.path) ? prev : [...prev, msg.path]));
+        setMissingFiles((prev) => prev.filter((p) => p !== msg.path)); // 又被写出来了就不再是缺失
         return;
       }
       if (msg.type === "session_file_added") {
         setSessionFiles((prev) => (prev.includes(msg.path) ? prev : [...prev, msg.path]));
+        setMissingFiles((prev) => prev.filter((p) => p !== msg.path));
+        return;
+      }
+      if (msg.type === "session_file_dismissed") {
+        // 后端已记成会话条目（下次加载也不会再出现），这里同步移除本地状态即可
+        setSessionFiles((prev) => prev.filter((p) => p !== msg.path));
+        setArtifacts((prev) => prev.filter((p) => p !== msg.path));
+        setMissingFiles((prev) => prev.filter((p) => p !== msg.path));
         return;
       }
       if (msg.type === "skills") {
@@ -437,14 +454,21 @@ export function usePiSession(wsUrl = `ws://127.0.0.1:${process.env.NEXT_PUBLIC_W
       }
       if (msg.type === "artifact_content") {
         // 产物文件预览响应：resolve 对应 readArtifact Promise
-        const resolve = artifactPending.current.get(msg.path);
-        if (resolve) {
+        const p = artifactPending.current.get(msg.path);
+        if (p) {
           artifactPending.current.delete(msg.path);
-          resolve({ kind: msg.kind, data: msg.data, ext: msg.ext });
+          p.resolve({ kind: msg.kind, data: msg.data, ext: msg.ext });
         }
         return;
       }
       if (msg.type === "error") {
+        // 带 path 的错误是某次预览请求的回复：立刻 reject 掉它，不要当成全局错误弹条
+        if (msg.path && artifactPending.current.has(msg.path)) {
+          const p = artifactPending.current.get(msg.path)!;
+          artifactPending.current.delete(msg.path);
+          p.reject(new Error(msg.message));
+          return;
+        }
         setError(msg.message);
         setBusy(false);
         return;
@@ -872,5 +896,5 @@ export function usePiSession(wsUrl = `ws://127.0.0.1:${process.env.NEXT_PUBLIC_W
     [entries],
   );
 
-  return { connected, reconnecting, ready, sessionId, sessionCwd, busy, currentTurnId, endedTurns, entries: sorted, error, graph, artifacts, sessionFiles, skills, models, currentModel, templates, sidebar, prompt, steer, abort, newSession, toggleSkill, switchSession, renameSession, deleteSession, deleteProject, createProject, nodeStreams, researchRounds, searchSources, setApiKey, setCustomProvider, saveTemplate, loadTemplate, readArtifact, setModel, compactSession, setQueue, branch, runCommand, picker, setPicker };
+  return { connected, reconnecting, ready, sessionId, sessionCwd, busy, currentTurnId, endedTurns, entries: sorted, error, graph, artifacts, sessionFiles, missingFiles, dismissFile, skills, models, currentModel, templates, sidebar, prompt, steer, abort, newSession, toggleSkill, switchSession, renameSession, deleteSession, deleteProject, createProject, nodeStreams, researchRounds, searchSources, setApiKey, setCustomProvider, saveTemplate, loadTemplate, readArtifact, setModel, compactSession, setQueue, branch, runCommand, picker, setPicker };
 }

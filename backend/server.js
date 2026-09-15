@@ -33,7 +33,7 @@ import { researchProgressEmitter } from "./tools/research.js";
 import { createRunStatusTool } from "./tools/run-status.js";
 import { createSessionRecallTool } from "./tools/session-recall.js";
 import { modelRuntime } from "./model-runtime.js";
-import { createToolkitLoader, TOOLKIT_CORE } from "./tools/toolkit-loader.js";
+import { createToolkitLoader, TOOLKIT_CORE, TOOLKITS } from "./tools/toolkit-loader.js";
 import { disposeWorkerSession } from "./worker-session.js";
 import { isArtifact, EXT_WHITELIST } from "./artifacts.js";
 
@@ -406,6 +406,10 @@ wss.on("connection", async (ws) => {
             handle.session.setActiveToolsByName(Array.from(activeToolNames));
           } catch {}
         },
+        // 解锁的组写成会话条目 —— 会话重开/重连时下面靠它恢复（否则会被 CORE 起手冲掉）
+        onGroupLoaded: (group) => {
+          try { handle.session.sessionManager.appendCustomEntry("toolkit_unlocked", { group, at: Date.now() }); } catch {}
+        },
       }),
     ];
     // ═══ 统一精简 loader（所有会话共用）═══
@@ -446,10 +450,19 @@ wss.on("connection", async (ws) => {
       unsubscribe: null,
     };
     setArtifactTarget(handle);
-    // 工具面起手：所有模式统一给核心集（13 个，含 load_toolkit）。
-    // 历史遗留的「simple 首轮无工具锚定 + band 解锁」已移除 —— 它服务于已失效的 We 起手实验；
-    // 窄工具面用 TOOLKIT_CORE 起手即可，其余由 load_toolkit 按需解锁。
-    try { handle.session.setActiveToolsByName(TOOLKIT_CORE); } catch {}
+    // 工具面起手：核心集 + 本会话已经解锁过的组。
+    // “已解锁的组”从会话条目（toolkit_unlocked）读回来 —— load_toolkit 的解锁必须跨重连/重开保持，
+    // 否则工具被默默收回，模型按 description 以为还在、去调只得到 Tool not found。
+    // 新建会话没有任何条目 → 就只有核心集（窄起手不变）。
+    try {
+      const entries = handle.session?.sessionManager?.getEntries?.() || [];
+      for (const e of entries) {
+        if (e.type === "custom" && e.customType === "toolkit_unlocked" && e.data?.group) {
+          for (const t of TOOLKITS[String(e.data.group)]?.tools ?? []) activeToolNames.add(t);
+        }
+      }
+    } catch {}
+    try { handle.session.setActiveToolsByName(Array.from(activeToolNames)); } catch {}
     handle.unsubscribe = handle.session.subscribe((event) => {
       // 所有模式统一保持核心集起手（TOOLKIT_CORE），不做「首次调用后全量放开」。
       // 需要更多工具时由模型判断后调 load_toolkit 解锁对应组（tools/toolkit-loader.js）。

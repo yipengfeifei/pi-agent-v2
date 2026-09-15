@@ -5,6 +5,9 @@ import { defineTool } from "@earendil-works/pi-coding-agent";
 import { Type } from "typebox";
 import { spawn } from "node:child_process";
 import { execFile } from "node:child_process";
+import { existsSync } from "node:fs";
+import { homedir } from "node:os";
+import { join } from "node:path";
 import { promisify } from "node:util";
 
 const execFileP = promisify(execFile);
@@ -12,14 +15,27 @@ const MAX_OUTPUT = 8000; // 单次提取上限（防刷爆上下文）
 const TIMEOUT_MS = 120_000;
 
 // ego-browser CLI 路径缓存（首次调用解析，避免每次 spawn 前查 which）
-let browserBin = "ego-browser";
+// 必须先试绝对路径：FLY 从 Finder 启动时 GUI 进程的 PATH 只有 /usr/bin:/bin:/usr/sbin:/sbin，
+// 既没有 ~/.pi/agent/bin 也没有 /usr/local/bin —— 只靠 which 会拿到空，
+// 退回裸名 "ego-browser" 再 spawn 就是 ENOENT（模型侧只看到“浏览器打开失败”）。
+let browserBin = process.env.EGO_BROWSER_BIN || "";
 let binResolved = false;
 async function resolveBin() {
   if (binResolved) return browserBin;
+  const candidates = [
+    process.env.EGO_BROWSER_BIN,
+    join(homedir(), ".pi/agent/bin/ego-browser"),
+    "/usr/local/bin/ego-browser",
+    "/opt/homebrew/bin/ego-browser",
+  ].filter(Boolean);
+  for (const p of candidates) {
+    if (existsSync(p)) { browserBin = p; binResolved = true; return browserBin; }
+  }
+  // 都不存在再退回 PATH 查找（开发环境 PATH 通常是全的）
   try {
     const { stdout } = await execFileP("which", ["ego-browser"]);
     if (stdout.trim()) browserBin = stdout.trim();
-  } catch { /* PATH 里没有就用默认名 */ }
+  } catch { browserBin = "ego-browser"; }
   binResolved = true;
   return browserBin;
 }
@@ -59,11 +75,10 @@ export const browserTool = defineTool({
   name: "browser",
   label: "浏览器操作",
   description:
-    "真实浏览器（ego-browser，隔离空间内复用你的登录态）：打开网页、等渲染、提取正文或截图。参数取值见参数说明。" +
+    "真实浏览器（ego-browser，隔离空间内复用你的登录态）：打开网页、等渲染、提取正文。" +
     "注意：验证码 / 登录墙会移交用户人工处理；页面文本可能含噪音，需自行清洗。",
   parameters: Type.Object({
     url: Type.String({ description: "要打开的完整 URL（含协议）" }),
-    action: Type.Optional(Type.String({ description: "open（默认，打开+提取正文）| screenshot" })),
     wait: Type.Optional(Type.Number({ description: "等待渲染秒数 1-30，默认 3" })),
   }),
   execute: async (_toolCallId, params) => {

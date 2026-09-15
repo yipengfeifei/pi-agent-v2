@@ -65,8 +65,9 @@ export function toolkitMenu() {
 /**
  * @param {() => string[]} getActive  当前已解锁的工具名
  * @param {(names: string[]) => void} setActive  应用新的工具面（幂等，只增不减）
+ * @param {(group: string) => void} [onGroupLoaded]  解锁某组后的持久化回调（server 写成会话条目）
  */
-export function createToolkitLoader({ getActive, setActive }) {
+export function createToolkitLoader({ getActive, setActive, onGroupLoaded }) {
   return defineTool({
     name: "load_toolkit",
     label: "加载工具组",
@@ -96,8 +97,13 @@ export function createToolkitLoader({ getActive, setActive }) {
       }
       const before = new Set(getActive());
       const next = Array.from(new Set([...before, ...kit.tools]));
-      setActive(next);
       const added = kit.tools.filter((t) => !before.has(t));
+      setActive(next);
+      // 只在真的解锁了新工具时才落条目：重复加载同一组不写脏数据
+      // （之前每调一次都写一条，同一会话攒了十几条同内容的 token）
+      if (added.length > 0) {
+        try { onGroupLoaded?.(g); } catch { /* 持久化失败不影响本次解锁 */ }
+      }
       return {
         content: [
           {

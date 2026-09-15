@@ -20,7 +20,7 @@ import { ArtifactPreview, type ArtifactPreviewData } from "@/components/Artifact
 import { QuickPicker } from "@/components/QuickPicker";
 
 export default function ChatPage() {
-  const { ready, reconnecting, sessionId, sessionCwd, busy, currentTurnId, endedTurns, entries, error, graph, artifacts, sessionFiles, skills, models, currentModel, templates, sidebar, prompt, steer, abort, newSession, toggleSkill, switchSession, renameSession, deleteSession, deleteProject, createProject, nodeStreams, researchRounds, searchSources, setApiKey, setCustomProvider, saveTemplate, loadTemplate, readArtifact, setModel, branch, runCommand, picker, setPicker } =
+  const { ready, reconnecting, sessionId, sessionCwd, busy, currentTurnId, endedTurns, entries, error, graph, artifacts, sessionFiles, missingFiles, dismissFile, skills, models, currentModel, templates, sidebar, prompt, steer, abort, newSession, toggleSkill, switchSession, renameSession, deleteSession, deleteProject, createProject, nodeStreams, researchRounds, searchSources, setApiKey, setCustomProvider, saveTemplate, loadTemplate, readArtifact, setModel, branch, runCommand, picker, setPicker } =
     usePiSession();
   const [input, setInput] = useState("");
   const inputRef = useRef<HTMLTextAreaElement>(null);
@@ -64,13 +64,26 @@ export default function ChatPage() {
   const [previewErr, setPreviewErr] = useState("");
   const openFile = async (path: string) => {
     setPreviewErr("");
+    // 已知已不在磁盘上的（后端预检给过）：直接报错，不用跑一次往返
+    if (missingFiles.includes(path)) {
+      setPreview({ path, kind: "__missing", data: "", ext: "" });
+      setPreviewErr("文件已不存在（可能已被删除或移动）");
+      return;
+    }
     try {
       const r = await readArtifact(path);
       setPreview({ path, ...r });
     } catch (e) {
-      setPreviewErr(String(e));
+      setPreviewErr(String(e instanceof Error ? e.message : e));
     }
   };
+  // 文件条：交付物与过程文件分组显示；过程文件默认收起（sessionFiles 常常很长）
+  const [showOtherFiles, setShowOtherFiles] = useState(false);
+  const groupLabelStyle: React.CSSProperties = {
+    flex: "0 0 auto", fontSize: 11, color: "var(--text-muted)", fontFamily: "var(--font-mono)",
+    padding: "8px 0", whiteSpace: "nowrap",
+  };
+  const chipRowStyle: React.CSSProperties = { display: "flex", gap: 8, flexWrap: "wrap", flex: 1, minWidth: 0 };
   const bottomRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
 
@@ -242,6 +255,34 @@ export default function ChatPage() {
     );
   }
 
+  // 会话文件分组：交付物（白名单）排前面，其余过程文件默认收起。
+  // 不再逐条标“交付物”——两个列表高度重合，逐条标等于没标；也不加类型图标，后缀本身已经说明了。
+  const deliverableFiles = sessionFiles.filter((f) => artifacts.includes(f));
+  const otherFiles = sessionFiles.filter((f) => !artifacts.includes(f));
+  const fileChip = (a: string) => {
+    const gone = missingFiles.includes(a);
+    return (
+      <button
+        key={a}
+        onClick={() => openFile(a)}
+        title={gone ? a + "\n（文件已不存在）" : a}
+        style={{
+          fontSize: 12, padding: "8px 16px",
+          background: "#000",
+          // 已不存在的：变暗 + 删除线，不用点开才发现
+          color: gone ? "var(--text-dim)" : "#e8e8e8",
+          textDecoration: gone ? "line-through" : "none",
+          opacity: gone ? 0.65 : 1,
+          border: "none", borderRadius: 999, cursor: "pointer",
+          fontFamily: "var(--font-mono)",
+          boxShadow: "0 2px 8px rgba(0,0,0,.35), 0 8px 24px rgba(0,0,0,.25)",
+        }}
+      >
+        {a.split("/").pop()}
+      </button>
+    );
+  };
+
   return (
     <div style={{ display: "flex", height: "100vh", position: "relative", zIndex: 1 }}>
       {/* 空会话背景：鸟群（Birds，原版 Vanta BIRDS 复刻）。发第一条消息后换成星空 */}
@@ -335,29 +376,31 @@ export default function ChatPage() {
 
       <div style={{ display: "flex", flexDirection: "column", flex: 1, minWidth: 0, position: "relative", paddingLeft: sideOpen ? 240 : 16, paddingTop: 20, overflow: "hidden", transition: "padding-left 0.28s ease" }}>
 
-        {/* 会话文件条：写过的文件都可见；交付物（白名单）带徽标，技能/过程文件只显示文件名 */}
+        {/* 会话文件条：交付物与过程文件分组，点条目弹预览（html/svg 默认渲染页面） */}
         {artifactsOpen && (
-          <div style={{ position: "absolute", top: 48, left: 20, right: 20, zIndex: 15, display: "flex", gap: 10, flexWrap: "wrap" }}>
-            {sessionFiles.length > 0 ? (
-              sessionFiles.map((a) => (
-                <button
-                  key={a}
-                  onClick={() => openFile(a)}
-                  style={{
-                    fontSize: 12, padding: "8px 16px",
-                    background: "#000", color: "#e8e8e8",
-                    border: "none", borderRadius: 999, cursor: "pointer",
-                    fontFamily: "var(--font-mono)",
-                    boxShadow: "0 2px 8px rgba(0,0,0,.35), 0 8px 24px rgba(0,0,0,.25)",
-                  }}
-                  title={a}
-                >
-                  {artifacts.includes(a) ? "📦 " : "📄 "}{a.split("/").pop()}
-                  {artifacts.includes(a) && <span style={{ marginLeft: 6, fontSize: 10, opacity: 0.7 }}>交付物</span>}
-                </button>
-              ))
-            ) : (
+          <div style={{ position: "absolute", top: 48, left: 20, right: 20, zIndex: 15, display: "flex", flexDirection: "column", gap: 4, maxHeight: "38vh", overflowY: "auto" }}>
+            {sessionFiles.length === 0 ? (
               <p style={{ margin: 0, fontSize: 12, color: "var(--text-muted)" }}>暂无会话文件</p>
+            ) : (
+              <>
+                {deliverableFiles.length > 0 && (
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                    <span style={groupLabelStyle}>交付物 {deliverableFiles.length}</span>
+                    <div style={chipRowStyle}>{deliverableFiles.map((a) => fileChip(a))}</div>
+                  </div>
+                )}
+                {otherFiles.length > 0 && (
+                  <div style={{ display: "flex", alignItems: "flex-start", gap: 10 }}>
+                    <button
+                      onClick={() => setShowOtherFiles((v) => !v)}
+                      style={{ ...groupLabelStyle, background: "none", border: "none", cursor: "pointer" }}
+                    >
+                      其他文件 {otherFiles.length} {showOtherFiles ? "▾" : "▸"}
+                    </button>
+                    {showOtherFiles && <div style={chipRowStyle}>{otherFiles.map((a) => fileChip(a))}</div>}
+                  </div>
+                )}
+              </>
             )}
           </div>
         )}
@@ -491,7 +534,12 @@ export default function ChatPage() {
       {panels}
 
       {/* 产物预览弹层（会话级 Artifact 条与画布节点详情共用） */}
-      <ArtifactPreview preview={preview} error={previewErr} onClose={() => { setPreview(null); setPreviewErr(""); }} />
+      <ArtifactPreview
+        preview={preview}
+        error={previewErr}
+        onDismiss={preview ? () => { dismissFile(preview.path); setPreview(null); setPreviewErr(""); } : undefined}
+        onClose={() => { setPreview(null); setPreviewErr(""); }}
+      />
 
     </div>
   );
