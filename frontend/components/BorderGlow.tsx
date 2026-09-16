@@ -1,6 +1,6 @@
 "use client";
 
-// BorderGlow —— border-glow-demo.html / input-glow-demo.html 的精确移植
+// BorderGlow —— demos/border-glow-demo.html / demos/input-glow-demo.html 的精确移植
 //
 // 关键坑（对齐 demo 的关键）：demo 里 buildGlowVars/buildGradientVars 用
 // `Object.assign(card.style, vars)` 批量赋值 CSS 自定义属性，浏览器里**不生效**，

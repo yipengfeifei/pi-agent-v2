@@ -45,7 +45,7 @@ export function UiIcon({ name, size = 16 }: { name: string; size?: number }) {
 /** 图标按钮：只有图标（无文字），全称走 tooltip；右上角可选数字角标；active 走白色渐变高亮。
  *  尺寸定稿：图标 18px（配 macOS 12px 红黄绿点；20px 会大近七成显得压，16px 又偏小）。
  *  盒子跟图标联动：boxW = icon + 14、boxH = icon + 12 —— 差值固定，所以按钮之间的视觉间距不随尺寸变。
- *  调尺寸用 icon-size-demo.html（带滑块，能对着真实三点比）。 */
+ *  调尺寸用 demos/icon-size-demo.html（带滑块，能对着真实三点比）。 */
 export function IconButton({
   icon, title, active, badge, onClick, size = 18, boxW = 32, boxH = 30,
 }: {

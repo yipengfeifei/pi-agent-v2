@@ -1,4 +1,4 @@
-/* ---- 与 input-glow-demo.html 的 <style> 逐字节一致（官方 reactbits BorderGlow.css） ---- */
+/* ---- 与 demos/input-glow-demo.html 的 <style> 逐字节一致（官方 reactbits BorderGlow.css） ---- */
 .border-glow-card {
 --edge-proximity: 0;
 --cursor-angle: 45deg;

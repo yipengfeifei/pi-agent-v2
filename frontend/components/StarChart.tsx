@@ -1,6 +1,6 @@
 "use client";
 
-// 星空背景：88 真实星座 + 519 颗星（B-V 真实色）。数据内嵌自 star-chart-yellow.html（压缩版）。
+// 星空背景：88 真实星座 + 519 颗星（B-V 真实色）。数据内嵌自 demos/star-chart-yellow.html（压缩版）。
 // idle 只显示 20 颗最亮星（mag≤1.5），鼠标靠近星座时点亮该星座成员星（真实色）+ 细实线连线 + 名字。
 import { useEffect, useRef } from "react";
 
