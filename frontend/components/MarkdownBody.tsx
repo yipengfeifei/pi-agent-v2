@@ -12,6 +12,39 @@ interface MarkdownBodyProps {
   isStreaming?: boolean;
 }
 
+// 必须在模块层定义，不能内联在 ReactMarkdown 的 components 里 ——
+// 内联写法每次渲染都产生全新的函数 identity，React 会判定 element type 变了，
+// 于是卸载整棵子树重新挂载：流式期间（节流后约每 80ms 一次渲染）消息里每个
+// 代码块的 SyntaxHighlighter 都被销毁重建、Prism 从头重新高亮 → 主线程打满、
+// DOM 反复替换 → 界面抖动。这正是「只有最终正文抖、思考块不抖」的原因：
+// 思考块是 whiteSpace:pre-wrap 纯文本，根本不走这条 markdown 管线。
+// 这几个 renderer 不依赖任何 props，所以放模块层是安全的。
+const MARKDOWN_COMPONENTS = {
+  code({ className, children, ...props }: any) {
+    const lang = className?.replace("language-", "").toLowerCase() ?? "";
+    const raw = String(children);
+    const isBlock = className?.includes("language-") || raw.includes("\n");
+    if (isBlock) {
+      return <CodeBlock code={raw.replace(/\n$/, "")} lang={lang} />;
+    }
+    return <code {...props}>{children}</code>;
+  },
+  pre({ children }: any) {
+    return <>{children}</>;
+  },
+  p({ children }: any) {
+    return <div style={{ margin: "0 0 0.35em 0" }}>{children}</div>;
+  },
+  a({ href, children, ...props }: any) {
+    // 外链新标签打开：来源引用点击直接跳转，不导航当前会话页
+    return (
+      <a href={href} target="_blank" rel="noreferrer" {...props}>
+        {children}
+      </a>
+    );
+  },
+};
+
 function copyText(text: string): Promise<void> {
   if (navigator.clipboard?.writeText) {
     return navigator.clipboard.writeText(text);
@@ -71,33 +104,7 @@ function MarkdownBodyImpl({ children, className, isStreaming }: MarkdownBodyProp
       <ReactMarkdown
         remarkPlugins={markdownRemarkPlugins}
         rehypePlugins={markdownRehypePlugins}
-        components={{
-          code({ className, children, ...props }) {
-            const lang = className?.replace("language-", "").toLowerCase() ?? "";
-            const raw = String(children);
-            const isBlock = className?.includes("language-") || raw.includes("\n");
-            if (isBlock) {
-              return <CodeBlock code={raw.replace(/\n$/, "")} lang={lang} />;
-            }
-            return (
-              <code {...props}>{children}</code>
-            );
-          },
-          pre({ children }) {
-            return <>{children}</>;
-          },
-          p({ children }) {
-            return <div style={{ margin: "0 0 0.35em 0" }}>{children}</div>;
-          },
-          a({ href, children, ...props }) {
-            // 外链新标签打开：来源引用点击直接跳转，不导航当前会话页
-            return (
-              <a href={href} target="_blank" rel="noreferrer" {...props}>
-                {children}
-              </a>
-            );
-          },
-        }}
+        components={MARKDOWN_COMPONENTS}
       >
         {normalizedMarkdown}
       </ReactMarkdown>
@@ -136,7 +143,10 @@ function normalizeDisplayMath(markdown: string): string {
     .join(lineBreak);
 }
 
-function CodeBlock({ code, lang }: { code: string; lang: string }) {
+// memo：已完成的高亮块在后续流式重渲染里不必重算。SyntaxHighlighter 每次渲染都会重跑 Prism，
+// 一条长回复里十几个代码块 × 每 80ms 一次渲染 = 主线程被高亮反复占用（界面发顿/发抖的二级来源）。
+// props 只有 code/lang，内容不变就跳过。
+const CodeBlock = memo(function CodeBlock({ code, lang }: { code: string; lang: string }) {
   const [copied, setCopied] = useState(false);
 
   const copy = () => {
@@ -201,4 +211,4 @@ function CodeBlock({ code, lang }: { code: string; lang: string }) {
       </SyntaxHighlighter>
     </div>
   );
-}
+});

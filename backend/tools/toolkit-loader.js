@@ -2,9 +2,13 @@
 //
 // 为什么是「工具」而不是「skill」——
 //   pi 的 Skill 接口只有 name/description/filePath/baseDir/sourceInfo/disableModelInvocation
-//   （dist/core/skills.d.ts:9-16），**没有 allowed-tools**，技能无法声明「我要带出哪些工具」；
-//   且 SDK 没有工具调用钩子（beforeToolCall / afterToolCall / intercept 全空），
-//   所以「读了 skill 就自动解锁工具」做不到。
+//   （dist/core/skills.d.ts:9-16），**没有 allowed-tools**，技能无法声明「我要带出哪些工具」。
+//   SDK 侧确实没有钩子：session.subscribe 的监听器是 (event) => void，纯通知，改不了调用。
+//   但扩展侧**有** pi.on("tool_call")，能 block、能就地改参数（types.d.ts:691）。
+//   它救不了这件事，原因是另一条：ExtensionContext.sessionManager 是 ReadonlySessionManager，
+//   拿不到 setActiveToolsByName（types.d.ts:219）—— 扩展能拦调用，但改不了工具面。
+//   注：2026-09 前这里写的是「SDK 没有工具调用钩子（全空）」，把两套 API 混成一套，
+//   会让后来者不再去找 pi.on("tool_call")，故更正。
 //   唯一能改工具面的入口是 session.setActiveToolsByName（dist/core/agent-session.d.ts:287），
 //   必须由代码主动调用 —— 因此「组」的载体只能是工具。
 //

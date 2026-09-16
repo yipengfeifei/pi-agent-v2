@@ -84,8 +84,11 @@ export default function ChatPage() {
     padding: "8px 0", whiteSpace: "nowrap",
   };
   const chipRowStyle: React.CSSProperties = { display: "flex", gap: 8, flexWrap: "wrap", flex: 1, minWidth: 0 };
-  const bottomRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLDivElement>(null);
+  const scrollRef = useRef<HTMLElement>(null);
+  // 钉底状态：用户手动上滚就放手，不再把他拽回来
+  const stickRef = useRef(true);
+  const rafRef = useRef<number | null>(null);
 
   // 画布面板：点击外部关闭
   useEffect(() => {
@@ -96,10 +99,44 @@ export default function ChatPage() {
     document.addEventListener("mousedown", onDown);
     return () => document.removeEventListener("mousedown", onDown);
   }, [canvasOpen]);
+  // 消息区钉底。为什么不是纯 CSS：实测过 overflow-anchor 哨兵方案（#scroller * none + 末尾
+  // 1px sentinel auto），浏览器不补位，哨兵被内容一路推出视口，距底漂到 ~98px；不加任何规则
+  // 的默认行为也漂 ~97px —— 即那两条 CSS 等于没起作用。所以钉底必须用 JS。
+  //
+  // 三处关键，缺一个就会抖：
+  //   ① scrollTop 直接赋值（instant）—— 不是 scrollIntoView({behavior:"smooth"})。
+  //      旧代码每个流式帧都调一次 smooth，滚动动画被反复打断重启，一秒几十次 → 界面上下抖。
+  //   ② rAF 节流 —— 每帧最多滚一次，避免高频 setEntries 堆出一长串滚动。
+  //   ③ stickRef 门 —— 用户往上翻时不动，否则会被强行拽回底部。
+  // 另外用容器 scrollTop 而非 scrollIntoView：后者会连带滚动所有可滚动祖先（侧栏一起摇）。
+  //
+  // 解除跟随只认「真实用户滚动」（滚轮 / 触摸）。不能靠 scroll 事件本身判断 ——
+  // 内容增长和程序化滚动同样会触发 scroll 事件：正文一长，某次增长把距底推过阈值就被
+  // 误判成「用户上滚了」→ 门关上 → 不再滚 → 距底只会更大 → 永久停在半路。
+  // （实测症状：流到约 3/4 处不再跟底。）
+  const userScrollUntilRef = useRef(0);
+  const markUserScroll = () => { userScrollUntilRef.current = performance.now() + 400; };
+
+  const onScroll = () => {
+    const el = scrollRef.current;
+    if (!el) return;
+    const dist = el.scrollHeight - el.scrollTop - el.clientHeight;
+    if (dist < 8) { stickRef.current = true; return; } // 回到底部 → 立即恢复跟随
+    if (performance.now() < userScrollUntilRef.current) stickRef.current = false;
+  };
 
   useEffect(() => {
-    bottomRef.current?.scrollIntoView({ behavior: "smooth" });
+    if (!stickRef.current || rafRef.current !== null) return;
+    rafRef.current = requestAnimationFrame(() => {
+      rafRef.current = null;
+      const el = scrollRef.current;
+      if (el && stickRef.current) el.scrollTop = el.scrollHeight;
+    });
   }, [entries]);
+
+  // ponytail: 依赖 entries 而不是 MutationObserver/ResizeObserver 双观察器 —— 消息区本来就是
+  // 每次 entries 变化才重渲染，用不着再观测 DOM。哪天真出现「非 entries 驱动的增长」（如纯 CSS
+  // 展开动画改变高度）再补 ResizeObserver。
 
   const submit = () => {
     const text = input.trim();
@@ -112,6 +149,7 @@ export default function ChatPage() {
     }
     prompt(text);
     setInput("");
+    stickRef.current = true; // 用户主动发消息 → 重新跟底
   };
 
   // 拖本地文件进输入框 → 光标处插入文件路径（agent 用已有 read/bash 工具读，不碰内容）
@@ -405,7 +443,7 @@ export default function ChatPage() {
           </div>
         )}
 
-        <main style={{ flex: 1, overflowY: "auto", padding: "28px 0 108px", background: "transparent" }}>
+        <main ref={scrollRef} onScroll={onScroll} onWheel={markUserScroll} onTouchMove={markUserScroll} style={{ flex: 1, overflowY: "auto", padding: "28px 0 108px", background: "transparent" }}>
           {entries.length === 0 && (
             <div style={{ height: "100%", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", textAlign: "center", color: "#fff" }}>
               <div style={{ fontSize: 40, fontWeight: 800, letterSpacing: "-0.02em" }}>
@@ -415,7 +453,6 @@ export default function ChatPage() {
             </div>
           )}
           {renderTurns(entries, endedTurns, busy, nodeStreams, researchRounds, searchSources, openSegs, toggleSeg, branch)}
-          <div ref={bottomRef} />
         </main>
 
         {/* 输入区：fixed 贴窗口底，不占布局（消息区不压缩）；黑条 42px 在输入框上方 */}
@@ -630,7 +667,7 @@ function renderTurns(entries: PiEntry[], endedTurns: ReadonlySet<number>, busy: 
               entry.text.startsWith("plan 结果：") ? (
                 <PlanResultBlock text={entry.text} />
               ) : (
-                <MarkdownBody isStreaming={busy && !entry.text.trim().endsWith("\n\n")}>
+                <MarkdownBody isStreaming={busy}>
                   {entry.text}
                 </MarkdownBody>
               )
