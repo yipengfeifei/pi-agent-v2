@@ -592,10 +592,18 @@ export function mountStarField({ root, promptEl: promptElIn, canvas: canvasIn, l
   /* ── 拖拽环视：偏航不限，俯仰夹在 ±90°，这样整个天球都够得着 ────────── */
   const view = { yaw: 0, pitch: 0, dragging: false, lastX: 0, lastY: 0 };
   const clampPitch = v => Math.max(-Math.PI / 2 * 0.98, Math.min(Math.PI / 2 * 0.98, v));
+  /* 拖拽环视只在「背景」上起手，UI 元素必须原样放行。
+     ★ 绝对不要 setPointerCapture：它会把后续 click 重定向到 body，整个界面点不动。
+       曾经的症状：切换会话没反应，但 ✕ 删除按钮还灵 —— 因为 button 被守卫挡下、
+       没走到捕获那一步，而会话行是 div，走了。 */
+  const DRAG_BLOCKERS = 'aside, nav, header, footer, .sidebar, .border-glow-card, ' +
+    'button, a, input, textarea, select, label, [role="button"], [contenteditable="true"], [data-no-star-drag]';
+  const dragBlocked = el => !!(el && el.closest && el.closest(DRAG_BLOCKERS));
+  window.__dragBlocked = dragBlocked;
   hero.addEventListener('pointerdown', e => {
-    if (e.target.closest('.prompt-box') || e.target.closest('button')) return;
+    if (e.button !== 0) return;
+    if (dragBlocked(e.target)) return;
     view.dragging = true; view.lastX = e.clientX; view.lastY = e.clientY;
-    hero.setPointerCapture?.(e.pointerId);
     hero.style.cursor = 'grabbing';
   });
   hero.addEventListener('pointermove', e => {
@@ -930,6 +938,15 @@ export function mountStarField({ root, promptEl: promptElIn, canvas: canvasIn, l
         hoveredAct: target ? +target.act.toFixed(3) : -1,
         pixelsChangedOnHover: changed,
         pointerPlumbed: !!got && Math.abs(got[0] - tx) < 1 && Math.abs(got[1] - ty) < 1,
+        // UI 元素必须被放行（否则整个界面点不动），背景必须能起手拖拽
+        dragBlocksSidebar: (() => { const a = document.createElement('aside'), sp = document.createElement('span');
+          a.appendChild(sp); document.body.appendChild(a); const r = dragBlocked(sp); a.remove(); return r; })(),
+        dragBlocksButton: (() => { const b = document.createElement('button'), sp = document.createElement('span');
+          b.appendChild(sp); document.body.appendChild(b); const r = dragBlocked(sp); b.remove(); return r; })(),
+        dragBlocksComposer: (() => { const c = document.createElement('div'), sp = document.createElement('span');
+          c.className = 'border-glow-card'; c.appendChild(sp); document.body.appendChild(c);
+          const r = dragBlocked(sp); c.remove(); return r; })(),
+        dragAllowsBackground: !dragBlocked(document.body),
         reduce: matchMedia('(prefers-reduced-motion: reduce)').matches,
       };
       const ok = r.particles >= 5000 &&
