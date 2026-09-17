@@ -45,6 +45,17 @@ const swaps = [
 ];
 for (const [from, to] of swaps) js = js.split(from).join(to);
 
+// 监听统一走 AbortController：卸载时一个 abort() 全部摘掉。
+// 不加这一步，反复切换「空会话 ↔ 有会话」会累积监听和引擎实例。
+for (const recv of ["hero", "wrapEl", "editorEl", "noteEl", "canvas", "document"]) {
+  js = js.split(recv + ".addEventListener(").join("__on(" + recv + ", ");
+}
+js = js.split("addEventListener(").join("__on(window, ");   // 裸调用 = window
+js = js.split("new ResizeObserver(resize).observe(canvas);")
+       .join("resizeObserver = new ResizeObserver(resize);\n  resizeObserver.observe(canvas);");
+js = js.split("  setInterval(syncMotionUI, 1000);")
+       .join("  motionTimer = setInterval(syncMotionUI, 1000);");
+
 // 删掉函数体里残留的 three import（header 已经引入了）
 js = js.split("\n").filter((l) => !/^\s*import \* as THREE from ["']three["'];?\s*$/.test(l)).join("\n");
 
@@ -57,6 +68,10 @@ import { SKY, STARS } from "../StarChart";
 // ⚠️ 本文件由 scripts/port-starfield.mjs 从 demos/pi-agent-chat-stars.html 生成，不要手改。
 //    改引擎请改 demo，然后重跑：node scripts/port-starfield.mjs
 export function mountStarField({ root, promptEl: promptElIn, canvas: canvasIn, labelCanvas: labelCanvasIn, noteEl, failEl }) {
+  /* 所有副作用的句柄都收在这里，卸载时一次清干净 */
+  const ac = new AbortController();
+  const __on = (t, ev, fn, op) => t && t.addEventListener(ev, fn, { ...(op || {}), signal: ac.signal });
+  let resizeObserver = null, motionTimer = null;
 `;
 
 const footer = `
@@ -77,12 +92,19 @@ const footer = `
     pixelRatio: renderer.getPixelRatio(),
   });
 
-  /* ── 清理：React 卸载时把副作用收干净 ───────────────────────────── */
+  /* ── 清理 ───────────────────────────────────────────────────────────
+     ★ 绝对不要 canvas.remove() / labelCv.remove() —— 那些节点是 React 的，
+       外部删掉会破坏它的 DOM 树，下一次 reconcile 直接抛 NotFoundError。
+       症状：点「新会话」→ entries 清空 → StarField 卸载 → 渲染进程崩溃
+       → Electron 显示 "This page couldn't load"。
+       这里只做「停循环 + 摘监听 + 放 GPU 资源」，DOM 交给 React 自己收。   */
   return function unmountStarField() {
     clock.running = false;
+    ac.abort();                                   // 一次性摘掉所有监听
+    try { resizeObserver?.disconnect(); } catch {}
+    try { clearInterval(motionTimer); } catch {}
     try { renderer.setAnimationLoop?.(null); } catch {}
     try { renderer.dispose(); } catch {}
-    for (const el of [canvas, labelCv, note, b]) { try { el?.remove(); } catch {} }
   };
 }
 `;

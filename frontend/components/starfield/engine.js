@@ -4,6 +4,10 @@ import { SKY, STARS } from "../StarChart";
 // ⚠️ 本文件由 scripts/port-starfield.mjs 从 demos/pi-agent-chat-stars.html 生成，不要手改。
 //    改引擎请改 demo，然后重跑：node scripts/port-starfield.mjs
 export function mountStarField({ root, promptEl: promptElIn, canvas: canvasIn, labelCanvas: labelCanvasIn, noteEl, failEl }) {
+  /* 所有副作用的句柄都收在这里，卸载时一次清干净 */
+  const ac = new AbortController();
+  const __on = (t, ev, fn, op) => t && t.addEventListener(ev, fn, { ...(op || {}), signal: ac.signal });
+  let resizeObserver = null, motionTimer = null;
 
 
 
@@ -577,14 +581,14 @@ export function mountStarField({ root, promptEl: promptElIn, canvas: canvasIn, l
   const pointer = new THREE.Vector2();   // smoothed, normalised −.5…−.5 (camera tilt)
   const aim     = new THREE.Vector2();
   const cursor  = { x: 0, y: 0 };        // CSS px inside the hero — drives the constellation layer
-  hero.addEventListener('pointermove', e => {
+  __on(hero, 'pointermove', e => {
     lastInput = performance.now();
     const r = canvas.getBoundingClientRect();
     aim.set((e.clientX - r.left) / r.width - 0.5, 0.5 - (e.clientY - r.top) / r.height);
     cursor.x = e.clientX - r.left;
     cursor.y = e.clientY - r.top;
   });
-  hero.addEventListener('pointerleave', () => {
+  __on(hero, 'pointerleave', () => {
     aim.set(0, 0);
     cursor.x = -9999; cursor.y = -9999;     // nothing hot
   });
@@ -600,13 +604,13 @@ export function mountStarField({ root, promptEl: promptElIn, canvas: canvasIn, l
     'button, a, input, textarea, select, label, [role="button"], [contenteditable="true"], [data-no-star-drag]';
   const dragBlocked = el => !!(el && el.closest && el.closest(DRAG_BLOCKERS));
   window.__dragBlocked = dragBlocked;
-  hero.addEventListener('pointerdown', e => {
+  __on(hero, 'pointerdown', e => {
     if (e.button !== 0) return;
     if (dragBlocked(e.target)) return;
     view.dragging = true; view.lastX = e.clientX; view.lastY = e.clientY;
     hero.style.cursor = 'grabbing';
   });
-  hero.addEventListener('pointermove', e => {
+  __on(hero, 'pointermove', e => {
     if (!view.dragging) return;
     view.yaw   -= (e.clientX - view.lastX) * DRAG_SENS_V;
     view.pitch  = clampPitch(view.pitch + (e.clientY - view.lastY) * DRAG_SENS_V);
@@ -614,18 +618,18 @@ export function mountStarField({ root, promptEl: promptElIn, canvas: canvasIn, l
     cursor.x = -9999; cursor.y = -9999;        // 拖拽时不点亮星座
   });
   const endDrag = () => { view.dragging = false; hero.style.cursor = ''; };
-  hero.addEventListener('pointerup', endDrag);
-  hero.addEventListener('pointercancel', endDrag);
+  __on(hero, 'pointerup', endDrag);
+  __on(hero, 'pointercancel', endDrag);
   window.__view = (yaw, pitch) => { view.yaw = yaw; view.pitch = clampPitch(pitch); };
   window.__viewState = () => ({ yaw: +view.yaw.toFixed(3), pitch: +view.pitch.toFixed(3) });
 
   /* engaged = the prompt box is focused or hovered → mass 1.35 */
   let engaged = 0;
-  if (wrapEl) wrapEl.addEventListener('pointerenter', () => engaged = 1);
-  if (wrapEl) wrapEl.addEventListener('pointerleave', () => engaged = 0);
+  if (wrapEl) __on(wrapEl, 'pointerenter', () => engaged = 1);
+  if (wrapEl) __on(wrapEl, 'pointerleave', () => engaged = 0);
   const editorEl = promptEl && (promptEl.querySelector('textarea') || document.querySelector('textarea'));
-  if (editorEl) editorEl.addEventListener('focus', () => engaged = 1);
-  if (editorEl) editorEl.addEventListener('blur',  () => engaged = 0);
+  if (editorEl) __on(editorEl, 'focus', () => engaged = 1);
+  if (editorEl) __on(editorEl, 'blur',  () => engaged = 0);
 
   /* ── resize ────────────────────────────────────────────────────────── */
   function resize() {
@@ -646,7 +650,8 @@ export function mountStarField({ root, promptEl: promptElIn, canvas: canvasIn, l
 
     if (cursor.x === 0 && cursor.y === 0) { cursor.x = w / 2; cursor.y = h / 2; }
   }
-  new ResizeObserver(resize).observe(canvas);
+  resizeObserver = new ResizeObserver(resize);
+    resizeObserver.observe(canvas);
   resize();
 
   /* 相机摆位单独成函数：自检要在不渲染的前提下扫遍整个天球，验证「看得到全部」 */
@@ -733,7 +738,7 @@ export function mountStarField({ root, promptEl: promptElIn, canvas: canvasIn, l
   const clock = { running: false };
   /* 窗口不可见 / 失焦时彻底停摆 —— 后台白烧 GPU 是最常见也最没必要的一种浪费 */
   let visible = true;
-  document.addEventListener('visibilitychange', () => {
+  __on(document, 'visibilitychange', () => {
     visible = !document.hidden;
     if (visible && clock.running) { last = 0; requestAnimationFrame(tick); }
   });
@@ -776,10 +781,10 @@ export function mountStarField({ root, promptEl: promptElIn, canvas: canvasIn, l
   }
   /* 应用版没有运动开关按钮，但保留 F 键强制动画——系统开了「减少动态效果」时也能看效果 */
   const toggleMotion = () => { userMotion = !userMotion; last = 0; start(); syncMotionUI(); };
-  addEventListener('keydown', e => {
+  __on(window, 'keydown', e => {
     if (e.key === 'f' || e.key === 'F') toggleMotion();
   });
-  if (noteEl) noteEl.addEventListener('click', toggleMotion);
+  if (noteEl) __on(noteEl, 'click', toggleMotion);
   syncMotionUI();
   start();
 
@@ -980,11 +985,18 @@ export function mountStarField({ root, promptEl: promptElIn, canvas: canvasIn, l
     pixelRatio: renderer.getPixelRatio(),
   });
 
-  /* ── 清理：React 卸载时把副作用收干净 ───────────────────────────── */
+  /* ── 清理 ───────────────────────────────────────────────────────────
+     ★ 绝对不要 canvas.remove() / labelCv.remove() —— 那些节点是 React 的，
+       外部删掉会破坏它的 DOM 树，下一次 reconcile 直接抛 NotFoundError。
+       症状：点「新会话」→ entries 清空 → StarField 卸载 → 渲染进程崩溃
+       → Electron 显示 "This page couldn't load"。
+       这里只做「停循环 + 摘监听 + 放 GPU 资源」，DOM 交给 React 自己收。   */
   return function unmountStarField() {
     clock.running = false;
+    ac.abort();                                   // 一次性摘掉所有监听
+    try { resizeObserver?.disconnect(); } catch {}
+    try { clearInterval(motionTimer); } catch {}
     try { renderer.setAnimationLoop?.(null); } catch {}
     try { renderer.dispose(); } catch {}
-    for (const el of [canvas, labelCv, note, b]) { try { el?.remove(); } catch {} }
   };
 }

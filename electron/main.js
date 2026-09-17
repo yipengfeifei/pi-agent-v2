@@ -165,6 +165,25 @@ app.whenReady().then(async () => {
     } catch { /* 同上 */ }
   });
 
+  // 加载失败兜底：以前什么都没接，瞬时失败（端口/渲染进程/资源竞争）会永久留一个
+  // Chromium 错误页，只能手动关掉重开 —— 用户看到的就是 "This page couldn't load"。
+  // 这里自动重试几次，指数退避；渲染进程崩了也一并重载。
+  let loadRetry = 0;
+  const reload = (why) => {
+    if (win.isDestroyed()) return;
+    if (loadRetry >= 5) { console.error(`[FLY] 已重试 ${loadRetry} 次仍失败：${why}`); return; }
+    const wait = 400 * ++loadRetry;
+    console.log(`[FLY] ${why} → ${wait}ms 后重试（第 ${loadRetry} 次）`);
+    setTimeout(() => { if (!win.isDestroyed()) win.loadURL(`http://127.0.0.1:${pagePort}`); }, wait);
+  };
+  win.webContents.on("did-fail-load", (_e, code, desc, _url, isMainFrame) => {
+    if (!isMainFrame) return;                 // 子资源失败由页面自己处理，不重载整页
+    if (code === -3) return;                  // ERR_ABORTED：正常的中断，不算失败
+    reload(`loadURL 失败 (${code} ${desc})`);
+  });
+  win.webContents.on("render-process-gone", (_e, d) => reload(`渲染进程退出 (${d.reason})`));
+  win.webContents.on("unresponsive", () => reload("页面无响应"));
+
   await win.loadURL(`http://127.0.0.1:${pagePort}`);
 });
 
