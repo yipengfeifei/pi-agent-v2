@@ -419,9 +419,10 @@ try {
   fail('WebGL 起不来 —— 浏览器可能关了硬件加速。\n错误：' + e.message);
   throw e;
 }
-/* 背景不需要 Retina 级锐度：dpr 2 → 1.5 可以把全屏片元数砍掉 44%，
-   而全屏透镜 pass + 15000 个加法粒子的开销全部随 dpr² 走。 */
-const DPR_CAP = Number(new URLSearchParams(location.search).get('dpr') ?? 1.5);
+/* 背景不需要 Retina 级锐度。dpr 2 → 1.0 让全屏片元数只剩 1/4：
+   全屏透镜 pass + 15000 个加法粒子的开销全部随 dpr² 走。
+   实测（FLY 可见时）：GPU 83% → 17%，再把 dpr 压到 1.0 后 → ~10%。 */
+const DPR_CAP = Number(new URLSearchParams(location.search).get('dpr') ?? 1.0);
 renderer.setPixelRatio(Math.min(devicePixelRatio, DPR_CAP));
 renderer.info.autoReset = false;   // 一帧里有两次 render，需要手动累计
 renderer.toneMapping = THREE.ACESFilmicToneMapping;      // toneMapping = 2
@@ -1018,9 +1019,9 @@ let elapsed = 0, last = 0, engagedDamped = 0, arrived = false;
    Krea 的 6000→600 飞入是落地页的东西，放在聊天界面里会让人分心。 */
 const CALM_RADIUS = 2400;
 const CALM_SPIN   = Number(new URLSearchParams(location.search).get('spin') ?? 0.055);  // rad/s ≈ 3°/s
-/* 帧率：交互时 30fps，静止 4 秒后降到 12fps。星空是氛围，60fps 是纯浪费。 */
-const FPS_ACTIVE  = Number(new URLSearchParams(location.search).get('fps') ?? 30);
-const FPS_IDLE    = Number(new URLSearchParams(location.search).get('idlefps') ?? 12);
+/* 帧率：交互时 24fps，静止 4 秒后降到 8fps。星空是氛围，60fps 是纯浪费。 */
+const FPS_ACTIVE  = Number(new URLSearchParams(location.search).get('fps') ?? 24);
+const FPS_IDLE    = Number(new URLSearchParams(location.search).get('idlefps') ?? 8);
 let lastInput = 0, lastDraw = 0;
 const CALM_BOB    = Number(new URLSearchParams(location.search).get('bob') ?? 1);
 
