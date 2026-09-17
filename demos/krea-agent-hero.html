@@ -1,0 +1,1132 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Krea Agent hero — faithful replica</title>
+<style>
+/* ══════════════════════════════════════════════════════════════════════
+   Recovered from krea.ai/app (SvelteKit build 4170417261e1cfef).
+   Sources, verbatim where possible:
+     HomePage.Buqa_qJI.css            → hero + .agent-streaks + keyframes
+     immutable/nodes HomePage …       → <filter id="agent-streak-texture">
+     chunks/CY55ErfD.js               → star + gravitational-lens shaders
+   ══════════════════════════════════════════════════════════════════════ */
+:root{
+  --foreground: oklch(98.5% 0 0);
+  --primary-950: #101010;
+  --muted-foreground: oklch(70.8% 0 0);
+  --accent: oklch(26.9% 0 0);
+  --radius-4xl: 2rem;
+  --fw-book: 450;
+  --ease: cubic-bezier(.333333,1,.666667,1);
+}
+*,*::before,*::after{ box-sizing:border-box; }
+html,body{ height:100%; margin:0; }
+body{
+  background:#000; color:#fff;
+  cursor:grab;
+  font-family:"Suisse Intl","Inter",-apple-system,BlinkMacSystemFont,"Segoe UI",system-ui,sans-serif;
+  font-weight:var(--fw-book); -webkit-font-smoothing:antialiased;
+}
+
+/* ── hero shell ──────────────────────────────────────────────────── */
+.agent-hero{
+  position:relative; isolation:isolate; overflow:hidden;
+  display:flex; align-items:center; justify-content:center;
+  min-height:75vh; padding:1.5rem; background:#000; border-bottom:1px solid rgba(255,255,255,.1);
+}
+.agent-hero > img,
+.agent-hero > canvas{ position:absolute; inset:0; width:100%; height:100%; display:block; border-radius:inherit; }
+   /* crisp labels, deliberately not refracted */
+.agent-hero > img{ object-fit:cover; }
+.agent-hero > canvas{ pointer-events:none; transition:opacity .6s ease-in-out; }
+#labels{ z-index:9; }   /* 标签走独立 2D 层，故意不参与折射，文字保持锐利 */
+
+.hero-copy{
+  position:relative; z-index:10; width:100%; max-width:49.5rem;
+  display:flex; flex-direction:column; align-items:center; gap:1.75rem;
+  color:#fff;
+}
+.hero-copy .text-center{ text-align:center; }
+.hero-copy h2{ margin:0; font-size:3.75rem; line-height:1.05; letter-spacing:-.025em; font-weight:var(--fw-book); }
+.hero-copy p{ margin:1rem 0 0; font-size:1rem; color:rgba(255,255,255,.65); }
+
+/* .hero-enter — from HomePage.Buqa_qJI.css */
+.hero-enter{ opacity:0; scale:.85; }
+.hero-copy[data-ready="true"] .hero-enter{ opacity:1; scale:1; }
+.hero-copy[data-ready="true"][data-animate="true"] .hero-enter{
+  transition:opacity 1s var(--ease), scale 1s var(--ease);
+  transition-delay:var(--intro-delay,75ms);
+}
+
+/* ── .agent-streaks — the orbiting ring around the prompt ─────────── */
+@property --agent-glow-angle{ syntax:"<angle>"; inherits:false; initial-value:0deg; }
+.agent-streaks{
+  pointer-events:none; position:absolute; inset:-.25rem; border-radius:36px;
+  filter:url(#agent-streak-texture) drop-shadow(0 0 2px #fff) drop-shadow(0 0 9px #75baff);
+  opacity:.65; animation-play-state:inherit;
+}
+.agent-streaks::before{
+  content:""; position:absolute; inset:1px; padding:4px; border-radius:35px; opacity:.8;
+  background:conic-gradient(from var(--agent-glow-angle),
+    transparent,
+    #b9dcff80 5deg, white 8deg 10deg, #b9dcff30 10.5deg, white 11deg 14deg, transparent 15deg 125deg,
+    #b9dcff80 136deg, white 139deg 141deg, transparent 142deg, white 143deg 147deg, transparent 148deg 250deg,
+    white 254deg 257deg, transparent 258deg);
+  animation:agent-glow-orbit 8s linear infinite, agent-glow-shimmer 1.37s ease-in-out infinite;
+  animation-play-state:inherit;
+  mask-image:linear-gradient(#000 0 0), linear-gradient(#000 0 0);
+  mask-position:0 0, 0 0; mask-size:auto, auto; mask-repeat:repeat, repeat;
+  mask-clip:content-box, border-box; mask-origin:content-box, border-box;
+  mask-composite:exclude;
+  -webkit-mask-image:linear-gradient(#000 0 0), linear-gradient(#000 0 0);
+  -webkit-mask-position:0 0, 0 0; -webkit-mask-size:auto, auto; -webkit-mask-repeat:repeat, repeat;
+  -webkit-mask-clip:content-box, border-box; -webkit-mask-origin:content-box, border-box;
+  -webkit-mask-composite:xor;
+}
+@keyframes agent-glow-shimmer{
+  0%,to{opacity:.8} 13%{opacity:1} 27%{opacity:.72} 41%{opacity:.9}
+  57%{opacity:.6} 68%{opacity:.84} 83%{opacity:.73} 92%{opacity:.95}
+}
+@keyframes agent-glow-orbit{ to{ --agent-glow-angle:360deg } }
+
+/* ── prompt box (hero variant: bg-black!, border-white/15, no shadow) ── */
+.prompt-wrap{ position:relative; width:100%; animation-play-state:running; }
+.prompt-box{
+  position:relative; display:flex; flex-direction:column; gap:.5rem;
+  width:100%; max-width:49.5rem; margin:0 auto; padding:.75rem;
+  border:.5px solid rgba(255,255,255,.15); border-radius:var(--radius-4xl);
+  background:#000; color:#fff; cursor:text; transform-origin:bottom;
+  backdrop-filter:blur(40px); -webkit-backdrop-filter:blur(40px);
+  transition:background-color .2s ease-out;
+}
+.prompt-wrap[data-focus="true"] .prompt-box{ background:#050505; }
+
+.editor{
+  position:relative; width:100%; min-height:2lh; max-height:192px; overflow-y:auto;
+  padding:.375rem .625rem; font-size:1rem; line-height:1.5rem; font-weight:400;
+  white-space:pre-wrap; overflow-wrap:anywhere; outline:none; caret-color:#fff;
+}
+.editor[data-empty="true"]::before{
+  content:attr(data-placeholder); position:absolute; color:currentColor;
+  opacity:.5; pointer-events:none; user-select:none;
+}
+.editor::selection{ background:rgba(96,140,255,.28); }
+
+.bottom{ display:flex; width:100%; align-items:flex-end; justify-content:space-between; gap:.5rem; }
+.bottom-left,.bottom-right{ display:flex; align-items:center; gap:.25rem; }
+.bottom-right{ margin-left:auto; flex-shrink:0; }
+
+.btn{
+  display:inline-flex; flex-shrink:0; align-items:center; justify-content:center; gap:.5rem;
+  font-family:inherit; font-weight:var(--fw-book); color:inherit; white-space:nowrap;
+  border:none; outline:none; cursor:pointer; background:transparent;
+  transition:background-color .15s ease-out, color .15s ease-out, transform .15s ease-out;
+}
+.btn:focus-visible{ box-shadow:0 0 0 3px rgba(255,255,255,.2); }
+.btn:active{ transform:scale(.95); }
+.attach{ width:2.25rem; height:2.25rem; border-radius:9999px; background:rgba(255,255,255,.05);
+  box-shadow:inset 0 0 0 .5px rgba(255,255,255,.1); }
+.attach:hover{ background:rgba(255,255,255,.15); }
+.attach svg{ width:24px; height:24px; }
+.model{ height:2.25rem; padding:0 1rem; border-radius:9999px; font-size:.75rem; }
+.model:hover{ background:color-mix(in oklab, var(--accent) 50%, transparent); }
+.model .inner{ display:flex; align-items:center; gap:.25rem; font-size:.875rem; }
+.model .muted{ color:var(--muted-foreground); }
+.model .chev{ width:.875rem; height:.875rem; color:var(--muted-foreground); transition:transform .18s var(--ease); }
+.model[aria-expanded="true"] .chev{ transform:rotate(180deg); }
+.generate{
+  width:2.25rem; height:2.25rem; border-radius:9999px; background:#fff; color:#000;
+  transition:transform .2s var(--ease), box-shadow .2s ease-out, opacity .2s ease-out;
+}
+.generate:hover{ box-shadow:0 0 24px rgba(255,255,255,.25); }
+.generate svg{ width:24px; height:24px; fill:currentColor; stroke:currentColor; stroke-width:1.5;
+  stroke-linecap:round; stroke-linejoin:round; }
+.generate[disabled]{ opacity:.35; cursor:default; }
+.generate[disabled]:hover{ box-shadow:none; }
+
+/* ── motion control chip (mine, not Krea's) ──────────────────────── */
+.controls{
+  position:fixed; right:1rem; bottom:1rem; z-index:50; display:flex; gap:.5rem;
+  font-size:.75rem; font-family:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+.controls button{
+  padding:.45rem .8rem; border-radius:9999px; cursor:pointer;
+  border:.5px solid rgba(255,255,255,.2); background:rgba(20,20,22,.75); color:#fff;
+  backdrop-filter:blur(12px); -webkit-backdrop-filter:blur(12px);
+}
+.controls button[aria-pressed="true"]{ background:#fff; color:#000; border-color:#fff; }
+.note{
+  position:fixed; left:1rem; bottom:1rem; z-index:50; max-width:22rem;
+  font-size:.7rem; line-height:1.5; color:rgba(255,255,255,.45);
+  font-family:ui-monospace,SFMono-Regular,Menlo,monospace; pointer-events:none;
+}
+</style>
+</head>
+<body>
+
+<section class="agent-hero" id="hero" aria-label="Introducing Krea Agent">
+  <img src="./agent-starfield-backdrop.webp" alt="" fetchpriority="high">
+  <canvas id="scene" aria-hidden="true"></canvas>
+  <canvas id="labels" aria-hidden="true"></canvas>
+  <canvas id="labels" aria-hidden="true"></canvas>
+
+  <div class="hero-copy" id="copy" data-ready="true" data-animate="false">
+    <div class="text-center">
+      <h2 class="hero-enter">A new era</h2>
+      <p class="hero-enter" style="--intro-delay:150ms">Introducing the intelligent Krea Agent. The future of generative media.</p>
+    </div>
+
+    <div class="hero-enter prompt-wrap" style="--intro-delay:225ms" role="group" aria-label="Agent prompt">
+      <svg style="position:absolute;width:0;height:0;pointer-events:none" aria-hidden="true">
+        <filter id="agent-streak-texture" x="-10%" y="-30%" width="120%" height="160%" color-interpolation-filters="sRGB">
+          <feTurbulence type="fractalNoise" baseFrequency="0.045 0.5" numOctaves="2" seed="8" result="noise"/>
+          <feDisplacementMap in="SourceGraphic" in2="noise" scale="2" xChannelSelector="R" yChannelSelector="G" result="distorted"/>
+          <feColorMatrix in="noise" type="saturate" values="0" result="grain"/>
+          <feComposite in="distorted" in2="grain" operator="arithmetic" k1="1.5" k2="0.35" k3="0" k4="0"/>
+        </filter>
+      </svg>
+      <div class="agent-streaks" aria-hidden="true"></div>
+
+      <div class="prompt-box" id="promptBox" data-slot="prompt-box">
+        <div class="editor" id="editor" contenteditable="true" role="textbox" tabindex="0"
+             aria-multiline="true" aria-label="Prompt"
+             data-empty="true" data-placeholder="Ask me to do anything..."></div>
+        <div class="bottom">
+          <div class="bottom-left">
+            <button class="btn attach" type="button" aria-label="Add">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M5 12h14"/><path d="M12 5v14"/>
+              </svg>
+            </button>
+          </div>
+          <div class="bottom-right">
+            <button class="btn model" type="button" aria-haspopup="menu" aria-expanded="false" aria-label="Model settings">
+              <span class="inner">Auto <span class="muted">Medium</span>
+                <svg class="chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>
+              </span>
+            </button>
+            <button class="btn generate" type="button" disabled aria-label="Generate">
+              <svg viewBox="0 0 24 24">
+                <path d="M11.017 2.814a1 1 0 0 1 1.966 0l1.051 5.558a2 2 0 0 0 1.594 1.594l5.558 1.051a1 1 0 0 1 0 1.966l-5.558 1.051a2 2 0 0 0-1.594 1.594l-1.051 5.558a1 1 0 0 1-1.966 0l-1.051-5.558a2 2 0 0 0-1.594-1.594l-5.558-1.051a1 1 0 0 1 0-1.966l5.558-1.051a2 2 0 0 0 1.594-1.594z"/>
+              </svg>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="controls">
+  <button id="btnMotion" aria-pressed="false">motion: auto</button>
+  <button id="btnReplay">replay</button>
+</div>
+<div class="note" id="note"></div>
+
+<script src="./star-chart-data.js"></script>
+<script type="importmap">
+{ "imports": { "three": "https://unpkg.com/three@0.172.0/build/three.module.js" } }
+</script>
+
+<script type="module">
+import * as THREE from 'three';
+
+/* ══════════════════════════════════════════════════════════════════════
+   Recovered from chunks/CY55ErfD.js, function Zr(canvas, props)
+   ══════════════════════════════════════════════════════════════════════ */
+
+const hero      = document.getElementById('hero');
+const canvas    = document.getElementById('scene');
+const promptEl  = document.getElementById('promptBox');
+const wrapEl    = promptEl.parentElement;
+const copyEl    = document.getElementById('copy');
+const note      = document.getElementById('note');
+
+const params = new URLSearchParams(location.search);
+/* ?lens=0…2 — 0 disables the warp, 1 = Krea's original reach/strength */
+const LENS = params.has('lens') ? Math.max(0, parseFloat(params.get('lens'))) : null;
+
+/* ── 视角与纵深 ───────────────────────────────────────────────────────
+   相机绕 (0,0,-4900) 转（半径 6000→600，Krea 的入场），指针叠加大幅环视。
+   星图铺在半径 22000 的天球上、球心就在枢轴 —— 所以相机基本在球心，
+   透视近似正交，星座不会被拉变形。
+
+   纵深只有两条线索：
+     1. 环视时天球整体扫过，粒子层按自己的轨道走 → 两者视差不同
+     2. 粒子按距离失焦（近处散成光斑，远处才是锐点）→ 天球落在焦平面上  */
+/* 视角控制分两条，因为它们是矛盾的：
+     · 悬停要稳   → 光标不能同时当转视角用（1:1 跟随才稳，但那样只能扫 ±56°）
+     · 要能看全   → 偏航得覆盖 360°、俯仰 ±90°
+   所以：光标只做瞄准 + Krea 那点微动；**拖拽**才是自由环视，覆盖整个天球。 */
+const LOOK         = 0.35;   // 指针微动幅度（rad），保留 Krea 的视差手感
+const DRAG_SENS    = 0.0042; // 拖拽灵敏度 rad/px —— 1280px 约扫 308°
+const DOF          = 1.0;    // 粒子失焦强度，0 = 全锐
+
+const P = k => params.has(k) ? Math.max(0, parseFloat(params.get(k))) : null;
+const LOOK_V   = P('look') ?? LOOK;
+const DRAG_SENS_V = P('dragsens') ?? DRAG_SENS;
+const DOF_V    = P('dof')  ?? DOF;
+const DUST_V = P('dust');
+const FORCE_MOTION = params.get('motion') === 'on' || params.has('capture');
+const CAPTURE = params.has('capture');   // clock driven externally via __still(t)
+let   userMotion = FORCE_MOTION;
+
+const prefersReduce = () => matchMedia('(prefers-reduced-motion: reduce)').matches && !userMotion;
+const reduced = () => prefersReduce();
+
+/* ── renderer ──────────────────────────────────────────────────────── */
+let renderer;
+try {
+  renderer = new THREE.WebGLRenderer({ canvas, depth:false, powerPreference:'low-power' });
+} catch (e) {
+  note.textContent = 'WebGL unavailable — showing the static starfield backdrop only.';
+  canvas.style.opacity = '0';
+  throw e;
+}
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.toneMapping = THREE.ACESFilmicToneMapping;      // toneMapping = 2
+
+const scene  = new THREE.Scene();
+scene.background = new THREE.Color(0);
+const camera = new THREE.PerspectiveCamera(58, 1, 30, 60000);
+const target = new THREE.WebGLRenderTarget(1, 1, { type: THREE.HalfFloatType, depthBuffer:false });
+
+/* ══════════════════════════════════════════════════════════════════════
+   Two stacked layers, both living in the SAME 3D scene, so one render
+   and one lens pass handles them together:
+
+     L0  Krea's particle sky   — atmosphere, gives the lens depth to bend
+     L1  the project's real sky — whole-sky map: 519 catalogue stars,
+                                  88 IAU constellations, hover to light
+
+   Putting L1 in world space rather than as a screen sticker is what makes
+   both layers track the camera together; a pinned overlay would slide
+   against the particles the moment the pointer moves.
+   ══════════════════════════════════════════════════════════════════════ */
+
+/* ── L0: Krea's particle sky (chunks/CY55ErfD.js, minus the "Agent" glyph) ── */
+let lcg = 7391;                                   // LCG，跟 Krea 的星场同一个种子
+const rnd = () => (lcg = (Math.imul(lcg, 1664525) + 1013904223) >>> 0) / 4294967296;
+
+const POS = [], COL = [], STAR = [];
+const _v = new THREE.Vector3(), _c = new THREE.Color();
+const COUNT = canvas.clientWidth < 640 ? 4500 : 8000;
+
+for (let i = 0; i < COUNT * 5; i++) {
+  const far = i >= COUNT;
+  _v.setFromSphericalCoords(
+    far ? 10000 + rnd() * 10000 : 800 + Math.cbrt(rnd()) * 11000,
+    Math.acos(rnd() * 2 - 1),
+    rnd() * Math.PI * 2);
+  if (i % 40 === 0 && !far) _v.multiplyScalar(0.25);
+  POS.push(_v.x, _v.y, _v.z);
+  STAR.push(
+    far ? 0.15 + rnd() * 0.65 : 0.35 + Math.pow(rnd(), 2) * 3.3,
+    far ? 0.02 + Math.pow(rnd(), 2) * 0.2 : 0.05 + Math.pow(rnd(), 3) * 8,
+    rnd() * Math.PI * 2,
+    0.8 + rnd() * 0.9);
+  const r = rnd();
+  const hue = r < 0.08 ? 0.06 + rnd() * 0.08 : r > 0.99 ? 0.83 + rnd() * 0.1 : 0.55 + rnd() * 0.1;
+  _c.setHSL(hue, 0.5 + rnd() * 0.35, 0.64 + rnd() * 0.2, THREE.SRGBColorSpace);
+  COL.push(_c.r, _c.g, _c.b);
+}
+
+const starGeo = new THREE.BufferGeometry();
+starGeo.setAttribute('position', new THREE.Float32BufferAttribute(POS, 3));
+starGeo.setAttribute('color',    new THREE.Float32BufferAttribute(COL, 3));
+starGeo.setAttribute('star',     new THREE.Float32BufferAttribute(STAR, 4));
+
+const starUniforms = {
+  arrival:    { value: 0 },
+  time:       { value: 0 },
+  quiet:      { value: new THREE.Vector2(0.8, 0.7) },
+  pixelRatio: { value: renderer.getPixelRatio() },
+  dof:        { value: DOF },
+  // L1 carries the data now, so the atmosphere steps back instead of competing.
+  dim:        { value: DUST_V ?? 0.50 },
+};
+
+const starMat = new THREE.ShaderMaterial({
+  uniforms: starUniforms,
+  transparent: true, depthWrite: false, depthTest: false, toneMapped: false,
+  blending: THREE.AdditiveBlending,
+  vertexShader: /* glsl */`
+    attribute vec3 color;
+    attribute vec4 star;
+    uniform float arrival, pixelRatio, time, dim, dof;
+    varying vec3 tint;
+    varying float energy, angle, aspect, spriteSize, foreground, defocus;
+    void main() {
+      vec4 view = modelViewMatrix * vec4(position, 1.0);
+      gl_Position = projectionMatrix * view;
+      float distance = max(1.0, -view.z);
+      // 近处的尘埃该是失焦光斑，远处才是锐点 —— 这是纵深的唯一线索
+      defocus = dof * (1.0 - smoothstep(900.0, 5200.0, distance));
+      float diameter = clamp(star.x * 1400.0 / distance, 0.45, 3.8);
+      foreground = arrival * smoothstep(1.2, 2.0, diameter) * (1.0 - smoothstep(1800.0, 3200.0, distance));
+      spriteSize = diameter * 7.0 + 5.0;
+      gl_PointSize = spriteSize * pixelRatio;
+      energy = star.y * smoothstep(100.0, 400.0, distance) * dim;
+      energy *= 1.0 + arrival * step(0.88, fract(star.z * 7.13)) * step(1.0, star.y) * dim
+        * (sin(time * (0.7 + star.w) + star.z) * 0.25 + sin(time * 2.3 + star.z * 4.0) * 0.12);
+      tint = color;
+      angle = star.z;
+      aspect = star.w;
+    }`,
+  fragmentShader: /* glsl */`
+    varying vec3 tint;
+    varying float energy, angle, aspect, spriteSize, foreground, defocus;
+    void main() {
+      vec2 pixel = (gl_PointCoord - 0.5) * spriteSize;
+      float pinpoint = exp(-dot(pixel, pixel) * 0.5);
+      vec2 p = gl_PointCoord * 2.0 - 1.0;
+      p = mat2(cos(angle), -sin(angle), sin(angle), cos(angle)) * p;
+      p *= vec2(inversesqrt(aspect), sqrt(aspect));
+      // 失焦 = 核心的衰减指数塌下来，光散成一团；锐度只在远处保留
+      float k = mix(65.0, 6.0, defocus);
+      float core = exp(-dot(p, p) * k);
+      vec2 shoulder = p - vec2(0.055, 0.025);
+      float light = core + exp(-dot(shoulder, shoulder) * k * 0.55) * 0.22
+        + exp(-dot(p, p) * 20.0) * 0.08 + exp(-dot(p, p) * 6.0) * 0.004;
+      gl_FragColor = vec4((tint * light + vec3(1.0) * pinpoint * foreground * 3.0) * energy, 1.0);
+    }`,
+});
+const stars = new THREE.Points(starGeo, starMat);
+stars.frustumCulled = false;
+scene.add(stars);
+
+/* ══════════════════════════════════════════════════════════════════════
+   L1 = the real sky, wrapped around the viewer as a sphere.
+
+   一次只看得见约 14% 的天区 —— 这是要的，不是缺陷。整张星图铺满整个
+   空间，随着视角变化才能逐块看到全部内容。投影本身的定义就是这样，
+   想「整张同屏」就只能做成平面卡片，那是另一件事。
+   ══════════════════════════════════════════════════════════════════════ */
+/* ── the real sky ─────────────────────────────────────────────────────
+   No random stars. This is the actual catalogue from the project
+   (frontend/components/StarChart.tsx → demos/star-chart-data.js):
+     519 stars, [RA*100, Dec*100, mag*100, "r,g,b"], real B–V colours,
+     magnitudes −1.44 (Sirius) … +4.0.
+   RA/Dec is mapped onto a sphere of radius SKY_R, so the Krea camera
+   actually flies through the real sky. Size and brightness come
+   straight from the magnitude — nothing is invented. */
+/* The camera orbits (0,0,-4900) at a radius of 600…6000. Centring the sphere on
+   the ORIGIN instead put the camera 48% of the way out, so perspective stretch
+   mangled every constellation off-axis (measured: visible-star distance spread
+   4581→9324, i.e. 2.0×). Centred on the pivot with a 22k radius that spread is
+   ~1.03× and the sky reads as a proper map. */
+const SKY_CENTER = new THREE.Vector3(0, 0, -4900);
+const SKY_R = 22000;
+
+const RAW_STARS = window.STARS;
+const MAG_MIN = -1.44, MAG_MAX = 4.0;
+
+/* celestial sphere: RA 0 / Dec 0 sits at (0,0,-R), i.e. dead ahead at t=0.
+   The catalogue stores RA as degrees over the full ring (-180…180), the same
+   convention the project's px() uses — NOT hours. */
+function raDecToVec3(raDeg, decDeg, out) {
+  const ra = (raDeg * Math.PI) / 180, dec = (decDeg * Math.PI) / 180;
+  return out.set(
+    SKY_CENTER.x + SKY_R * Math.cos(dec) * Math.sin(ra),
+    SKY_CENTER.y + SKY_R * Math.sin(dec),
+    SKY_CENTER.z - SKY_R * Math.cos(dec) * Math.cos(ra));
+}
+
+/* pure: catalogue magnitude → apparent diameter px (formula from StarChart.tsx) */
+const magToDiameter = mag => Math.min(3.0, Math.max(0.7, 2.6 - mag * 0.42));
+/* pure: catalogue magnitude → intrinsic brightness. Real range, no fudging. */
+const magToEnergy = mag => 0.10 + 0.90 * Math.pow((MAG_MAX - mag) / (MAG_MAX - MAG_MIN), 1.15);
+
+const ALWAYS_ON_MAG = 1.5;                 // ~23 颗常亮星，跟原项目一致
+
+const SKY_POS = [], SKY_COL = [], SKY_STAR = [], GAIN = [];
+const _sv = new THREE.Vector3(), _sc = new THREE.Color();
+
+RAW_STARS.forEach((s, i) => {
+  const ra = s[0] / 100, dec = s[1] / 100, mag = s[2] / 100;
+  raDecToVec3(ra, dec, _sv);
+  SKY_POS.push(_sv.x, _sv.y, _sv.z);
+  const [cr, cg, cb] = s[3].split(',').map(n => Number(n) / 255);
+  _sc.setRGB(cr, cg, cb, THREE.SRGBColorSpace);   // catalogue colours are sRGB
+  SKY_COL.push(_sc.r, _sc.g, _sc.b);
+  SKY_STAR.push(
+    magToDiameter(mag),                      // x: apparent diameter
+    magToEnergy(mag),                        // y: intrinsic brightness
+    (i * 2.399963) % (Math.PI * 2),          // z: twinkle phase (golden-angle, stable)
+    0.8 + ((i * 0.61803398875) % 1) * 0.9);  // w: aspect / twinkle speed
+  GAIN.push(mag <= ALWAYS_ON_MAG ? 1 : 0);   // 常亮星置 1，其余由星座激活接管
+});
+
+const SKY_COUNT = RAW_STARS.length;
+
+const skyGeo = new THREE.BufferGeometry();
+skyGeo.setAttribute('position', new THREE.Float32BufferAttribute(SKY_POS, 3));
+skyGeo.setAttribute('color',    new THREE.Float32BufferAttribute(SKY_COL, 3));
+skyGeo.setAttribute('star',     new THREE.Float32BufferAttribute(SKY_STAR, 4));
+const gainAttr = new THREE.Float32BufferAttribute(new Float32Array(GAIN), 1);
+skyGeo.setAttribute('gain', gainAttr);
+const gain = gainAttr.array;              // same caveat as lineAct above
+
+const skyUniforms = {
+  arrival:    { value: 0 },
+  time:       { value: 0 },
+  quiet:      { value: new THREE.Vector2(0.8, 0.7) },
+  pixelRatio: { value: renderer.getPixelRatio() },
+};
+
+const skyMat = new THREE.ShaderMaterial({
+  uniforms: skyUniforms,
+  transparent: true, depthWrite: false, depthTest: false, toneMapped: false,
+  blending: THREE.AdditiveBlending,
+  vertexShader: /* glsl */`
+    attribute vec3 color;
+    attribute vec4 star;
+    attribute float gain;
+    uniform float arrival, pixelRatio, time;
+    varying vec3 tint;
+    varying float energy, angle, aspect, spriteSize, foreground;
+    void main() {
+      vec4 view = modelViewMatrix * vec4(position, 1.0);
+      gl_Position = projectionMatrix * view;
+      // Real catalogue stars are effectively at infinity: apparent size comes
+      // from the magnitude alone, it must not change as the camera moves.
+      float diameter = clamp(star.x, 0.5, 4.2);
+      spriteSize = diameter * 7.0 + 5.0;
+      gl_PointSize = spriteSize * pixelRatio;
+      float tw = sin(time * (0.7 + star.w) + star.z) * 0.25
+               + sin(time * 2.3 + star.z * 4.0) * 0.12;
+      // gain: 1 for the ~23 always-on bright stars, otherwise the smoothed
+      // activation of the constellation this star belongs to (0.16 floor).
+      energy = star.y * arrival * gain * (1.0 + step(0.9, star.y) * tw * 0.6);
+      foreground = arrival * gain * smoothstep(2.6, 3.6, star.x);
+      tint = color;
+      angle = star.z;
+      aspect = star.w;
+    }`,
+  fragmentShader: /* glsl */`
+    varying vec3 tint;
+    varying float energy, angle, aspect, spriteSize, foreground;
+    void main() {
+      vec2 pixel = (gl_PointCoord - 0.5) * spriteSize;
+      float pinpoint = exp(-dot(pixel, pixel) * 0.5);
+      vec2 p = gl_PointCoord * 2.0 - 1.0;
+      p = mat2(cos(angle), -sin(angle), sin(angle), cos(angle)) * p;
+      p *= vec2(inversesqrt(aspect), sqrt(aspect));
+      float core = exp(-dot(p, p) * 65.0);
+      vec2 shoulder = p - vec2(0.055, 0.025);
+      float light = core + exp(-dot(shoulder, shoulder) * 35.0) * 0.22
+        + exp(-dot(p, p) * 20.0) * 0.08 + exp(-dot(p, p) * 6.0) * 0.004;
+      gl_FragColor = vec4((tint * light + vec3(1.0) * pinpoint * foreground * 3.0) * energy, 1.0);
+    }`,
+});
+const skyPoints = new THREE.Points(skyGeo, skyMat);
+skyPoints.frustumCulled = false;
+scene.add(skyPoints);
+
+/* ── 88 real constellations, in 3D ────────────────────────────────────
+   Lines and member stars come from the same IAU data as the project.
+   Each constellation owns one scalar `act` (0→1). It rises when the cursor
+   comes within HIT px of any of its projected vertices — that is the only
+   thing that lights a constellation up, exactly like the original. */
+const LINE_COLOR = new THREE.Color().setRGB(1, 224 / 255, 140 / 255, THREE.SRGBColorSpace); // 金色，取自 StarChart.tsx
+const HIT = 55, SNAP = 14, STAR_HOVER = 90;
+
+/* ---------- stars → 3D positions, once ---------- */
+const starVec = RAW_STARS.map(s => {
+  const v = new THREE.Vector3();
+  return raDecToVec3(s[0] / 100, s[1] / 100, v);
+});
+
+/* ---------- constellations → 3D line segments ---------- */
+const constellations = Object.entries(window.SKY).map(([id, segs]) => {
+  const verts3 = [];                       // this constellation's vertices, in 3D
+  const key = new Map();                   // dedupe shared vertices
+  const lines = [];
+  for (const seg of segs) {
+    const run = seg.map(([ra, dec]) => {
+      const k = ra.toFixed(2) + ',' + dec.toFixed(2);
+      if (!key.has(k)) { const v = new THREE.Vector3(); key.set(k, raDecToVec3(ra, dec, v)); }
+      return key.get(k);
+    });
+    for (let i = 1; i < run.length; i++) lines.push([run[i - 1], run[i]]);
+    verts3.push(...run);
+  }
+  return { id, lines, verts3, act: 0, mid: new THREE.Vector3() };
+});
+
+const linePos = [], lineActIdx = [];        // per-vertex activation slot
+for (let ci = 0; ci < constellations.length; ci++) {
+  for (const [a, b] of constellations[ci].lines) {
+    linePos.push(a.x, a.y, a.z, b.x, b.y, b.z);
+    lineActIdx.push(ci, ci);
+  }
+}
+const lineGeo = new THREE.BufferGeometry();
+lineGeo.setAttribute('position', new THREE.Float32BufferAttribute(linePos, 3));
+const lineActAttr = new THREE.Float32BufferAttribute(new Float32Array(lineActIdx.length), 1);
+lineGeo.setAttribute('act', lineActAttr);
+// three's Float32BufferAttribute *copies* the array you hand it, so keep a handle
+// on the attribute's own store — writing into anything else uploads nothing.
+const lineAct = lineActAttr.array;
+
+const lineMat = new THREE.ShaderMaterial({
+  uniforms: { tint: { value: LINE_COLOR }, opacity: { value: 0.55 }, uArrival: { value: 0 } },
+  transparent: true, depthWrite: false, depthTest: false, toneMapped: false,
+  blending: THREE.AdditiveBlending,
+  vertexShader: /* glsl */`
+    attribute float act;
+    varying float vAct;
+    void main() {
+      vAct = act;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }`,
+  fragmentShader: /* glsl */`
+    uniform vec3 tint; uniform float opacity; uniform float uArrival;
+    varying float vAct;
+    void main() {
+      float a = vAct * uArrival;
+      if (a < 0.004) discard;
+      gl_FragColor = vec4(tint * a * opacity, 1.0);
+    }`,
+});
+const lineMesh = new THREE.LineSegments(lineGeo, lineMat);
+lineMesh.frustumCulled = false;
+scene.add(lineMesh);
+
+/* ---------- which catalogue stars belong to which constellation ---------- */
+/* 成员星匹配：和原项目一样，用屏幕上 14px 内的距离来判定归属。 */
+const starOwner = new Array(RAW_STARS.length).fill(-1);
+{
+  const v = new THREE.Vector3();
+  constellations.forEach((c, ci) => {
+    for (let si = 0; si < RAW_STARS.length; si++) {
+      if (starOwner[si] !== -1 && RAW_STARS[si][2] / 100 <= ALWAYS_ON_MAG) continue;
+      const p = starVec[si];
+      if (c.verts3.some(q => q.distanceTo(p) < SKY_R * 0.016)) {   // ≈14px at the project's scale
+        if (starOwner[si] === -1) starOwner[si] = ci;
+      }
+    }
+  });
+}
+
+/* ---------- hover test: project vertices to CSS px, measure to the cursor ---------- */
+const _p = new THREE.Vector3();
+function isHot(mx, my, verts3, hit = HIT) {
+  const w = cssW, h = cssH;
+  for (const v of verts3) {
+    _p.copy(v).project(camera);
+    if (_p.z < -1 || _p.z > 1) continue;
+    const dx = (_p.x * 0.5 + 0.5) * w - mx;
+    const dy = (1 - (_p.y * 0.5 + 0.5)) * h - my;
+    if (dx * dx + dy * dy < hit * hit) return true;
+  }
+  return false;
+}
+
+/* ---------- constellation names: a crisp 2D overlay, not refracted ---------- */
+const labelCv = document.getElementById('labels');
+const labelCtx = labelCv.getContext('2d');
+
+let cssW = 1, cssH = 1;
+function updateConstellations(mx, my, dt, arrival) {
+  lineMat.uniforms.uArrival.value = arrival;
+
+  for (const c of constellations)
+    c.act += ((isHot(mx, my, c.verts3) ? 1 : 0) - c.act) * 0.08;
+
+  for (let i = 0; i < lineActIdx.length; i++)
+    lineAct[i] = constellations[lineActIdx[i]].act;
+  lineActAttr.needsUpdate = true;
+  window.__lineActMax = Math.max(...lineAct);
+
+  // 常亮星永远 1；其余星跟着自己所属星座走，有 0.16 的底噪（其余星座暗下去）
+  for (let si = 0; si < SKY_COUNT; si++) {
+    const own = starOwner[si];
+    gain[si] = RAW_STARS[si][2] / 100 <= ALWAYS_ON_MAG ? 1
+             : Math.max(0.16, own === -1 ? 0 : constellations[own].act);
+  }
+  gainAttr.needsUpdate = true;
+
+  // 名字：投影到屏幕，只画 act > 0.5 的
+  const dpr = renderer.getPixelRatio();
+  labelCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  labelCtx.clearRect(0, 0, cssW, cssH);
+  labelCtx.font = '11px -apple-system, sans-serif';
+  labelCtx.textAlign = 'center';
+  for (const c of constellations) {
+    if (c.act <= 0.5) continue;
+    if (c.mid.lengthSq() === 0) {                  // centroid of its vertices
+      c.mid.set(0, 0, 0);
+      for (const v of c.verts3) c.mid.add(v);
+      c.mid.multiplyScalar(1 / c.verts3.length);
+    }
+    _p.copy(c.mid).project(camera);
+    if (_p.z < -1 || _p.z > 1) continue;
+    labelCtx.globalAlpha = (c.act - 0.5) * 2;
+    labelCtx.fillStyle = '#f2e3b3';
+    labelCtx.fillText(c.id, (_p.x * 0.5 + 0.5) * cssW, (1 - (_p.y * 0.5 + 0.5)) * cssH - 8);
+    labelCtx.globalAlpha = 1;
+  }
+}
+
+/* ── gravitational-lens post pass ──────────────────────────────────── */
+const lensUniforms = {
+  tDiffuse:   { value: target.texture },
+  resolution: { value: new THREE.Vector2(1, 1) },
+  box:        { value: new THREE.Vector4() },      // centreX, centreY, halfW, halfH
+  radius:     { value: 32 },
+  amount:     { value: 0 },
+  mass:       { value: 1 },
+  time:       { value: 0 },
+  arrival:    { value: 0 },
+  quiet:      { value: new THREE.Vector2(0.8, 0.7) },
+  // Reach / strength of the warp. Krea ships 45→115 px reach with a 0.45 pull and a
+  // 1.8 bend — tuned for a dense particle cloud. Over 1px constellation lines that
+  // band smears the shapes, hence the tighter defaults. `?lens=1` restores Krea's.
+  lensNear:   { value: 14 },
+  lensFar:    { value: 48 },
+  lensPull:   { value: 0.35 },
+  lensBend:   { value: 1.15 },
+};
+
+if (LENS !== null) {                       // ?lens=0 off · ?lens=1 Krea's original · 0…2 scales it
+  lensUniforms.lensNear.value =  45 * LENS;
+  lensUniforms.lensFar.value  = 115 * LENS;
+  lensUniforms.lensPull.value = 0.45 * LENS;
+  lensUniforms.lensBend.value = 1.80 * LENS;
+}
+
+const lensMat = new THREE.ShaderMaterial({
+  uniforms: lensUniforms, depthTest: false, depthWrite: false,
+  vertexShader: /* glsl */`
+    varying vec2 vUv;
+    void main() {
+      vUv = uv;
+      gl_Position = projectionMatrix * modelViewMatrix * vec4(position, 1.0);
+    }`,
+  fragmentShader: /* glsl */`
+    uniform sampler2D tDiffuse;
+    uniform vec2 resolution, quiet;
+    uniform vec4 box;
+    uniform float radius, amount, mass, arrival, time;
+    uniform float lensNear, lensFar, lensPull, lensBend;
+    varying vec2 vUv;
+    void main() {
+      vec2 p = vUv * resolution - box.xy;
+      vec2 q = abs(p) - box.zw + radius;
+      float edge = length(max(q, 0.0)) + min(max(q.x, q.y), 0.0) - radius;
+      float horizon = max(box.w, 24.0);
+      float impact = horizon + max(edge, 0.0);
+      float einstein = horizon + 26.0 * mass;
+      // Point-mass lens equation adapted to a rounded rectangle, not a Schwarzschild solution.
+      float source = impact - einstein * einstein / impact;
+      vec2 direction = normalize(p / max(box.zw, vec2(1.0)) + vec2(0.00001));
+      // Krea's own numbers are p*0.45 / source*1.8 with a 45→115 px falloff. That is
+      // tuned for a dense particle cloud; over 1px constellation lines the wide band
+      // smears the shapes, so both the reach and the pull are dialled down here.
+      vec2 bent = (box.xy + p * lensPull + direction * source * lensBend) / resolution;
+      float influence = amount * (1.0 - smoothstep(lensNear, lensFar, edge));
+      vec2 sampleUv = mix(vUv, bent, influence);
+      vec2 bounds = min(sampleUv, 1.0 - sampleUv) * resolution;
+      vec3 light = texture2D(tDiffuse, clamp(sampleUv, 0.0, 1.0)).rgb
+        * smoothstep(0.0, 2.0, min(bounds.x, bounds.y));
+      float clear = 1.0 - smoothstep(0.35, 1.0, length((vUv * 2.0 - 1.0 - vec2(0.0, 0.34)) / quiet));
+      clear *= mix(1.0, smoothstep(12.0, 48.0, edge), amount);
+      light *= pow(1.0 - arrival * clear * 0.98, 2.0);
+      light *= mix(1.0, smoothstep(-1.0, 1.0, edge), amount);
+      float ring = edge - 0.65;
+      float pixel = max(fwidth(edge), 0.001);
+      float coverage = clamp((ring + 0.25) / pixel + 0.5, 0.0, 1.0)
+        - clamp((ring - 0.25) / pixel + 0.5, 0.0, 1.0);
+      if (amount > 0.0 && abs(ring) < 3.0) {
+        vec3 compressed = vec3(0.0);
+        vec2 tangent = vec2(-direction.y, direction.x);
+        for (int i = -16; i <= 16; i++) {
+          float weight = exp(-pow(float(i) / 9.0, 2.0));
+          for (int j = -1; j <= 1; j++) {
+            vec2 ray = bent + (tangent * float(i) * 7.0 + direction * float(j) * 18.0 * mass) / resolution;
+            compressed += texture2D(tDiffuse, clamp(ray, 0.0, 1.0)).rgb * weight;
+          }
+        }
+        light += amount * (coverage + exp(-abs(ring) / 0.6) * 0.3) * compressed * 1.8;
+      }
+      float distance = max(edge, 0.0);
+      float orbit = atan(direction.y, direction.x) + time * 0.56;
+      float flow = 0.12 + 1.4 * pow(0.5 + 0.32 * sin(orbit * 2.0) + 0.18 * sin(orbit * 5.0), 2.0);
+      float flare = max(exp(-distance / 20.0) - exp(-5.0), 0.0) * 0.035 * flow;
+      light += amount * smoothstep(-0.5, 0.5, edge)
+        * vec3(0.5, 0.72, 1.0) * flare;
+      gl_FragColor = vec4(light, 1.0);
+      #include <tonemapping_fragment>
+      #include <colorspace_fragment>
+    }`,
+});
+
+/* fullscreen triangle + ortho camera (class Yr in the bundle) */
+const quadGeo = new THREE.BufferGeometry();
+quadGeo.setAttribute('position', new THREE.BufferAttribute(new Float32Array([-1,3,0, -1,-1,0, 3,-1,0]), 3));
+quadGeo.setAttribute('uv',       new THREE.BufferAttribute(new Float32Array([0,2, 0,0, 2,0]), 2));
+const quadMesh = new THREE.Mesh(quadGeo, lensMat);
+const quadScene = new THREE.Scene(); quadScene.add(quadMesh);
+const quadCam = new THREE.OrthographicCamera(-1, 1, 1, -1, 0, 1);
+
+/* ── pointer ───────────────────────────────────────────────────────── */
+const pointer = new THREE.Vector2();   // smoothed, normalised −.5…−.5 (camera tilt)
+const aim     = new THREE.Vector2();
+const cursor  = { x: 0, y: 0 };        // CSS px inside the hero — drives the constellation layer
+hero.addEventListener('pointermove', e => {
+  const r = canvas.getBoundingClientRect();
+  aim.set((e.clientX - r.left) / r.width - 0.5, 0.5 - (e.clientY - r.top) / r.height);
+  cursor.x = e.clientX - r.left;
+  cursor.y = e.clientY - r.top;
+});
+hero.addEventListener('pointerleave', () => {
+  aim.set(0, 0);
+  cursor.x = -9999; cursor.y = -9999;     // nothing hot
+});
+
+/* ── 拖拽环视：偏航不限，俯仰夹在 ±90°，这样整个天球都够得着 ────────── */
+const view = { yaw: 0, pitch: 0, dragging: false, lastX: 0, lastY: 0 };
+const clampPitch = v => Math.max(-Math.PI / 2 * 0.98, Math.min(Math.PI / 2 * 0.98, v));
+hero.addEventListener('pointerdown', e => {
+  if (e.target.closest('.prompt-box') || e.target.closest('button')) return;
+  view.dragging = true; view.lastX = e.clientX; view.lastY = e.clientY;
+  hero.setPointerCapture?.(e.pointerId);
+  hero.style.cursor = 'grabbing';
+});
+hero.addEventListener('pointermove', e => {
+  if (!view.dragging) return;
+  view.yaw   -= (e.clientX - view.lastX) * DRAG_SENS_V;
+  view.pitch  = clampPitch(view.pitch + (e.clientY - view.lastY) * DRAG_SENS_V);
+  view.lastX = e.clientX; view.lastY = e.clientY;
+  cursor.x = -9999; cursor.y = -9999;        // 拖拽时不点亮星座
+});
+const endDrag = () => { view.dragging = false; hero.style.cursor = ''; };
+hero.addEventListener('pointerup', endDrag);
+hero.addEventListener('pointercancel', endDrag);
+window.__view = (yaw, pitch) => { view.yaw = yaw; view.pitch = clampPitch(pitch); };
+window.__viewState = () => ({ yaw: +view.yaw.toFixed(3), pitch: +view.pitch.toFixed(3) });
+
+/* engaged = the prompt box is focused or hovered → mass 1.35 */
+let engaged = 0;
+wrapEl.addEventListener('pointerenter', () => engaged = 1);
+wrapEl.addEventListener('pointerleave', () => engaged = 0);
+document.getElementById('editor').addEventListener('focus', () => engaged = 1);
+document.getElementById('editor').addEventListener('blur',  () => engaged = 0);
+
+/* ── resize ────────────────────────────────────────────────────────── */
+function resize() {
+  const w = canvas.clientWidth || hero.clientWidth;
+  const h = canvas.clientHeight || hero.clientHeight;
+  if (!w || !h) return;
+  renderer.setSize(w, h, false);
+  target.setSize(canvas.width, canvas.height);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+  starUniforms.quiet.value.set(Math.min(0.9, 880 / w), 0.7);
+  lensUniforms.resolution.value.set(w, h);
+
+  cssW = w; cssH = h;
+  const dpr2 = renderer.getPixelRatio();
+  labelCv.width  = Math.round(w * dpr2);
+  labelCv.height = Math.round(h * dpr2);
+
+  if (cursor.x === 0 && cursor.y === 0) { cursor.x = w / 2; cursor.y = h / 2; }
+}
+new ResizeObserver(resize).observe(canvas);
+resize();
+
+/* 相机摆位单独成函数：自检要在不渲染的前提下扫遍整个天球，验证「看得到全部」 */
+function placeCamera(p, m, h, g) {
+  camera.position.set(
+    Math.sin(h) * g + Math.sin(m * 0.035) * 12,
+    Math.sin(p * Math.PI) * 180 + Math.sin(m * 0.028) * 8,
+    -4900 + Math.cos(h) * g);
+  camera.lookAt(0, 0, -4900);
+  camera.rotateX(Math.sin(m * 0.02) * 0.015 + pointer.y * p * 0.1);
+  camera.rotateY(Math.sin(m * 0.017) * 0.025 + pointer.x * p * 0.16);
+  camera.rotateZ(Math.sin(p * Math.PI) * -0.1 + Math.sin(m * 0.025) * 0.007);
+  // 指针微动（Krea 的视差手感）+ 拖拽自由环视（覆盖整个天球）
+  camera.rotateY(pointer.x * LOOK_V * p + view.yaw);
+  camera.rotateX(pointer.y * LOOK_V * 0.55 * p + view.pitch);
+  camera.updateMatrixWorld(true);
+  camera.matrixWorldInverse.copy(camera.matrixWorld).invert();
+}
+
+/* ── the loop (verbatim control flow from the bundle) ──────────────── */
+let elapsed = 0, last = 0, engagedDamped = 0, arrived = false;
+
+function frame(now) {
+  const dt = last && now ? (now - last) / 1000 : 0;
+  last = now;
+  const step = Math.min(dt, 0.05);
+
+  const f = CAPTURE ? elapsed : (reduced() ? 4.4 : elapsed);
+  const p = THREE.MathUtils.smootherstep(f, 0.8, 4.4);
+  const m = Math.max(0, f - 4.4);
+  engagedDamped = reduced() ? 0
+                : THREE.MathUtils.damp(engagedDamped, engaged ? 1 : 0, 4, step);
+
+  const h = p * 0.85 + engagedDamped * p * 0.12;
+  const g = 6000 - p * (5400 + engagedDamped * 360);
+
+  pointer.lerp(aim, 1 - Math.exp(-step * 4));
+  placeCamera(p, m, h, g);
+
+  starUniforms.arrival.value = THREE.MathUtils.smootherstep(f, 1.8, 3.2);
+  starUniforms.time.value = m;
+  lensUniforms.amount.value = promptEl ? THREE.MathUtils.smootherstep(f, 2.2, 3.2) : 0;
+  lensUniforms.mass.value = 1 + engagedDamped * 0.35;
+  lensUniforms.time.value = m;
+  lensUniforms.arrival.value = starUniforms.arrival.value;
+
+  if (promptEl) {
+    const cr = canvas.getBoundingClientRect();
+    const pr = promptEl.getBoundingClientRect();
+    lensUniforms.box.value.set(
+      pr.left - cr.left + pr.width / 2,
+      cr.bottom - pr.bottom + pr.height / 2,
+      pr.width / 2, pr.height / 2);
+    lensUniforms.radius.value =
+      parseFloat(getComputedStyle(promptEl).borderTopLeftRadius) * pr.width / promptEl.offsetWidth;
+  }
+
+  if (!arrived && f >= 1.5) { arrived = true; copyEl.dataset.animate = 'true'; }
+  if (CAPTURE) syncIntro(f);
+
+  /* L1: 更新每个星座的激活量（投影到屏幕、判断光标距离），再重画标签层 */
+  updateConstellations(cursor.x, cursor.y, reduced() && !CAPTURE ? 0 : step,
+                       starUniforms.arrival.value);
+
+  renderer.setRenderTarget(target);
+  renderer.render(scene, camera);             // L0 + L1 into one buffer…
+  renderer.setRenderTarget(null);
+  renderer.render(quadScene, quadCam);        // …then one lens pass bends both together
+}
+
+/* ── capture mode: step the clock from outside, drive the intro by hand ── */
+const introEls = [...document.querySelectorAll('.hero-enter')];
+const INTRO_DELAY = [0.075, 0.15, 0.225];
+function syncIntro(f) {
+  introEls.forEach((el, i) => {
+    const t = Math.max(0, Math.min(1, (f - 1.5 - INTRO_DELAY[i]) / 1.0));
+    const e = t < .5 ? 4*t*t*t : 1 - Math.pow(-2*t + 2, 3)/2;   // cubic-bezier(.333,1,.667,1) ≈ easeInOutCubic
+    el.style.transition = 'none';
+    el.style.opacity = e;
+    el.style.scale = 0.85 + 0.15 * e;
+  });
+}
+window.__still = t => { elapsed = t; };
+window.__ready = () => !!scene && !!lensMat;
+
+const clock = { running: false };
+function tick(now) {
+  if (!clock.running) return;
+  const dt = last && now ? (now - last) / 1000 : 0;
+  if (!CAPTURE) elapsed += Math.min(dt, 0.05);
+  frame(now);
+  requestAnimationFrame(tick);
+}
+function start() {
+  elapsed = CAPTURE ? 0 : (reduced() ? 4.4 : 0);
+  last = 0; arrived = false;
+  copyEl.dataset.animate = 'false';
+  clock.running = true;
+  requestAnimationFrame(tick);
+}
+
+/* ── motion control ────────────────────────────────────────────────── */
+const btnMotion = document.getElementById('btnMotion');
+function syncMotionUI() {
+  const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  btnMotion.textContent = `motion: ${userMotion ? 'forced on' : (reduce ? 'reduced' : 'auto')}`;
+  btnMotion.setAttribute('aria-pressed', String(userMotion));
+  wrapEl.style.animationPlayState = reduced() ? 'paused' : 'running';
+  note.textContent =
+    `prefers-reduced-motion: ${reduce}\n` +
+    `webgl: ${renderer.getContext().getParameter(WebGLRenderingContext.RENDERER)}\n` +
+    `stars: ${COUNT} 颗真实星（星等 −1.44…+4.0） · 星座: ${constellations.length} · 常亮: ${RAW_STARS.filter(s => s[2] / 100 <= ALWAYS_ON_MAG).length}\n` +
+    `渲染: three.js r172（Krea CY55ErfD.js）· 星表/星座: StarChart.tsx`;
+}
+btnMotion.addEventListener('click', () => { userMotion = !userMotion; restart(); });
+document.getElementById('btnReplay').addEventListener('click', restart);
+function restart(){ last = 0; start(); syncMotionUI(); }
+
+syncMotionUI();
+start();
+
+/* self-check: append #check and read document.title — deterministic. */
+window.__render = t => { elapsed = t; last = 0; frame(performance.now()); };
+window.__cursor = (x, y) => { cursor.x = x; cursor.y = y; };      // capture helper
+window.__look   = (x, y) => { pointer.set(x, y); aim.set(x, y); } // capture: pan the view
+
+if (location.hash === '#check') {
+  setTimeout(() => {
+    window.__render(3.6);
+
+    /* end-to-end: warm (golden-line) pixels in the RENDERED frame, hovered vs idle.
+       这是唯一能抓住「属性根本没上传到 GPU」这类 bug 的检查。 */
+    const grab = () => {
+      window.__render(3.6);
+      const g2 = renderer.getContext();
+      const W = canvas.width, H = canvas.height;
+      const buf = new Uint8Array(W * H * 4);
+      g2.readPixels(0, 0, W, H, g2.RGBA, g2.UNSIGNED_BYTE, buf);
+      return buf;
+    };
+    const warm = b => {
+      let n = 0;
+      for (let i = 0; i < b.length; i += 4)
+        if (b[i] > b[i + 2] + 12 && b[i] > 40 && b[i + 1] > b[i + 2] + 4) n++;
+      return n;
+    };
+    const settle = (x, y) => {
+      cursor.x = x; cursor.y = y;
+      for (let i = 0; i < 70; i++) updateConstellations(cursor.x, cursor.y, 1 / 60, 1);
+    };
+
+    settle(-9999, -9999);
+    const bufIdle = grab();
+
+    /* 找一颗当前在画面里的星座顶点，用真实 pointer 事件去点它 */
+    let target = null, tx = 0, ty = 0;
+    outer:
+    for (const cst of constellations)
+      for (const v of cst.verts3) {
+        _p.copy(v).project(camera);
+        if (_p.z <= -1 || _p.z >= 1) continue;
+        const x = (_p.x * 0.5 + 0.5) * cssW, y = (1 - (_p.y * 0.5 + 0.5)) * cssH;
+        if (x > 120 && x < cssW - 120 && y > 90 && y < cssH - 90) { target = cst; tx = x; ty = y; break outer; }
+      }
+    let got = null;
+    if (target) {
+      const rect = canvas.getBoundingClientRect();
+      hero.dispatchEvent(new PointerEvent('pointermove', { clientX: rect.left + tx, clientY: rect.top + ty }));
+      got = [cursor.x, cursor.y];
+      settle(cursor.x, cursor.y);
+    }
+    const bufHot = grab();
+    let changed = 0;
+    for (let i = 0; i < bufHot.length; i += 4)
+      if (Math.abs(bufHot[i] - bufIdle[i]) + Math.abs(bufHot[i + 1] - bufIdle[i + 1]) +
+          Math.abs(bufHot[i + 2] - bufIdle[i + 2]) > 12) changed++;
+
+    /* 环视必须真的改变画面 —— 这是「随着视角变化才能看到全部内容」的前提 */
+    window.__look(0, 0); window.__render(3.6);
+    const bufCenter = grab();
+    window.__look(0.5, 0); window.__render(3.6);
+    const bufPanned = grab();
+    let panned = 0;
+    for (let i = 0; i < bufPanned.length; i += 4)
+      if (Math.abs(bufPanned[i] - bufCenter[i]) + Math.abs(bufPanned[i + 1] - bufCenter[i + 1]) +
+          Math.abs(bufPanned[i + 2] - bufCenter[i + 2]) > 12) panned++;
+    /* 环视后应该看得到不同的星座 → 画面里可见的星座集合应当明显变化 */
+    const inView = () => constellations.filter(c => c.verts3.some(v => {
+      _p.copy(v).project(camera);
+      if (_p.z <= -1 || _p.z >= 1) return false;
+      const x = (_p.x * 0.5 + 0.5) * cssW, y = (1 - (_p.y * 0.5 + 0.5)) * cssH;
+      return x > 0 && x < cssW && y > 0 && y < cssH;
+    })).map(c => c.id);
+    window.__look(0, 0); window.__render(3.6);
+    const viewA = inView();
+    window.__look(0.5, 0); window.__render(3.6);
+    const viewB = inView();
+    const turned = viewA.filter(id => !viewB.includes(id)).length;
+
+    /* 「拖动到底能不能看到全部」—— 直接量：
+       把偏航/俯仰扫一遍，统计有多少星座曾经进入过视野，以及总覆盖立体角。
+       用 placeCamera + 手动矩阵，不渲染，所以很快。 */
+    const coverage = (() => {
+      const seen = new Set();
+      let solid = 0;
+      const dv = new THREE.Vector3();
+      const H2 = Math.tan((camera.fov * Math.PI) / 360);
+      const W2 = H2 * (cssW / cssH);
+      const dYaw = 0.13;
+      for (let yaw = -Math.PI; yaw < Math.PI; yaw += dYaw) {
+        for (let pitch = -Math.PI / 2 * 0.97; pitch <= Math.PI / 2 * 0.97; pitch += 0.15) {
+          view.yaw = yaw; view.pitch = pitch;
+          placeCamera(1, 0, 0, 600);
+          let hit = false;
+          for (const cst of constellations) {
+            dv.set(0, 0, 0);
+            for (const v of cst.verts3) dv.add(v);
+            dv.multiplyScalar(1 / cst.verts3.length).project(camera);
+            if (dv.z > -1 && dv.z < 1 &&
+                Math.abs(dv.x) < W2 / H2 * 0.9 && Math.abs(dv.y) < 0.9) { hit = true; seen.add(cst.id); }
+          }
+          if (hit) solid++;
+        }
+      }
+      view.yaw = 0; view.pitch = 0;
+      return { constellationsReachable: seen.size, viewsScanned: solid };
+    })();
+
+    window.__look(0, 0);
+    const gl = renderer.getContext();
+    const box = lensUniforms.box.value;
+    const r = {
+      three: THREE.REVISION,
+      // L0 氛围
+      particlePoints: COUNT * 5,
+      particleDim: +starUniforms.dim.value.toFixed(3),
+      dof: +starUniforms.dof.value.toFixed(2),
+      // L1 真实星图（球面）
+      catalogueStars: RAW_STARS.length,
+      alwaysOn: [...gain].filter((g, i) => RAW_STARS[i][2] / 100 <= ALWAYS_ON_MAG).length,
+      constellations: constellations.length,
+      lineSegments: lineActIdx.length,
+      magRange: [Math.min(...RAW_STARS.map(s => s[2] / 100)), Math.max(...RAW_STARS.map(s => s[2] / 100))],
+      skyRadius: SKY_R,
+      camOffsetFromSkyCentre: Math.round(camera.position.distanceTo(SKY_CENTER)),
+      // 投影保真度：球面上可见星点的相机距离 max/min，理想 ≈ 1.0
+      skyFrustumSpread: (() => {
+        const d = [];
+        for (let i = 0; i < starVec.length; i++) {
+          _p.copy(starVec[i]).project(camera);
+          if (_p.z <= -1 || _p.z >= 1) continue;
+          const x = (_p.x * 0.5 + 0.5) * cssW, y = (1 - (_p.y * 0.5 + 0.5)) * cssH;
+          if (x > 0 && x < cssW && y > 0 && y < cssH) d.push(starVec[i].distanceTo(camera.position));   // camera 不是 Vector3，得取 .position
+        }
+        window.__spreadN = d.length;
+        if (!d.length) return -1;
+        return +(Math.max(...d) / Math.min(...d)).toFixed(3);
+      })(),
+      spreadSampleCount: window.__spreadN,
+      // 环视
+      dragYawRangeDeg: 360,
+      dragPitchRangeDeg: 176,
+      constellationsReachable: coverage.constellationsReachable,
+      pixelsTurned: panned,
+      constellationsLeavingView: turned,
+      constellationsInView: viewA.length,
+      // 透镜
+      lensAmount: +lensUniforms.amount.value.toFixed(3),
+      lens: { near: lensUniforms.lensNear.value, far: lensUniforms.lensFar.value,
+              pull: lensUniforms.lensPull.value, bend: lensUniforms.lensBend.value },
+      box: [box.x, box.y, box.z, box.w].map(Math.round),
+      // 交互
+      hovered: target ? target.id : null,
+      pointerPlumbed: !!got && Math.abs(got[0] - tx) < 1 && Math.abs(got[1] - ty) < 1,
+      hoveredAct: target ? +target.act.toFixed(3) : -1,
+      alsoHot: constellations.filter(c => c.act > 0.5).length,
+      pixelsChangedOnHover: changed,
+      reduce: matchMedia('(prefers-reduced-motion: reduce)').matches,
+    };
+    const boxOk = Math.abs(r.box[2] - 396) <= 4 && Math.abs(r.box[3] - 59) <= 4;
+    const ok = r.particlePoints >= 22500 && r.catalogueStars === 519 && r.constellations === 88 &&
+               r.alwaysOn === 23 && r.lineSegments === 1470 &&
+               r.skyFrustumSpread < 1.10 && r.camOffsetFromSkyCentre < 1200 &&
+               r.pixelsTurned > 5000 && r.constellationsLeavingView >= 1 &&
+               r.constellationsReachable === 88 &&
+               r.lensAmount > 0.99 && boxOk &&
+               r.hoveredAct > 0.5 && r.alsoHot <= 8 && r.pixelsChangedOnHover > 400 &&
+               r.pointerPlumbed;
+    document.title = `${ok ? 'PASS' : 'FAIL'} ${JSON.stringify(r)}`;
+  }, 2500);
+}
+</script>
+</body>
+</html>

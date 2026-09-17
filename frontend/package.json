@@ -20,7 +20,8 @@
     "rehype-sanitize": "^6.0.0",
     "remark-gfm": "^4.0.0",
     "remark-math": "^6.0.0",
-    "thinking-orbs": "^0.2.0"
+    "thinking-orbs": "^0.2.0",
+    "three": "^0.186.0"
   },
   "devDependencies": {
     "@types/node": "26.1.2",

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import { usePiSession, type PiEntry, type ResearchRound } from "@/hooks/usePiSession";
-import StarChart from "@/components/StarChart";
+import StarField from "@/components/StarField";
 import BirdsField from "@/components/BirdsField";
 import { MarkdownBody } from "@/components/MarkdownBody";
 import { IconButton } from "@/components/UiIcon";
@@ -328,7 +328,7 @@ export default function ChatPage() {
         <BirdsField zIndex={0} />
       ) : (
         /* 正式对话：星空背景（88 真实星座 + 519 星，鼠标靠近点亮） */
-        <StarChart zIndex={0} />
+        <StarField zIndex={0} />
       )}
       <SessionSidebar
         sidebar={sidebar}
